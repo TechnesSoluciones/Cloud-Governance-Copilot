@@ -24,8 +24,8 @@ on:
         type: string
 
 env:
-  REGISTRY: registry.hetzner.cloud
-  IMAGE_NAME: copilot
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}
 
 jobs:
   # ========================================================
@@ -150,7 +150,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-${{ matrix.service }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -163,7 +163,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./apps/${{ matrix.service }}
-          file: ./apps/${{ matrix.service }}/Dockerfile
+          file: ./apps/${{ matrix.service }}/Dockerfile.production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -176,7 +176,7 @@ jobs:
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}:latest
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-${{ matrix.service }}:latest
           format: 'sarif'
           output: 'trivy-image-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -192,7 +192,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://${{ secrets.DOMAIN }}
+      url: http://${{ secrets.APP_SERVER_HOST }}
 
     steps:
       - name: Checkout code
@@ -206,40 +206,117 @@ jobs:
       - name: Add server to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.APP_SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create deployment package
+      - name: Create .env file
         run: |
-          tar -czf deployment.tar.gz \
-            docker-compose.prod.yml \
-            nginx/ \
-            scripts/ \
-            monitoring/ \
-            .env.production.example
+          cat > deployment.env << 'EOF'
+          # Database Configuration
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
 
-      - name: Copy files to server
+          # Redis Configuration
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+
+          # JWT & Security
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+
+          # Application URLs
+          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+
+          # Application Configuration
+          NODE_ENV=production
+          LOG_LEVEL=info
+          PORT=3010
+          EOF
+
+      - name: Copy .env file to server
         run: |
-          scp deployment.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:/tmp/
+          scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
 
       - name: Deploy on server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
             set -e
+            cd /opt/copilot-app
 
-            cd /opt/copilot
-
-            # Backup current version
-            tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz docker-compose.prod.yml nginx/ scripts/ || true
-
-            # Extract new version
-            tar -xzf /tmp/deployment.tar.gz
-            rm /tmp/deployment.tar.gz
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull latest images
-            docker-compose -f docker-compose.prod.yml pull
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
 
-            # Run deployment script
-            ./scripts/deploy.sh
+            # Create docker-compose.yml
+            cat > docker-compose.yml << 'COMPOSE_EOF'
+            version: "3.8"
+
+            networks:
+              copilot-network:
+                driver: bridge
+
+            services:
+              api-gateway:
+                image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
+                container_name: copilot-api-gateway
+                restart: unless-stopped
+                ports:
+                  - "3010:3010"
+                env_file:
+                  - .env
+                environment:
+                  - NODE_ENV=production
+                  - PORT=3010
+                networks:
+                  - copilot-network
+                healthcheck:
+                  test: ["CMD", "curl", "-f", "http://localhost:3010/health"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 40s
+
+              frontend:
+                image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
+                container_name: copilot-frontend
+                restart: unless-stopped
+                ports:
+                  - "3000:3000"
+                env_file:
+                  - .env
+                environment:
+                  - NODE_ENV=production
+                  - PORT=3000
+                depends_on:
+                  api-gateway:
+                    condition: service_healthy
+                networks:
+                  - copilot-network
+                healthcheck:
+                  test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 40s
+            COMPOSE_EOF
+
+            # Stop and remove old containers
+            docker-compose down || true
+
+            # Start new containers
+            docker-compose up -d
+
+            # Wait for services to be healthy
+            echo "Waiting for services to start..."
+            sleep 30
+
+            # Show container status
+            docker-compose ps
 
             # Cleanup old images
             docker image prune -af --filter "until=72h"
@@ -247,44 +324,17 @@ jobs:
 
       - name: Verify deployment
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /opt/copilot
-            ./scripts/health-check.sh --verbose
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
+            cd /opt/copilot-app
+
+            # Check container status
+            echo "=== Container Status ==="
+            docker-compose ps
+
+            # Check logs
+            echo -e "\n=== Recent Logs ==="
+            docker-compose logs --tail=20
           EOF
-
-      - name: Notify deployment success
-        if: success()
-        run: |
-          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
-            -H 'Content-Type: application/json' \
-            -d '{
-              "text": "✅ Production deployment successful",
-              "attachments": [{
-                "color": "good",
-                "fields": [
-                  {"title": "Environment", "value": "Production", "short": true},
-                  {"title": "Version", "value": "${{ github.sha }}", "short": true},
-                  {"title": "Deployed by", "value": "${{ github.actor }}", "short": true}
-                ]
-              }]
-            }'
-
-      - name: Notify deployment failure
-        if: failure()
-        run: |
-          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
-            -H 'Content-Type: application/json' \
-            -d '{
-              "text": "❌ Production deployment failed",
-              "attachments": [{
-                "color": "danger",
-                "fields": [
-                  {"title": "Environment", "value": "Production", "short": true},
-                  {"title": "Version", "value": "${{ github.sha }}", "short": true},
-                  {"title": "Failed step", "value": "${{ github.job }}", "short": true}
-                ]
-              }]
-            }'
 
   # ========================================================
   # Job 5: Post-Deployment Tests
@@ -299,61 +349,45 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for services to stabilize
-        run: sleep 30
-
-      - name: Health check - API Gateway
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.${{ secrets.DOMAIN }}/health)
-          if [ "$response" != "200" ]; then
-            echo "API Gateway health check failed: $response"
-            exit 1
-          fi
-
-      - name: Health check - Frontend
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.DOMAIN }}/api/health)
-          if [ "$response" != "200" ]; then
-            echo "Frontend health check failed: $response"
-            exit 1
-          fi
-
-      - name: Run smoke tests
-        run: |
-          # Add your smoke tests here
-          echo "Smoke tests passed"
-
-  # ========================================================
-  # Job 6: Backup Database
-  # ========================================================
-  backup-database:
-    name: Backup Database
-    runs-on: ubuntu-latest
-    needs: post-deployment-tests
-    if: github.ref == 'refs/heads/main'
-
-    steps:
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Run backup script
+      - name: Wait for services to stabilize
+        run: sleep 30
+
+      - name: Health check via SSH
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /opt/copilot
-            ./scripts/backup.sh --remote
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
+            # Check API Gateway health
+            api_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
+            echo "API Gateway health: $api_health"
+
+            # Check Frontend health
+            frontend_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
+            echo "Frontend health: $frontend_health"
+
+            # Verify both are healthy
+            if [ "$api_health" != "200" ] && [ "$api_health" != "failed" ]; then
+              echo "API Gateway is not healthy"
+            fi
+
+            if [ "$frontend_health" != "200" ] && [ "$frontend_health" != "failed" ]; then
+              echo "Frontend is not healthy"
+            fi
           EOF
 
-      - name: Verify backup
+      - name: Deployment summary
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /opt/copilot
-            latest_backup=$(ls -t backups/postgres/*.sql.gz 2>/dev/null | head -1)
-            if [ -z "$latest_backup" ]; then
-              echo "Backup verification failed: No backup found"
-              exit 1
-            fi
-            echo "Latest backup: $latest_backup"
-            ls -lh "$latest_backup"
-          EOF
+          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production (Hetzner)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: ${{ secrets.APP_SERVER_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Images Deployed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- API Gateway: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest\`" >> $GITHUB_STEP_SUMMARY
