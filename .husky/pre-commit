@@ -1,0 +1,19 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run linter
+echo "1/3 Running linter..."
+npm run lint --workspace=@copilot/api-gateway --quiet
+
+# Run type check
+echo "2/3 Running type check..."
+npm run type-check --workspace=@copilot/api-gateway
+
+# Run unit tests only (fast feedback)
+echo "3/3 Running unit tests..."
+cd apps/api-gateway
+npm run test:unit
+
+echo "✅ Pre-commit checks passed!"

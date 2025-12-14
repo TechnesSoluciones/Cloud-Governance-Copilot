@@ -1,0 +1,201 @@
+# ============================================================
+# Upstream definitions
+# ============================================================
+upstream copilot_portal {
+    server copilot-portal:3000;
+}
+
+upstream api_gateway {
+    server api-gateway:4000;
+}
+
+upstream onecloud_dashboard {
+    server onecloud-dashboard:3001;
+}
+
+upstream spend_navigator {
+    server spend-navigator:3002;
+}
+
+upstream security_misconfig {
+    server security-misconfig:3003;
+}
+
+upstream asset_360 {
+    server asset-360:3004;
+}
+
+upstream incident_iq {
+    server incident-iq:3005;
+}
+
+upstream advisor_report {
+    server advisor-report:3006;
+}
+
+# ============================================================
+# Health check endpoint
+# ============================================================
+server {
+    listen 80;
+    server_name _;
+
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+}
+
+# ============================================================
+# Main Copilot Portal (localhost or copilot.localhost)
+# ============================================================
+server {
+    listen 80;
+    server_name localhost copilot.localhost;
+
+    location / {
+        proxy_pass http://copilot_portal;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# ============================================================
+# API Gateway
+# ============================================================
+server {
+    listen 80;
+    server_name api.localhost;
+
+    location / {
+        limit_req zone=api_limit burst=20 nodelay;
+
+        proxy_pass http://api_gateway;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Specific rate limiting for login endpoint
+    location /api/auth/login {
+        limit_req zone=login_limit burst=3 nodelay;
+
+        proxy_pass http://api_gateway;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ============================================================
+# OneCloud Dashboard
+# ============================================================
+server {
+    listen 80;
+    server_name onecloud.localhost;
+
+    location / {
+        proxy_pass http://onecloud_dashboard;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ============================================================
+# Spend Navigator
+# ============================================================
+server {
+    listen 80;
+    server_name spend.localhost;
+
+    location / {
+        proxy_pass http://spend_navigator;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ============================================================
+# Security Misconfig Scanner
+# ============================================================
+server {
+    listen 80;
+    server_name security.localhost;
+
+    location / {
+        proxy_pass http://security_misconfig;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ============================================================
+# Asset 360
+# ============================================================
+server {
+    listen 80;
+    server_name asset.localhost;
+
+    location / {
+        proxy_pass http://asset_360;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ============================================================
+# Incident IQ
+# ============================================================
+server {
+    listen 80;
+    server_name incident.localhost;
+
+    location / {
+        proxy_pass http://incident_iq;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# ============================================================
+# Advisor Report
+# ============================================================
+server {
+    listen 80;
+    server_name advisor.localhost;
+
+    location / {
+        proxy_pass http://advisor_report;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

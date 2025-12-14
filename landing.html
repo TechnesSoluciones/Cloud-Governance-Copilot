@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Governance Copilot - Enterprise Multi-Cloud Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Primary Orange Palette - inspired by AWS orange but more vibrant */
+            --primary-orange: #ff6b35;
+            --primary-orange-dark: #e65525;
+            --primary-orange-light: #ff8556;
+            --accent-orange: #ff9770;
+
+            /* Secondary Colors - Azure blue accent */
+            --secondary-blue: #0078d4;
+            --secondary-blue-light: #50e6ff;
+
+            /* GCP Green accent */
+            --accent-green: #34a853;
+
+            /* Neutrals - AWS inspired */
+            --gray-50: #fafafa;
+            --gray-100: #f5f5f5;
+            --gray-200: #eeeeee;
+            --gray-300: #e0e0e0;
+            --gray-400: #bdbdbd;
+            --gray-500: #9e9e9e;
+            --gray-600: #757575;
+            --gray-700: #616161;
+            --gray-800: #424242;
+            --gray-900: #232f3e;
+
+            --white: #ffffff;
+            --black: #000000;
+
+            /* Shadows - Material Design */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+            /* Border radius - Fluent inspired */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Google Sans', sans-serif;
+            line-height: 1.6;
+            color: var(--gray-800);
+            background: var(--white);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* AWS-inspired Navigation with Fluent touches */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--gray-700);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-orange);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary-orange);
+            transition: width 0.2s;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .btn-nav {
+            background: var(--primary-orange);
+            color: var(--white);
+            padding: 8px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-nav:hover {
+            background: var(--primary-orange-dark);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .btn-nav::after {
+            display: none;
+        }
+
+        /* Hero Section - GCP Material + AWS Cloudscape hybrid */
+        .hero {
+            margin-top: 64px;
+            padding: 80px 24px 64px;
+            background: linear-gradient(180deg, var(--gray-50) 0%, var(--white) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(255, 149, 112, 0.05) 100%);
+            z-index: 0;
+        }
+
+        .hero-content {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-left h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: var(--gray-900);
+            letter-spacing: -0.02em;
+        }
+
+        .hero-left h1 .highlight {
+            color: var(--primary-orange);
+        }
+
+        .hero-left p {
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--gray-600);
+            margin-bottom: 32px;
+            max-width: 580px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--primary-orange);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-orange-dark);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--gray-800);
+            border: 1px solid var(--gray-300);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary-orange);
+            color: var(--primary-orange);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Azure-inspired Info Cards */
+        .hero-right {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .info-card {
+            background: var(--white);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .info-card:hover {
+            border-color: var(--primary-orange);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .info-card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .info-card h3 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-orange);
+            margin-bottom: 4px;
+        }
+
+        .info-card p {
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        /* Section - AWS Cloudscape layout */
+        .section {
+            padding: 80px 24px;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-label {
+            color: var(--primary-orange);
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--gray-900);
+            letter-spacing: -0.01em;
+        }
+
+        .section-description {
+            font-size: 18px;
+            color: var(--gray-600);
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* Features - Material Design cards with Fluent hover */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature {
+            background: var(--white);
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-orange), var(--accent-orange));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+        }
+
+        .feature:hover {
+            border-color: var(--primary-orange);
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-8px);
+        }
+
+        .feature:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--gray-900);
+        }
+
+        .feature p {
+            color: var(--gray-600);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* Cloud Providers - GCP Material Cards */
+        .cloud-section {
+            background: var(--gray-900);
+            color: var(--white);
+            padding: 80px 24px;
+        }
+
+        .cloud-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .cloud-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px 32px;
+            border-radius: var(--radius-xl);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .cloud-card:hover {
+            transform: translateY(-12px);
+            border-color: var(--primary-orange);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 24px 48px rgba(255, 107, 53, 0.2);
+        }
+
+        .cloud-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .cloud-card h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .cloud-card p {
+            color: var(--gray-400);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* Pricing - Azure Fluent inspired */
+        .pricing-section {
+            background: var(--gray-50);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: 40px 32px;
+            border: 2px solid var(--gray-200);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--primary-orange);
+            box-shadow: 0 20px 40px rgba(255, 107, 53, 0.15);
+            transform: scale(1.05);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange));
+            color: var(--white);
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: var(--shadow-md);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.05) translateY(-8px);
+        }
+
+        .plan-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-orange);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
+        }
+
+        .plan-price {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--gray-900);
+        }
+
+        .plan-price span {
+            font-size: 18px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .plan-description {
+            color: var(--gray-600);
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 15px;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 32px;
+            flex-grow: 1;
+        }
+
+        .plan-features li {
+            padding: 12px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            color: var(--gray-700);
+            font-size: 15px;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            color: var(--accent-green);
+            font-weight: 700;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .btn-plan {
+            width: 100%;
+            justify-content: center;
+            background: var(--gray-900);
+            color: var(--white);
+            margin-top: auto;
+        }
+
+        .btn-plan:hover {
+            background: var(--primary-orange);
+        }
+
+        .pricing-card.featured .btn-plan {
+            background: var(--primary-orange);
+        }
+
+        .pricing-card.featured .btn-plan:hover {
+            background: var(--primary-orange-dark);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange));
+            color: var(--white);
+            text-align: center;
+            padding: 80px 24px;
+        }
+
+        .cta-section h2 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            font-size: 20px;
+            margin-bottom: 32px;
+            opacity: 0.95;
+        }
+
+        .btn-white {
+            background: var(--white);
+            color: var(--primary-orange);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-white:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Footer - AWS inspired */
+        footer {
+            background: var(--gray-900);
+            color: var(--white);
+            padding: 64px 24px 32px;
+        }
+
+        .footer-content {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand h3 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .footer-brand p {
+            color: var(--gray-400);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        .footer-links h4 {
+            font-size: 14px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            color: var(--primary-orange);
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--gray-400);
+            text-decoration: none;
+            display: block;
+            padding: 6px 0;
+            transition: color 0.2s;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-orange);
+        }
+
+        .footer-bottom {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 48px;
+            }
+
+            .hero-left h1 {
+                font-size: 44px;
+            }
+
+            .features-grid,
+            .cloud-grid,
+            .pricing-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero-left h1 {
+                font-size: 36px;
+            }
+
+            .hero-left p {
+                font-size: 18px;
+            }
+
+            .hero-right {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid,
+            .cloud-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .section-title {
+                font-size: 32px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <div class="logo-icon">⚡</div>
+                Cloud Copilot
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#clouds">Integrations</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="http://localhost:3010/login" class="btn-nav">Sign In</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-left">
+                <h1>
+                    Unified Cloud<br/>
+                    <span class="highlight">Governance Platform</span>
+                </h1>
+                <p>
+                    Centralized security, compliance, and cost management across AWS, Azure, and GCP. Real-time monitoring, automated policies, and AI-powered insights from a single console.
+                </p>
+                <div class="hero-buttons">
+                    <a href="http://localhost:3010/register" class="btn btn-primary">
+                        Start Free Trial →
+                    </a>
+                    <a href="#pricing" class="btn btn-secondary">
+                        View Pricing
+                    </a>
+                </div>
+            </div>
+            <div class="hero-right">
+                <div class="info-card">
+                    <div class="info-card-icon">⚡</div>
+                    <h3>99.9%</h3>
+                    <p>Uptime SLA Guarantee</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">🚀</div>
+                    <h3>&lt;500ms</h3>
+                    <p>API Response Time</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">🔒</div>
+                    <h3>150+</h3>
+                    <p>Security Checks</p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">💰</div>
+                    <h3>40%</h3>
+                    <p>Avg. Cost Savings</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section">
+        <div class="section-header">
+            <div class="section-label">FEATURES</div>
+            <h2 class="section-title">Complete Cloud Management Suite</h2>
+            <p class="section-description">
+                Enterprise-grade tools for security, compliance, cost optimization, and governance across all your cloud infrastructure
+            </p>
+        </div>
+        <div class="features-grid">
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3>Security & Compliance</h3>
+                <p>Continuous security monitoring with 150+ automated checks. Support for CIS, SOC2, HIPAA, PCI-DSS, and custom compliance frameworks with real-time alerts.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💰</div>
+                <h3>Cost Optimization</h3>
+                <p>AI-powered cost analysis and recommendations. Identify wasteful spending, optimize resource allocation, and forecast budgets with machine learning accuracy.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>Unified Dashboard</h3>
+                <p>Single pane of glass for all cloud resources. Real-time metrics, customizable widgets, and insights from AWS, Azure, and GCP in one unified console.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <h3>AI-Powered Insights</h3>
+                <p>Machine learning algorithms analyze patterns and anomalies to provide actionable recommendations and predict potential issues before they impact operations.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>Auto Remediation</h3>
+                <p>Automatically fix security vulnerabilities and compliance violations with pre-built remediation workflows and custom automation playbooks.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📈</div>
+                <h3>Advanced Analytics</h3>
+                <p>Deep insights into usage patterns, cost trends, and security posture. Export comprehensive reports in PDF, CSV, or JSON formats for stakeholders.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cloud Providers -->
+    <section id="clouds" class="cloud-section">
+        <div class="section-header">
+            <div class="section-label">INTEGRATIONS</div>
+            <h2 class="section-title" style="color: var(--white);">Native Multi-Cloud Support</h2>
+            <p class="section-description" style="color: var(--gray-400);">
+                Deep integration with all major cloud providers. Connect once and manage everything from a single platform.
+            </p>
+        </div>
+        <div class="cloud-grid">
+            <div class="cloud-card">
+                <div class="cloud-icon">☁️</div>
+                <h3>Amazon Web Services</h3>
+                <p>Full integration with AWS services including EC2, S3, RDS, Lambda, CloudWatch, and 200+ more services with real-time monitoring</p>
+            </div>
+            <div class="cloud-card">
+                <div class="cloud-icon">⚡</div>
+                <h3>Microsoft Azure</h3>
+                <p>Complete Azure support covering Virtual Machines, Storage, Databases, Functions, Monitor, and all Azure services with native API integration</p>
+            </div>
+            <div class="cloud-card">
+                <div class="cloud-icon">🌐</div>
+                <h3>Google Cloud Platform</h3>
+                <p>Native GCP integration for Compute Engine, Cloud Storage, BigQuery, Cloud Functions, and entire GCP ecosystem with cloud-native tooling</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing-section section">
+        <div class="section-header">
+            <div class="section-label">PRICING</div>
+            <h2 class="section-title">Choose Your Plan</h2>
+            <p class="section-description">
+                Flexible pricing that scales with your business. All plans include 14-day free trial with no credit card required.
+            </p>
+        </div>
+        <div class="pricing-grid">
+            <!-- Starter Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Starter</div>
+                <div class="plan-price">$299<span>/month</span></div>
+                <div class="plan-description">Perfect for startups and small teams getting started with cloud governance</div>
+                <ul class="plan-features">
+                    <li>Up to 50 cloud resources</li>
+                    <li>1 cloud provider</li>
+                    <li>Basic security monitoring</li>
+                    <li>Cost tracking & reports</li>
+                    <li>Email support (8x5)</li>
+                    <li>7-day data retention</li>
+                    <li>Standard compliance checks</li>
+                    <li>Dashboard access</li>
+                </ul>
+                <a href="http://localhost:3010/register" class="btn btn-plan">Get Started</a>
+            </div>
+
+            <!-- Professional Plan -->
+            <div class="pricing-card featured">
+                <div class="pricing-badge">Most Popular</div>
+                <div class="plan-name">Professional</div>
+                <div class="plan-price">$899<span>/month</span></div>
+                <div class="plan-description">For growing businesses with multi-cloud infrastructure needs</div>
+                <ul class="plan-features">
+                    <li>Up to 500 cloud resources</li>
+                    <li>All cloud providers (AWS, Azure, GCP)</li>
+                    <li>Advanced security monitoring</li>
+                    <li>AI-powered cost optimization</li>
+                    <li>Priority support 24/7</li>
+                    <li>30-day data retention</li>
+                    <li>Advanced compliance (SOC2, HIPAA)</li>
+                    <li>Custom alerts & automation</li>
+                    <li>API access & webhooks</li>
+                    <li>SSO integration</li>
+                </ul>
+                <a href="http://localhost:3010/register" class="btn btn-plan">Get Started</a>
+            </div>
+
+            <!-- Enterprise Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Enterprise</div>
+                <div class="plan-price">Custom</div>
+                <div class="plan-description">For large organizations with complex multi-cloud requirements</div>
+                <ul class="plan-features">
+                    <li>Unlimited cloud resources</li>
+                    <li>All cloud providers</li>
+                    <li>Enterprise security suite</li>
+                    <li>Dedicated AI insights engine</li>
+                    <li>Dedicated support manager</li>
+                    <li>Unlimited data retention</li>
+                    <li>All compliance frameworks</li>
+                    <li>Custom integrations & plugins</li>
+                    <li>Advanced SSO & RBAC</li>
+                    <li>SLA guarantees (99.99%)</li>
+                    <li>On-premise deployment option</li>
+                    <li>White-label capabilities</li>
+                </ul>
+                <a href="mailto:sales@cloudcopilot.com" class="btn btn-plan">Contact Sales</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2>Ready to Transform Your Cloud Operations?</h2>
+        <p>Join hundreds of companies managing their cloud infrastructure with confidence and efficiency</p>
+        <a href="http://localhost:3010/register" class="btn btn-white">Start Your Free Trial →</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>⚡ Cloud Copilot</h3>
+                <p>Enterprise-grade multi-cloud governance platform. Secure, compliant, and cost-optimized infrastructure management for modern cloud teams.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#">Security</a></li>
+                    <li><a href="#">Integrations</a></li>
+                    <li><a href="#">Documentation</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Press</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Cookie Policy</a></li>
+                    <li><a href="#">Compliance</a></li>
+                    <li><a href="#">Trust Center</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Cloud Governance Copilot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

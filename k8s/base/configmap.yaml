@@ -1,0 +1,59 @@
+# ============================================================
+# ConfigMap for Application Configuration
+# Non-sensitive configuration values
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: copilot-config
+  namespace: copilot
+  labels:
+    app: cloud-governance-copilot
+data:
+  # Environment
+  NODE_ENV: "production"
+
+  # API Gateway Configuration
+  API_PORT: "4000"
+  JWT_EXPIRES_IN: "7d"
+  JWT_REFRESH_EXPIRES_IN: "30d"
+  LOG_LEVEL: "info"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+
+  # Frontend Configuration
+  NEXT_TELEMETRY_DISABLED: "1"
+
+  # PostgreSQL Configuration
+  POSTGRES_DB: "copilot_main"
+  POSTGRES_PORT: "5432"
+
+  # Redis Configuration
+  REDIS_PORT: "6379"
+  REDIS_MAX_MEMORY: "512mb"
+  REDIS_MAX_MEMORY_POLICY: "allkeys-lru"
+
+  # Feature Flags
+  REQUIRE_EMAIL_VERIFICATION: "true"
+  ENABLE_MFA: "true"
+  ENABLE_RATE_LIMITING: "true"
+
+  # Monitoring
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "9090"
+---
+# ConfigMap for Nginx Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: copilot
+  labels:
+    app: nginx
+data:
+  client_max_body_size: "10m"
+  proxy_connect_timeout: "60s"
+  proxy_send_timeout: "60s"
+  proxy_read_timeout: "60s"
+  gzip: "on"
+  gzip_types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"

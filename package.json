@@ -1,0 +1,56 @@
+{
+  "name": "cloud-governance-copilot",
+  "version": "1.0.0",
+  "description": "Cloud Governance Copilot - Multi-Cloud SaaS Platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:build": "docker-compose build",
+    "db:migrate": "cd apps/api-gateway && npx prisma migrate deploy",
+    "db:seed": "cd apps/api-gateway && npx prisma db seed",
+    "db:studio": "cd apps/api-gateway && npx prisma studio",
+    "db:backup": "./scripts/backup-db.sh",
+    "db:restore": "./scripts/restore-db.sh",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.1.0",
+    "turbo": "^1.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/cloud-governance-copilot.git"
+  },
+  "keywords": [
+    "cloud",
+    "governance",
+    "aws",
+    "azure",
+    "gcp",
+    "multi-cloud",
+    "finops",
+    "security",
+    "compliance"
+  ],
+  "author": "Jose Gomez",
+  "license": "UNLICENSED"
+}

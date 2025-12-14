@@ -1,0 +1,14 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🧪 Running pre-push tests..."
+
+cd apps/api-gateway
+
+echo "1/2 Running full test suite..."
+npm run test
+
+echo "2/2 Checking coverage..."
+npm run test:coverage
+
+echo "✅ All tests passed! Safe to push."

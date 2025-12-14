@@ -1,0 +1,32 @@
+# Simple Dockerfile para desarrollo
+FROM node:18-alpine
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm install
+
+# Copy all source
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate || true
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 4000
+
+# Run with tsx (no build needed)
+CMD ["npx", "tsx", "src/index.ts"]

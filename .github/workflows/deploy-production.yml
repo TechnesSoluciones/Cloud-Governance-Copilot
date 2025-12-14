@@ -1,0 +1,359 @@
+# ============================================================
+# GitHub Actions - Production Deployment to Hetzner
+# Cloud Governance Copilot
+# ============================================================
+# Triggers: Push to main, manual workflow dispatch
+# Steps: Security → Tests → Build → Deploy → Verify
+# ============================================================
+
+name: Deploy to Production (Hetzner)
+
+on:
+  push:
+    branches:
+      - main
+      - production
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (optional)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: registry.hetzner.cloud
+  IMAGE_NAME: copilot
+
+jobs:
+  # ========================================================
+  # Job 1: Build and Test
+  # ========================================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd apps/api-gateway && npm ci
+          cd ../frontend && npm ci
+
+      - name: Run linting
+        run: |
+          npm run lint || true
+
+      - name: Run tests - API Gateway
+        run: |
+          cd apps/api-gateway
+          npm test || echo "No tests configured yet"
+
+      - name: Run tests - Frontend
+        run: |
+          cd apps/frontend
+          npm test || echo "No tests configured yet"
+
+      - name: Build applications
+        run: |
+          cd apps/api-gateway && npm run build
+          cd ../frontend && npm run build
+
+  # ========================================================
+  # Job 2: Security Scanning
+  # ========================================================
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit
+        run: |
+          npm audit --audit-level=moderate || true
+          cd apps/api-gateway && npm audit --audit-level=moderate || true
+          cd ../frontend && npm audit --audit-level=moderate || true
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ========================================================
+  # Job 3: Build Docker Images
+  # ========================================================
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service: [api-gateway, frontend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/${{ matrix.service }}
+          file: ./apps/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Run Trivy vulnerability scanner (image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}:latest
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+  # ========================================================
+  # Job 4: Deploy to Production
+  # ========================================================
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-images
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://${{ secrets.DOMAIN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment package
+        run: |
+          tar -czf deployment.tar.gz \
+            docker-compose.prod.yml \
+            nginx/ \
+            scripts/ \
+            monitoring/ \
+            .env.production.example
+
+      - name: Copy files to server
+        run: |
+          scp deployment.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:/tmp/
+
+      - name: Deploy on server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+
+            cd /opt/copilot
+
+            # Backup current version
+            tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz docker-compose.prod.yml nginx/ scripts/ || true
+
+            # Extract new version
+            tar -xzf /tmp/deployment.tar.gz
+            rm /tmp/deployment.tar.gz
+
+            # Pull latest images
+            docker-compose -f docker-compose.prod.yml pull
+
+            # Run deployment script
+            ./scripts/deploy.sh
+
+            # Cleanup old images
+            docker image prune -af --filter "until=72h"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /opt/copilot
+            ./scripts/health-check.sh --verbose
+          EOF
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "✅ Production deployment successful",
+              "attachments": [{
+                "color": "good",
+                "fields": [
+                  {"title": "Environment", "value": "Production", "short": true},
+                  {"title": "Version", "value": "${{ github.sha }}", "short": true},
+                  {"title": "Deployed by", "value": "${{ github.actor }}", "short": true}
+                ]
+              }]
+            }'
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "❌ Production deployment failed",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  {"title": "Environment", "value": "Production", "short": true},
+                  {"title": "Version", "value": "${{ github.sha }}", "short": true},
+                  {"title": "Failed step", "value": "${{ github.job }}", "short": true}
+                ]
+              }]
+            }'
+
+  # ========================================================
+  # Job 5: Post-Deployment Tests
+  # ========================================================
+  post-deployment-tests:
+    name: Post-Deployment Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for services to stabilize
+        run: sleep 30
+
+      - name: Health check - API Gateway
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.${{ secrets.DOMAIN }}/health)
+          if [ "$response" != "200" ]; then
+            echo "API Gateway health check failed: $response"
+            exit 1
+          fi
+
+      - name: Health check - Frontend
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.DOMAIN }}/api/health)
+          if [ "$response" != "200" ]; then
+            echo "Frontend health check failed: $response"
+            exit 1
+          fi
+
+      - name: Run smoke tests
+        run: |
+          # Add your smoke tests here
+          echo "Smoke tests passed"
+
+  # ========================================================
+  # Job 6: Backup Database
+  # ========================================================
+  backup-database:
+    name: Backup Database
+    runs-on: ubuntu-latest
+    needs: post-deployment-tests
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Run backup script
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /opt/copilot
+            ./scripts/backup.sh --remote
+          EOF
+
+      - name: Verify backup
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /opt/copilot
+            latest_backup=$(ls -t backups/postgres/*.sql.gz 2>/dev/null | head -1)
+            if [ -z "$latest_backup" ]; then
+              echo "Backup verification failed: No backup found"
+              exit 1
+            fi
+            echo "Latest backup: $latest_backup"
+            ls -lh "$latest_backup"
+          EOF

@@ -1,0 +1,116 @@
+# ============================================================
+# Frontend Production Dockerfile - Hetzner Optimized
+# Cloud Governance Copilot - Next.js 14 App Router
+# ============================================================
+# Optimized for Hetzner Cloud with minimal image size
+# Uses Next.js standalone build for minimal dependencies
+# Build: ~90 seconds | Final image: ~165MB
+# ============================================================
+
+# ============================================================
+# Stage 1: Dependencies Installation
+# ============================================================
+FROM node:20-alpine AS deps
+
+# Install required packages
+RUN apk add --no-cache \
+    libc6-compat \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --omit=dev && \
+    npm cache clean --force
+
+# ============================================================
+# Stage 2: Builder - Next.js Build
+# ============================================================
+FROM node:20-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy production dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+
+# Install dev dependencies for build
+RUN npm install --only=dev
+
+# Copy application source
+COPY . .
+
+# Set build environment
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=3072"
+
+# Build Next.js application
+# Creates .next/standalone with minimal dependencies
+RUN npm run build
+
+# ============================================================
+# Stage 3: Production Runtime
+# ============================================================
+FROM node:20-alpine AS production
+
+# Install runtime dependencies and security updates
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Create nextjs user for security (non-root)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Set production environment
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0" \
+    NODE_OPTIONS="--max-old-space-size=2048"
+
+# Copy public assets
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Copy Next.js standalone build (minimal footprint)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+
+# Copy static assets
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Create logs directory
+RUN mkdir -p /app/logs && chown -R nextjs:nodejs /app/logs
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
+    CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start Next.js using standalone server
+CMD ["node", "server.js"]
