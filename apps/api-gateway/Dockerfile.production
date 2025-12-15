@@ -21,20 +21,15 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy workspace root package files
-COPY package*.json ./
-COPY turbo.json* ./
+# Copy only api-gateway package files (no workspace)
+COPY apps/api-gateway/package*.json ./
+COPY apps/api-gateway/prisma ./prisma/
 
-# Copy api-gateway package files and Prisma schema
-COPY apps/api-gateway/package*.json ./apps/api-gateway/
-COPY apps/api-gateway/prisma ./apps/api-gateway/prisma/
-
-# Install dependencies with workspace support
+# Install ALL dependencies (including dev deps needed for build)
 RUN npm install --legacy-peer-deps \
     && npm cache clean --force
 
-# Generate Prisma Client (after dependencies are installed)
-WORKDIR /app/apps/api-gateway
+# Generate Prisma Client
 RUN npx prisma generate
 
 # ============================================================
@@ -51,23 +46,19 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy dependencies from deps stage (monorepo has node_modules at root)
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
-COPY --from=deps /app/apps/api-gateway/package*.json ./apps/api-gateway/
 
 # Copy api-gateway source code
-COPY apps/api-gateway ./apps/api-gateway
+COPY apps/api-gateway ./
 
 # Set build environment
 ENV NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=2048"
 
-# Build TypeScript application from workspace root
-RUN npm run build --workspace=apps/api-gateway
-
-# Clean up build artifacts
-WORKDIR /app/apps/api-gateway
+# Build TypeScript application
+RUN npm run build
 
 # ============================================================
 # Stage 3: Production Runtime
