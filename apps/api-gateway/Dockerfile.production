@@ -63,12 +63,11 @@ COPY apps/api-gateway ./apps/api-gateway
 ENV NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=2048"
 
-# Build TypeScript application
-WORKDIR /app/apps/api-gateway
-RUN npm run build
+# Build TypeScript application from workspace root
+RUN npm run build --workspace=apps/api-gateway
 
-# Prune dev dependencies after build
-RUN npm prune --production
+# Clean up build artifacts
+WORKDIR /app/apps/api-gateway
 
 # ============================================================
 # Stage 3: Production Runtime
