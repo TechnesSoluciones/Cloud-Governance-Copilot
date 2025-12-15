@@ -1,8 +1,8 @@
 # ============================================================
-# API Gateway Production Dockerfile - Hetzner Optimized
+# API Gateway Production Dockerfile - Monorepo Optimized
 # Cloud Governance Copilot - Multi-stage Build
 # ============================================================
-# Optimized for Hetzner Cloud with minimal layers and size
+# Optimized for monorepo workspace with proper Prisma handling
 # Production-ready with security best practices
 # Build: ~45 seconds | Final image: ~125MB
 # ============================================================
@@ -21,15 +21,20 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files
+# Copy workspace root package files
 COPY package*.json ./
-COPY prisma ./prisma/
+COPY turbo.json* ./
 
-# Install production dependencies only
-RUN npm install --production --legacy-peer-deps \
+# Copy api-gateway package files and Prisma schema
+COPY apps/api-gateway/package*.json ./apps/api-gateway/
+COPY apps/api-gateway/prisma ./apps/api-gateway/prisma/
+
+# Install dependencies with workspace support
+RUN npm install --legacy-peer-deps \
     && npm cache clean --force
 
-# Generate Prisma Client
+# Generate Prisma Client (after dependencies are installed)
+WORKDIR /app/apps/api-gateway
 RUN npx prisma generate
 
 # ============================================================
@@ -37,23 +42,29 @@ RUN npx prisma generate
 # ============================================================
 FROM node:20-alpine AS builder
 
+# Install build dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
 WORKDIR /app
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api-gateway/node_modules ./apps/api-gateway/node_modules
 COPY --from=deps /app/package*.json ./
 
-# Copy source code
-COPY . .
-
-# Install all dependencies needed for build
-RUN npm install --legacy-peer-deps
+# Copy api-gateway source code
+COPY apps/api-gateway ./apps/api-gateway
 
 # Set build environment
 ENV NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=2048"
 
-# Compile TypeScript to JavaScript
+# Build TypeScript application
+WORKDIR /app/apps/api-gateway
 RUN npm run build
 
 # Prune dev dependencies after build
@@ -86,17 +97,17 @@ ENV NODE_ENV=production \
     PORT=4000 \
     NODE_OPTIONS="--max-old-space-size=2048"
 
-# Copy production dependencies
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+# Copy production dependencies (includes generated Prisma Client)
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api-gateway/node_modules ./node_modules
 
 # Copy package files
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api-gateway/package*.json ./
 
 # Copy compiled application
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api-gateway/dist ./dist
 
-# Copy Prisma schema and migrations
-COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+# Copy Prisma schema and migrations (needed for runtime)
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api-gateway/prisma ./prisma
 
 # Create logs directory
 RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs

@@ -1,8 +1,8 @@
 # ============================================================
-# Frontend Production Dockerfile - Hetzner Optimized
+# Frontend Production Dockerfile - Monorepo Optimized
 # Cloud Governance Copilot - Next.js 14 App Router
 # ============================================================
-# Optimized for Hetzner Cloud with minimal image size
+# Optimized for monorepo workspace with proper context handling
 # Uses Next.js standalone build for minimal dependencies
 # Build: ~90 seconds | Final image: ~165MB
 # ============================================================
@@ -20,11 +20,15 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files
+# Copy workspace root package files
 COPY package*.json ./
+COPY turbo.json* ./
 
-# Install production dependencies only
-RUN npm install --production --legacy-peer-deps && \
+# Copy frontend package files
+COPY apps/frontend/package*.json ./apps/frontend/
+
+# Install dependencies with workspace support
+RUN npm install --legacy-peer-deps && \
     npm cache clean --force
 
 # ============================================================
@@ -40,20 +44,24 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy production dependencies
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/frontend/node_modules ./apps/frontend/node_modules
 COPY --from=deps /app/package*.json ./
 
-# Install all dependencies for build
-RUN npm install --legacy-peer-deps
-
-# Copy application source
-COPY . .
+# Copy frontend application source
+COPY apps/frontend ./apps/frontend
 
 # Set build environment
 ENV NEXT_TELEMETRY_DISABLED=1 \
     NODE_ENV=production \
     NODE_OPTIONS="--max-old-space-size=3072"
+
+# Build Next.js application from the frontend directory
+WORKDIR /app/apps/frontend
+
+# Create public directory if it doesn't exist (prevent COPY errors)
+RUN mkdir -p public
 
 # Build Next.js application
 # Creates .next/standalone with minimal dependencies
@@ -87,14 +95,15 @@ ENV NODE_ENV=production \
     HOSTNAME="0.0.0.0" \
     NODE_OPTIONS="--max-old-space-size=2048"
 
-# Copy public assets
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Copy public assets (create empty dir if doesn't exist)
+RUN mkdir -p ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./public
 
 # Copy Next.js standalone build (minimal footprint)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
 
 # Copy static assets
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
 
 # Create logs directory
 RUN mkdir -p /app/logs && chown -R nextjs:nodejs /app/logs
@@ -113,4 +122,5 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start Next.js using standalone server
-CMD ["node", "server.js"]
+# The standalone build puts the server at the root level
+CMD ["node", "apps/frontend/server.js"]
