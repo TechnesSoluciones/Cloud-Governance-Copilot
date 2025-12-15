@@ -51,10 +51,10 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage (monorepo has node_modules at root)
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api-gateway/node_modules ./apps/api-gateway/node_modules
 COPY --from=deps /app/package*.json ./
+COPY --from=deps /app/apps/api-gateway/package*.json ./apps/api-gateway/
 
 # Copy api-gateway source code
 COPY apps/api-gateway ./apps/api-gateway
@@ -97,8 +97,8 @@ ENV NODE_ENV=production \
     PORT=4000 \
     NODE_OPTIONS="--max-old-space-size=2048"
 
-# Copy production dependencies (includes generated Prisma Client)
-COPY --from=builder --chown=nodejs:nodejs /app/apps/api-gateway/node_modules ./node_modules
+# Copy production dependencies from monorepo root (includes generated Prisma Client)
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copy package files
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api-gateway/package*.json ./
