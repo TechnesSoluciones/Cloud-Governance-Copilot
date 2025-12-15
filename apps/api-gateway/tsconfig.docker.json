@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    // Target and Module
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+
+    // Output
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true,
+
+    // Path Mapping
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    // Type Checking - STRICT MODE
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+
+    // Declarations
+    "declaration": true,
+    "declarationMap": true,
+
+    // NOT using composite or incremental (causes issues in Docker)
+    "composite": false,
+    "incremental": false,
+
+    // Relaxed settings for build
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "src/integrations/azure/advisor.service.ts",
+    "src/integrations/azure/monitor.service.ts",
+    "src/integrations/azure/resource-graph.service.ts",
+    "src/integrations/azure/security-center.service.ts"
+  ]
+}
