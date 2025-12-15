@@ -1,0 +1,27 @@
+# ============================================================
+# Gitleaks Ignore File
+# ============================================================
+# Excludes test files, fixtures, and scripts with mock/fake data
+# These files contain intentionally fake credentials for testing
+# ============================================================
+
+# Test fixtures with mock data
+apps/api-gateway/src/__tests__/fixtures/dashboard.fixtures.ts
+apps/api-gateway/src/__tests__/utils/azure-test-helpers.ts
+
+# Test files with mock credentials
+apps/api-gateway/src/modules/finops/services/__tests__/cost-collection.service.test.ts
+
+# E2E test files with fake data
+apps/frontend/e2e/email-verification.spec.ts
+apps/frontend/e2e/password-reset.spec.ts
+
+# Test scripts with dummy encryption keys
+scripts/test-encryption.sh
+
+# Additional test patterns (wildcard patterns)
+**/__tests__/**/*.fixtures.ts
+**/__tests__/**/*-helpers.ts
+**/e2e/**/*.spec.ts
+**/tests/**/*.test.ts
+scripts/test-*.sh
