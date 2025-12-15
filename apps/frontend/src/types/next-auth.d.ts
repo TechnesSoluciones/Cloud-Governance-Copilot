@@ -27,6 +27,8 @@ declare module 'next-auth' {
     name: string;
     role: string;
     tenantId: string;
+    accessToken?: string;
+    refreshToken?: string;
   }
 }
 
