@@ -192,7 +192,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: http://${{ secrets.APP_SERVER_HOST }}
 
     steps:
       - name: Checkout code
