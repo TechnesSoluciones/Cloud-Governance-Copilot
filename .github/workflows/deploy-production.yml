@@ -309,17 +309,17 @@ jobs:
             COMPOSE_EOF
 
             # Stop and remove old containers
-            docker-compose down || true
+            docker compose down || true
 
             # Start new containers
-            docker-compose up -d
+            docker compose up -d
 
             # Wait for services to be healthy
             echo "Waiting for services to start..."
             sleep 30
 
             # Show container status
-            docker-compose ps
+            docker compose ps
 
             # Cleanup old images
             docker image prune -af --filter "until=72h"
@@ -332,11 +332,11 @@ jobs:
 
             # Check container status
             echo "=== Container Status ==="
-            docker-compose ps
+            docker compose ps
 
             # Check logs
             echo -e "\n=== Recent Logs ==="
-            docker-compose logs --tail=20
+            docker compose logs --tail=20
           EOF
 
   # ========================================================
