@@ -215,6 +215,7 @@ jobs:
         run: |
           cat > deployment.env << 'EOF'
           # Database Configuration
+          # IMPORTANT: DATABASE_URL must have URL-encoded password (+ → %2B, / → %2F)
           DATABASE_URL=${{ secrets.DATABASE_URL }}
 
           # Redis Configuration
@@ -257,8 +258,6 @@ jobs:
 
             # Create docker-compose.yml
             cat > docker-compose.yml <<'COMPOSE_EOF'
-            version: "3.8"
-
             networks:
               copilot-network:
                 driver: bridge
