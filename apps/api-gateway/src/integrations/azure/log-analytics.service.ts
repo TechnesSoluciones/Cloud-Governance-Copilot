@@ -286,7 +286,7 @@ export class AzureLogAnalyticsService {
       if (result.status === 'Success' && result.tables.length > 0) {
         const table = result.tables[0];
         const columns = table.columns.map((col) => col.name || '');
-        let rows = table.rows.slice(0, maxRows);
+        const rows = table.rows.slice(0, maxRows);
 
         const executionTime = Date.now() - startTime;
 

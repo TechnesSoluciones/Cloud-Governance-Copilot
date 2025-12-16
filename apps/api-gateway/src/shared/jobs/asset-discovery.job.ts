@@ -199,7 +199,7 @@ export async function processAssetDiscovery(job: Job<AssetDiscoveryJobData>): Pr
     const { tenantId, cloudAccountId } = job.data || {};
     const discoveryService = new AssetDiscoveryService(prisma, eventBus);
 
-    let result: JobExecutionResult = {
+    const result: JobExecutionResult = {
       tenantsProcessed: 0,
       accountsProcessed: 0,
       assetsDiscovered: 0,
