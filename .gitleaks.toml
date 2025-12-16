@@ -5,11 +5,8 @@ title = "Gitleaks Configuration for Cloud Governance Copilot"
 
 [allowlist]
 description = "Allowlist for test fixtures and mock credentials"
-regexes = [
-  '''AKIAIOSFODNN7EXAMPLE''',
-  '''wJalrXUtnFEMI''',
-]
 
+# Paths to ignore
 paths = [
   '''.*__fixtures__/.*''',
   '''.*__tests__/.*''',
@@ -19,13 +16,18 @@ paths = [
   '''.*\.test\.ts$''',
   '''.*\.spec\.ts$''',
   '''.*\.fixture\.ts$''',
+  '''\.env\.example$''',
 ]
 
-# Allow example credentials in .env.example files
+# Regex patterns to allow
+[[allowlist.regexes]]
+regex = '''AKIAIOSFODNN7EXAMPLE'''
+description = "Example AWS Access Key ID in test files"
+
+[[allowlist.regexes]]
+regex = '''wJalrXUtnFEMI'''
+description = "Example AWS Secret Access Key in test files"
+
 [[allowlist.regexes]]
 regex = '''(?i)(password|secret|key|token).*=.*example'''
 description = "Example credentials in .env.example files"
-
-[[allowlist.paths]]
-path = '''\.env\.example$'''
-description = "Environment example files"
