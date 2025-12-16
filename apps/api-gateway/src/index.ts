@@ -13,7 +13,12 @@ import cloudAccountRoutes from './routes/cloudAccount.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import resourcesRoutes from './routes/resources.routes';
 import finopsRoutes from './modules/finops/routes';
+import azureSecurityRoutes from './routes/azure-security.routes';
 import healthRoutes from './routes/health.routes';
+import dependenciesRoutes from './routes/dependencies.routes';
+import incidentsRoutes from './modules/incidents/routes';
+import serviceHealthRoutes from './modules/service-health/controllers/service-health.controller';
+import advisorRoutes from './modules/advisor/routes/advisor.routes';
 import { initRedis, closeRedis } from './config/redis';
 import {
   scheduleDailyCostCollection,
@@ -25,6 +30,10 @@ import {
   setupSecurityScanSchedule,
   shutdownSecurityScanWorker,
 } from './shared/jobs';
+import {
+  startServiceHealthMonitor,
+  stopServiceHealthMonitor,
+} from './jobs/service-health-monitor.job';
 
 // Load environment variables (only in non-Docker development)
 if (process.env.NODE_ENV !== 'production' && !process.env.DOCKER_ENV) {
@@ -78,6 +87,11 @@ app.get('/api/v1', (req, res) => {
       dashboard: '/api/v1/dashboard',
       resources: '/api/v1/resources',
       finops: '/api/v1/finops',
+      azureSecurity: '/api/v1/security/azure',
+      dependencies: '/api/v1/dependencies',
+      incidents: '/api/v1/incidents',
+      serviceHealth: '/api/v1/service-health',
+      advisor: '/api/v1/advisor',
     },
   });
 });
@@ -99,6 +113,21 @@ app.use('/api/v1/resources', resourcesRoutes);
 
 // FinOps routes
 app.use('/api/v1/finops', finopsRoutes);
+
+// Azure Security routes
+app.use('/api/v1/security/azure', azureSecurityRoutes);
+
+// Dependencies routes
+app.use('/api/v1/dependencies', dependenciesRoutes);
+
+// Incidents routes
+app.use('/api/v1/incidents', incidentsRoutes);
+
+// Service Health routes
+app.use('/api/v1/service-health', serviceHealthRoutes);
+
+// Azure Advisor routes
+app.use('/api/v1/advisor', advisorRoutes);
 
 // TODO: Import and use other route modules
 // app.use('/api/v1/tenants', tenantRoutes);
@@ -162,6 +191,14 @@ const startServer = async () => {
       });
     }
 
+    // Start Service Health Monitor (cron-based, does not require Redis)
+    if (process.env.SERVICE_HEALTH_ENABLED !== 'false') {
+      startServiceHealthMonitor();
+      logger.info('Service Health Monitor started successfully');
+    } else {
+      logger.info('Service Health Monitor is disabled (SERVICE_HEALTH_ENABLED=false)');
+    }
+
     // Start HTTP server (always starts, regardless of Redis status)
     server.listen(PORT, () => {
       logger.info(`API Gateway running on port ${PORT} in ${NODE_ENV} mode`);
@@ -179,6 +216,7 @@ startServer();
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  stopServiceHealthMonitor();
   await shutdownCostCollectionJob();
   await shutdownRecommendationGenerationJob();
   await shutdownAssetDiscoveryWorker();
@@ -192,6 +230,7 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT signal received: closing HTTP server');
+  stopServiceHealthMonitor();
   await shutdownCostCollectionJob();
   await shutdownRecommendationGenerationJob();
   await shutdownAssetDiscoveryWorker();

@@ -80,6 +80,21 @@ const discoverAssetsSchema = z.object({
   cloudAccountId: z.string().uuid('Invalid uuid').optional(),
 });
 
+/**
+ * Schema for PATCH /api/v1/assets/:id/tags request body
+ */
+const updateTagsSchema = z.object({
+  tags: z.record(z.string(), z.string()),
+});
+
+/**
+ * Schema for POST /api/v1/assets/bulk-tag request body
+ */
+const bulkTagSchema = z.object({
+  resourceIds: z.array(z.string()).min(1).max(100),
+  tags: z.record(z.string(), z.string()),
+});
+
 // ============================================================
 // Helper Types
 // ============================================================
@@ -481,6 +496,375 @@ export class AssetsController {
       });
     } catch (error) {
       this.handleError(error, res, 'discover');
+    }
+  };
+
+  /**
+   * GET /api/v1/assets/orphaned
+   *
+   * Retrieves orphaned resources for a cloud account.
+   * Orphaned resources are those without owner tags or stopped without proper tagging.
+   *
+   * Query Parameters:
+   * - accountId: Cloud account UUID (required)
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   */
+  getOrphaned = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { accountId } = req.query;
+
+      if (!accountId || typeof accountId !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'accountId query parameter is required',
+        });
+        return;
+      }
+
+      if (!req.user?.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated or tenant ID missing',
+        });
+        return;
+      }
+
+      // Verify account belongs to tenant
+      const account = await this.prisma.cloudAccount.findFirst({
+        where: {
+          id: accountId,
+          tenantId: req.user.tenantId,
+        },
+      });
+
+      if (!account) {
+        res.status(404).json({
+          success: false,
+          error: 'Cloud account not found or does not belong to your tenant',
+        });
+        return;
+      }
+
+      const orphanedResources = await this.assetDiscoveryService.getOrphanedResources(accountId);
+
+      res.json({
+        success: true,
+        data: orphanedResources,
+        meta: {
+          count: orphanedResources.length,
+        },
+      });
+    } catch (error) {
+      this.handleError(error, res, 'getOrphaned');
+    }
+  };
+
+  /**
+   * GET /api/v1/assets/by-type/:type
+   *
+   * Retrieves resources of a specific type for a cloud account.
+   *
+   * URL Parameters:
+   * - type: Resource type (e.g., "ec2_instance", "azure_vm")
+   *
+   * Query Parameters:
+   * - accountId: Cloud account UUID (required)
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   */
+  getByType = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { type } = req.params;
+      const { accountId } = req.query;
+
+      if (!accountId || typeof accountId !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'accountId query parameter is required',
+        });
+        return;
+      }
+
+      if (!type) {
+        res.status(400).json({
+          success: false,
+          error: 'Resource type is required',
+        });
+        return;
+      }
+
+      if (!req.user?.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated or tenant ID missing',
+        });
+        return;
+      }
+
+      // Verify account belongs to tenant
+      const account = await this.prisma.cloudAccount.findFirst({
+        where: {
+          id: accountId,
+          tenantId: req.user.tenantId,
+        },
+      });
+
+      if (!account) {
+        res.status(404).json({
+          success: false,
+          error: 'Cloud account not found or does not belong to your tenant',
+        });
+        return;
+      }
+
+      const resources = await this.assetDiscoveryService.getResourcesByType(accountId, type);
+
+      res.json({
+        success: true,
+        data: resources,
+        meta: {
+          count: resources.length,
+          resourceType: type,
+        },
+      });
+    } catch (error) {
+      this.handleError(error, res, 'getByType');
+    }
+  };
+
+  /**
+   * GET /api/v1/assets/cost-allocation
+   *
+   * Retrieves cost allocation grouped by tags.
+   *
+   * Query Parameters:
+   * - accountId: Cloud account UUID (required)
+   * - groupBy: Tag to group by ('department' | 'project' | 'environment') (default: 'project')
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   */
+  getCostAllocation = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { accountId, groupBy } = req.query;
+
+      if (!accountId || typeof accountId !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'accountId query parameter is required',
+        });
+        return;
+      }
+
+      const validGroupBy = ['department', 'project', 'environment'];
+      const groupByField = (groupBy as string) || 'project';
+
+      if (!validGroupBy.includes(groupByField)) {
+        res.status(400).json({
+          success: false,
+          error: 'groupBy must be one of: department, project, environment',
+        });
+        return;
+      }
+
+      if (!req.user?.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated or tenant ID missing',
+        });
+        return;
+      }
+
+      // Verify account belongs to tenant
+      const account = await this.prisma.cloudAccount.findFirst({
+        where: {
+          id: accountId,
+          tenantId: req.user.tenantId,
+        },
+      });
+
+      if (!account) {
+        res.status(404).json({
+          success: false,
+          error: 'Cloud account not found or does not belong to your tenant',
+        });
+        return;
+      }
+
+      const costAllocation = await this.assetDiscoveryService.getResourceCostAllocation(
+        accountId,
+        groupByField as 'department' | 'project' | 'environment'
+      );
+
+      res.json({
+        success: true,
+        data: costAllocation,
+        meta: {
+          groupBy: groupByField,
+          totalGroups: costAllocation.length,
+        },
+      });
+    } catch (error) {
+      this.handleError(error, res, 'getCostAllocation');
+    }
+  };
+
+  /**
+   * PATCH /api/v1/assets/:id/tags
+   *
+   * Updates tags for a single resource.
+   *
+   * URL Parameters:
+   * - id: Asset UUID
+   *
+   * Request Body:
+   * ```json
+   * {
+   *   "tags": {
+   *     "owner": "john.doe@example.com",
+   *     "environment": "production",
+   *     "project": "web-app"
+   *   }
+   * }
+   * ```
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   */
+  updateTags = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const body = updateTagsSchema.parse(req.body);
+
+      if (!req.user?.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated or tenant ID missing',
+        });
+        return;
+      }
+
+      // Find asset and verify tenant ownership
+      const asset = await this.prisma.asset.findUnique({
+        where: { id },
+      });
+
+      if (!asset) {
+        res.status(404).json({
+          success: false,
+          error: 'Asset not found',
+        });
+        return;
+      }
+
+      if (asset.tenantId !== req.user.tenantId) {
+        res.status(403).json({
+          success: false,
+          error: 'Forbidden - Asset does not belong to your tenant',
+        });
+        return;
+      }
+
+      await this.assetDiscoveryService.updateResourceTags(
+        asset.cloudAccountId,
+        asset.resourceId,
+        body.tags
+      );
+
+      res.json({
+        success: true,
+        message: 'Tags updated successfully',
+      });
+    } catch (error) {
+      this.handleError(error, res, 'updateTags');
+    }
+  };
+
+  /**
+   * POST /api/v1/assets/bulk-tag
+   *
+   * Bulk update tags for multiple resources.
+   *
+   * Request Body:
+   * ```json
+   * {
+   *   "resourceIds": ["id1", "id2", "id3"],
+   *   "tags": {
+   *     "environment": "production",
+   *     "team": "platform"
+   *   }
+   * }
+   * ```
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   */
+  bulkUpdateTags = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const body = bulkTagSchema.parse(req.body);
+
+      if (!req.user?.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated or tenant ID missing',
+        });
+        return;
+      }
+
+      // Verify all assets belong to the tenant
+      const assets = await this.prisma.asset.findMany({
+        where: {
+          resourceId: { in: body.resourceIds },
+          tenantId: req.user.tenantId,
+        },
+      });
+
+      if (assets.length !== body.resourceIds.length) {
+        res.status(400).json({
+          success: false,
+          error: 'Some resource IDs not found or do not belong to your tenant',
+        });
+        return;
+      }
+
+      // Group by cloud account for efficient processing
+      const accountGroups = new Map<string, string[]>();
+      assets.forEach((asset) => {
+        if (!accountGroups.has(asset.cloudAccountId)) {
+          accountGroups.set(asset.cloudAccountId, []);
+        }
+        accountGroups.get(asset.cloudAccountId)!.push(asset.resourceId);
+      });
+
+      // Process each account group
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: Array<{ resourceId: string; error: string }> = [];
+
+      for (const [accountId, resourceIds] of accountGroups.entries()) {
+        const result = await this.assetDiscoveryService.bulkUpdateTags(
+          accountId,
+          resourceIds,
+          body.tags
+        );
+        totalSuccess += result.success;
+        totalFailed += result.failed;
+        allErrors.push(...result.errors);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          success: totalSuccess,
+          failed: totalFailed,
+          errors: allErrors,
+        },
+      });
+    } catch (error) {
+      this.handleError(error, res, 'bulkUpdateTags');
     }
   };
 

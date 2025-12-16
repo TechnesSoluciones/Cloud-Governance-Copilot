@@ -40,6 +40,25 @@ export interface AzureConfig {
       requestsPerSecond: number;
       burstSize: number;
     };
+    advisor: {
+      requestsPerSecond: number;
+      burstSize: number;
+    };
+  };
+
+  // Azure Advisor configuration
+  advisor: {
+    enabled: boolean;
+    cacheTTLSeconds: number;          // How long to cache recommendations
+    rateLimitPerTenant: number;       // Max requests per minute per tenant
+    autoGenerateInterval: number;     // Hours between auto-generation (0 = disabled)
+    categories: {
+      cost: boolean;
+      security: boolean;
+      reliability: boolean;
+      performance: boolean;
+      operationalExcellence: boolean;
+    };
   };
 }
 
@@ -68,6 +87,24 @@ export const azureConfig: AzureConfig = {
     costManagement: {
       requestsPerSecond: 5,   // Conservative for cost APIs
       burstSize: 10,
+    },
+    advisor: {
+      requestsPerSecond: 10,  // Azure Advisor API limit
+      burstSize: 15,
+    },
+  },
+
+  advisor: {
+    enabled: process.env.AZURE_ADVISOR_ENABLED === 'true',
+    cacheTTLSeconds: 86400,           // 24 hours (recommendations updated daily)
+    rateLimitPerTenant: 10,           // 10 requests per minute per tenant
+    autoGenerateInterval: 0,          // Disabled by default (Azure auto-generates daily)
+    categories: {
+      cost: true,
+      security: true,
+      reliability: true,
+      performance: true,
+      operationalExcellence: true,
     },
   },
 };

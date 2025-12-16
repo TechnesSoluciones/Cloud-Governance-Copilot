@@ -224,3 +224,20 @@ export function testEncryption(): boolean {
     return false;
   }
 }
+
+/**
+ * Decrypt cloud account credentials from database
+ *
+ * @param ciphertext - Encrypted credentials JSON
+ * @param iv - Initialization vector
+ * @param authTag - Authentication tag
+ * @returns Decrypted credentials object
+ */
+export function decryptCloudCredentials(
+  ciphertext: string,
+  iv: string,
+  authTag: string
+): Record<string, string> {
+  const decrypted = decrypt({ ciphertext, iv, authTag });
+  return JSON.parse(decrypted);
+}

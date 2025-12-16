@@ -162,3 +162,187 @@ export function extractAssetData(
   }
   return response.data.data;
 }
+
+/**
+ * Hook: useOrphanedAssets
+ * Fetch assets with missing or incomplete tags
+ *
+ * @param accountId - Cloud account ID
+ * @param options - React Query options
+ * @returns Query result with orphaned assets
+ *
+ * @example
+ * const { data, isLoading } = useOrphanedAssets(accountId);
+ */
+export function useOrphanedAssets(
+  accountId: string,
+  options?: UseQueryOptions<ApiResponse<import('@/lib/api/assets').OrphanedAssetsResponse>>
+) {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: [...assetsKeys.all, 'orphaned', accountId] as const,
+    queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getOrphaned(accountId, token)),
+    enabled: !!accountId && options?.enabled !== false,
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    ...options,
+  });
+}
+
+/**
+ * Hook: useAssetsByType
+ * Fetch assets filtered by resource type
+ *
+ * @param accountId - Cloud account ID
+ * @param type - Resource type
+ * @param options - React Query options
+ * @returns Query result with filtered assets
+ *
+ * @example
+ * const { data, isLoading } = useAssetsByType(accountId, 'VirtualMachine');
+ */
+export function useAssetsByType(
+  accountId: string,
+  type: string,
+  options?: UseQueryOptions<ApiResponse<ListAssetsResponse>>
+) {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: [...assetsKeys.all, 'byType', accountId, type] as const,
+    queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getByType(accountId, type, token)),
+    enabled: !!accountId && !!type && options?.enabled !== false,
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    ...options,
+  });
+}
+
+/**
+ * Hook: useCostAllocation
+ * Fetch cost allocation breakdown by department, project, or environment
+ *
+ * @param accountId - Cloud account ID
+ * @param groupBy - Group by field
+ * @param options - React Query options
+ * @returns Query result with cost allocation data
+ *
+ * @example
+ * const { data, isLoading } = useCostAllocation(accountId, 'project');
+ */
+export function useCostAllocation(
+  accountId: string,
+  groupBy: 'department' | 'project' | 'environment' = 'project',
+  options?: UseQueryOptions<ApiResponse<import('@/lib/api/assets').CostAllocationResponse>>
+) {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: [...assetsKeys.all, 'costAllocation', accountId, groupBy] as const,
+    queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getCostAllocation(accountId, groupBy, token)),
+    enabled: !!accountId && options?.enabled !== false,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+    ...options,
+  });
+}
+
+/**
+ * Hook: useAssetStats
+ * Fetch asset inventory statistics
+ *
+ * @param accountId - Cloud account ID
+ * @param options - React Query options
+ * @returns Query result with stats
+ *
+ * @example
+ * const { data, isLoading } = useAssetStats(accountId);
+ */
+export function useAssetStats(
+  accountId: string,
+  options?: UseQueryOptions<ApiResponse<import('@/lib/api/assets').AssetStatsResponse>>
+) {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: [...assetsKeys.all, 'stats', accountId] as const,
+    queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getStats(accountId, token)),
+    enabled: !!accountId && options?.enabled !== false,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    ...options,
+  });
+}
+
+/**
+ * Hook: useUpdateAssetTags
+ * Update tags for a single asset
+ *
+ * @returns Mutation result with update function
+ *
+ * @example
+ * const { mutate: updateTags, isPending } = useUpdateAssetTags();
+ *
+ * updateTags({ id: 'asset-123', tags: { Owner: 'John' } });
+ */
+export function useUpdateAssetTags() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useMutation({
+    mutationFn: async ({ id, tags }: { id: string; tags: Record<string, string> }) => {
+      const { assetsApi } = await import('@/lib/api/assets');
+      return assetsApi.updateTags(id, { tags }, token);
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate specific asset and lists
+      queryClient.invalidateQueries({ queryKey: assetsKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: assetsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: [...assetsKeys.all, 'stats'] });
+    },
+    retry: 1,
+  });
+}
+
+/**
+ * Hook: useBulkUpdateTags
+ * Update tags for multiple assets
+ *
+ * @returns Mutation result with bulk update function
+ *
+ * @example
+ * const { mutate: bulkUpdate, isPending } = useBulkUpdateTags();
+ *
+ * bulkUpdate({
+ *   resourceIds: ['id1', 'id2'],
+ *   tags: { Environment: 'Production' },
+ *   operation: 'add'
+ * });
+ */
+export function useBulkUpdateTags() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useMutation({
+    mutationFn: async (params: import('@/lib/api/assets').BulkTagParams) => {
+      const { assetsApi } = await import('@/lib/api/assets');
+      return assetsApi.bulkUpdateTags(params, token);
+    },
+    onSuccess: () => {
+      // Invalidate all asset queries to refetch updated data
+      queryClient.invalidateQueries({ queryKey: assetsKeys.all });
+    },
+    retry: 1,
+  });
+}

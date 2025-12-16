@@ -545,6 +545,251 @@ export class AzureMonitorService {
   }
 
   /**
+   * Gets alerts with optional filtering
+   *
+   * Fetches both active and historical alerts from Azure Monitor
+   *
+   * @param filters - Alert filters (severity, status, timeRange, resourceType)
+   * @returns Array of alerts
+   *
+   * @example
+   * ```typescript
+   * // Get critical alerts from last 24 hours
+   * const alerts = await monitorService.getAlerts({
+   *   severity: ['critical', 'high'],
+   *   status: ['active'],
+   *   timeRange: {
+   *     start: new Date(Date.now() - 86400000),
+   *     end: new Date(),
+   *   },
+   * });
+   * ```
+   */
+  async getAlerts(filters?: {
+    severity?: string[];
+    status?: string[];
+    resourceType?: string;
+    timeRange?: { start: Date; end: Date };
+  }): Promise<TriggeredAlert[]> {
+    try {
+      const alertsIterator = this.monitorClient.alerts.getAll();
+      const alerts: TriggeredAlert[] = [];
+
+      for await (const alert of alertsIterator) {
+        const normalized = {
+          id: alert.id || '',
+          name: alert.name || 'Unknown',
+          severity: this.normalizeSeverity(alert.properties?.essentials?.severity),
+          status: this.normalizeAlertStatus(alert.properties?.essentials?.alertState),
+          firedDateTime: alert.properties?.essentials?.startDateTime || new Date(),
+          resolvedDateTime: alert.properties?.essentials?.lastModifiedDateTime,
+          description: alert.properties?.essentials?.description || '',
+          affectedResources: alert.properties?.context?.affectedResources || [],
+        };
+
+        // Apply filters
+        if (filters) {
+          // Severity filter
+          if (filters.severity && !filters.severity.includes(normalized.severity)) {
+            continue;
+          }
+
+          // Status filter
+          if (filters.status) {
+            const statusLower = normalized.status.toLowerCase();
+            if (!filters.status.some((s) => statusLower === s.toLowerCase())) {
+              continue;
+            }
+          }
+
+          // Resource type filter
+          if (filters.resourceType && normalized.affectedResources.length > 0) {
+            const hasMatchingResource = normalized.affectedResources.some((res) =>
+              res.includes(filters.resourceType!)
+            );
+            if (!hasMatchingResource) {
+              continue;
+            }
+          }
+
+          // Time range filter
+          if (filters.timeRange) {
+            const firedTime = new Date(normalized.firedDateTime).getTime();
+            const startTime = filters.timeRange.start.getTime();
+            const endTime = filters.timeRange.end.getTime();
+
+            if (firedTime < startTime || firedTime > endTime) {
+              continue;
+            }
+          }
+        }
+
+        alerts.push(normalized);
+      }
+
+      console.log(`[AzureMonitorService] Retrieved ${alerts.length} alerts with filters`);
+      return alerts;
+    } catch (error) {
+      console.error('[AzureMonitorService] Failed to get alerts:', error);
+      throw new Error(
+        `Failed to get Azure alerts: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Gets activity logs with advanced filtering
+   *
+   * Retrieves Azure Activity Logs with filtering by operation, status, and time range
+   *
+   * @param timeRange - Time range for logs
+   * @param filters - Additional filters
+   * @returns Array of activity log entries (max 1000)
+   *
+   * @example
+   * ```typescript
+   * // Get failed operations from last 7 days
+   * const logs = await monitorService.getActivityLogsAdvanced(
+   *   {
+   *     start: new Date(Date.now() - 7 * 86400000),
+   *     end: new Date(),
+   *   },
+   *   {
+   *     status: ['Failed'],
+   *     operationName: 'Microsoft.Compute/virtualMachines/delete',
+   *   }
+   * );
+   * ```
+   */
+  async getActivityLogsAdvanced(
+    timeRange: { start: Date; end: Date },
+    filters?: {
+      status?: string[];
+      operationName?: string;
+      caller?: string;
+      resourceType?: string;
+      level?: string[];
+    }
+  ): Promise<ActivityLogEntry[]> {
+    try {
+      const filterParts: string[] = [];
+
+      // Time filter (required)
+      filterParts.push(
+        `eventTimestamp ge '${timeRange.start.toISOString()}' and eventTimestamp le '${timeRange.end.toISOString()}'`
+      );
+
+      // Status filter
+      if (filters?.status && filters.status.length > 0) {
+        const statusConditions = filters.status
+          .map((status) => `status eq '${status}'`)
+          .join(' or ');
+        filterParts.push(`(${statusConditions})`);
+      }
+
+      // Operation name filter
+      if (filters?.operationName) {
+        filterParts.push(`operationName eq '${filters.operationName}'`);
+      }
+
+      // Caller filter
+      if (filters?.caller) {
+        filterParts.push(`caller eq '${filters.caller}'`);
+      }
+
+      // Resource type filter
+      if (filters?.resourceType) {
+        filterParts.push(`resourceType eq '${filters.resourceType}'`);
+      }
+
+      // Level filter
+      if (filters?.level && filters.level.length > 0) {
+        const levelConditions = filters.level.map((level) => `level eq '${level}'`).join(' or ');
+        filterParts.push(`(${levelConditions})`);
+      }
+
+      const filter = filterParts.join(' and ');
+
+      const logsIterator = this.monitorClient.activityLogs.list({ filter });
+      const logs: ActivityLogEntry[] = [];
+      let count = 0;
+      const MAX_LOGS = 1000; // Pagination limit
+
+      for await (const log of logsIterator) {
+        if (count >= MAX_LOGS) {
+          console.log(`[AzureMonitorService] Reached maximum limit of ${MAX_LOGS} logs`);
+          break;
+        }
+
+        logs.push({
+          eventTimestamp: log.eventTimestamp || new Date(),
+          level: log.level?.toString() || 'Informational',
+          operationName: log.operationName?.value || 'Unknown',
+          resourceId: log.resourceId || '',
+          resourceType: log.resourceType?.value || 'Unknown',
+          status: log.status?.value || 'Unknown',
+          subStatus: log.subStatus?.value,
+          caller: log.caller,
+          description: log.description,
+          properties: log.properties || {},
+        });
+
+        count++;
+      }
+
+      console.log(`[AzureMonitorService] Retrieved ${logs.length} activity log entries`);
+      return logs;
+    } catch (error) {
+      console.error('[AzureMonitorService] Failed to get activity logs:', error);
+      throw new Error(
+        `Failed to get Azure activity logs: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Gets metrics for a specific resource
+   *
+   * Wrapper method for getting metrics with common patterns
+   *
+   * @param resourceId - Azure resource ID
+   * @param metricNames - Array of metric names
+   * @param timeRange - Time range for metrics
+   * @param aggregation - Aggregation type
+   * @param interval - Time granularity
+   * @returns Array of metric results
+   *
+   * @example
+   * ```typescript
+   * const metrics = await monitorService.getResourceMetrics(
+   *   '/subscriptions/.../virtualMachines/vm1',
+   *   ['Percentage CPU', 'Network In Total'],
+   *   {
+   *     start: new Date(Date.now() - 3600000),
+   *     end: new Date(),
+   *   },
+   *   'Average',
+   *   'PT5M'
+   * );
+   * ```
+   */
+  async getResourceMetrics(
+    resourceId: string,
+    metricNames: string[],
+    timeRange: { start: Date; end: Date },
+    aggregation: 'Average' | 'Minimum' | 'Maximum' | 'Total' | 'Count' = 'Average',
+    interval: string = 'PT5M'
+  ): Promise<MetricResult[]> {
+    return this.getMetrics({
+      resourceId,
+      metricNames,
+      timespan: timeRange,
+      aggregation,
+      interval,
+    });
+  }
+
+  /**
    * Sleep utility
    *
    * @private

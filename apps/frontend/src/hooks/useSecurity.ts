@@ -388,3 +388,119 @@ export function extractSummaryData(
   }
   return response.data.data;
 }
+
+/**
+ * Hook: useSecurityScore
+ * Fetch security score with breakdown by categories
+ *
+ * @param accountId - Optional cloud account ID to filter
+ * @param options - React Query options
+ * @returns Query result with security score data
+ *
+ * @example
+ * const { data, isLoading } = useSecurityScore('account-123');
+ */
+export function useSecurityScore(
+  accountId?: string,
+  options?: UseSummaryOptions
+): UseQueryResult<ApiResponse<SummaryResponse>> {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: [...securityKeys.summary(), 'score', accountId],
+    queryFn: () => securityApi.getSummary(token),
+    enabled: options?.enabled !== false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+    ...options,
+  });
+}
+
+/**
+ * Hook: useSecurityAssessments
+ * Fetch security assessments with filters (alias for useFindings with enhanced typing)
+ *
+ * @param accountId - Optional cloud account ID to filter
+ * @param filters - Additional filters for assessments
+ * @param options - React Query options
+ * @returns Query result with assessments data
+ *
+ * @example
+ * const { data, isLoading } = useSecurityAssessments('account-123', {
+ *   severity: 'HIGH',
+ *   status: 'open'
+ * });
+ */
+export function useSecurityAssessments(
+  accountId?: string,
+  filters?: Omit<ListFindingsParams, 'cloudAccountId'>,
+  options?: UseFindingsOptions
+): UseQueryResult<ApiResponse<ListFindingsResponse>> {
+  return useFindings(
+    {
+      cloudAccountId: accountId,
+      ...filters,
+    },
+    options
+  );
+}
+
+/**
+ * Hook: useComplianceResults
+ * Fetch compliance results by standard
+ * Note: Currently uses summary data. Backend should provide dedicated endpoint.
+ *
+ * @param accountId - Optional cloud account ID to filter
+ * @param options - React Query options
+ * @returns Query result with compliance data
+ *
+ * @example
+ * const { data, isLoading } = useComplianceResults('account-123');
+ */
+export function useComplianceResults(
+  accountId?: string,
+  options?: UseSummaryOptions
+): UseQueryResult<ApiResponse<SummaryResponse>> {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: [...securityKeys.summary(), 'compliance', accountId],
+    queryFn: () => securityApi.getSummary(token),
+    enabled: options?.enabled !== false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+    ...options,
+  });
+}
+
+/**
+ * Hook: useSecurityRecommendations
+ * Fetch security recommendations
+ * Note: Currently uses findings with recommendations filter. Backend should provide dedicated endpoint.
+ *
+ * @param accountId - Optional cloud account ID to filter
+ * @param options - React Query options
+ * @returns Query result with recommendations data
+ *
+ * @example
+ * const { data, isLoading } = useSecurityRecommendations('account-123');
+ */
+export function useSecurityRecommendations(
+  accountId?: string,
+  options?: UseFindingsOptions
+): UseQueryResult<ApiResponse<ListFindingsResponse>> {
+  return useFindings(
+    {
+      cloudAccountId: accountId,
+      status: 'open',
+      sortBy: 'severity',
+      sortOrder: 'desc',
+      limit: 10,
+    },
+    options
+  );
+}

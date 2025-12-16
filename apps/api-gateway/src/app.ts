@@ -15,6 +15,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import cloudAccountRoutes from './routes/cloudAccount.routes';
 import finopsRoutes from './modules/finops/routes';
+import policyRoutes from './routes/policy.routes';
 
 export const app = express();
 
@@ -59,6 +60,7 @@ app.get('/api/v1', (req, res) => {
       users: '/api/v1/users',
       cloudAccounts: '/api/v1/cloud-accounts',
       finops: '/api/v1/finops',
+      policy: '/api/v1/policy',
     },
   });
 });
@@ -78,6 +80,9 @@ app.use('/api/v1/cloud-accounts', cloudAccountRoutes);
 
 // FinOps routes
 app.use('/api/v1/finops', finopsRoutes);
+
+// Policy routes
+app.use('/api/v1/policy', policyRoutes);
 
 // ============================================================
 // Error Handling

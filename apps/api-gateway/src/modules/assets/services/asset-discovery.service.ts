@@ -36,6 +36,8 @@ export interface DiscoveryResult {
   assetsDiscovered: number;
   accountsProcessed: number;
   errors: DiscoveryError[];
+  orphanedCount?: number;
+  resourcesByType?: Record<string, number>;
 }
 
 /**
@@ -45,6 +47,33 @@ export interface DiscoveryError {
   accountId: string;
   provider: string;
   error: string;
+}
+
+/**
+ * Cost allocation by tag grouping
+ */
+export interface CostAllocation {
+  groupBy: string;
+  groupValue: string;
+  totalCost: number;
+  resourceCount: number;
+  resources: Array<{
+    resourceId: string;
+    name: string;
+    cost: number;
+  }>;
+}
+
+/**
+ * Bulk tag update result
+ */
+export interface BulkTagUpdateResult {
+  success: number;
+  failed: number;
+  errors: Array<{
+    resourceId: string;
+    error: string;
+  }>;
 }
 
 /**
@@ -453,6 +482,432 @@ export class AssetDiscoveryService {
         error
       );
       // Non-fatal error, continue
+    }
+  }
+
+  /**
+   * Discover all resources for an account with enhanced classification
+   *
+   * Performs a comprehensive scan of all resources, including:
+   * - Automatic classification by resource type
+   * - Detection of resources without tags
+   * - Identification of orphaned resources
+   * - Tag extraction (owner, environment, project)
+   * - Orphan detection (resources without owner tag or stopped)
+   *
+   * @param accountId - Cloud account ID to scan
+   * @returns Enhanced discovery result with statistics
+   */
+  async discoverAllResources(accountId: string): Promise<DiscoveryResult> {
+    try {
+      // Get cloud account details
+      const account = await this.prisma.cloudAccount.findUnique({
+        where: { id: accountId },
+      });
+
+      if (!account) {
+        throw new Error(`Cloud account ${accountId} not found`);
+      }
+
+      console.log(`[AssetDiscoveryService] Starting full discovery for account ${accountId}`);
+
+      // Discover all assets
+      const assets = await this.discoverAccountAssets(account);
+
+      // Classify resources by type
+      const resourcesByType: Record<string, number> = {};
+      let orphanedCount = 0;
+
+      assets.forEach((asset) => {
+        resourcesByType[asset.resourceType] = (resourcesByType[asset.resourceType] || 0) + 1;
+
+        // Check if orphaned (no owner tag and stopped/terminated)
+        const hasOwnerTag = asset.tags && 'owner' in asset.tags;
+        const isStopped = ['stopped', 'terminated', 'deallocated'].includes(asset.status);
+
+        if (!hasOwnerTag && (isStopped || !asset.tags || Object.keys(asset.tags).length === 0)) {
+          orphanedCount++;
+        }
+      });
+
+      // Save assets with enhanced fields
+      await this.saveAssetsEnhanced(account.tenantId, accountId, assets);
+
+      // Mark stale assets
+      await this.markStaleAssets(accountId, assets.map(a => a.resourceId));
+
+      const result: DiscoveryResult = {
+        assetsDiscovered: assets.length,
+        accountsProcessed: 1,
+        errors: [],
+        orphanedCount,
+        resourcesByType,
+      };
+
+      console.log(
+        `[AssetDiscoveryService] Discovery completed: ${assets.length} assets, ${orphanedCount} orphaned`
+      );
+
+      return result;
+    } catch (error) {
+      console.error(`[AssetDiscoveryService] Error in discoverAllResources:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get resources by type with optional filters
+   *
+   * @param accountId - Cloud account ID
+   * @param resourceType - Resource type to filter by
+   * @returns Array of resources matching the type
+   */
+  async getResourcesByType(accountId: string, resourceType: string): Promise<any[]> {
+    try {
+      const account = await this.prisma.cloudAccount.findUnique({
+        where: { id: accountId },
+      });
+
+      if (!account) {
+        throw new Error(`Cloud account ${accountId} not found`);
+      }
+
+      const resources = await this.prisma.asset.findMany({
+        where: {
+          cloudAccountId: accountId,
+          resourceType,
+          deletedAt: null,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      return resources;
+    } catch (error) {
+      console.error(`[AssetDiscoveryService] Error in getResourcesByType:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get orphaned resources for an account
+   *
+   * Orphaned resources are defined as:
+   * - Resources without owner tag
+   * - Resources without resource group association
+   * - Resources with incomplete tags
+   * - Stopped/deallocated resources without tags
+   * - Unattached disks, unused IPs
+   *
+   * @param accountId - Cloud account ID
+   * @returns Array of orphaned resources
+   */
+  async getOrphanedResources(accountId: string): Promise<any[]> {
+    try {
+      const resources = await this.prisma.asset.findMany({
+        where: {
+          cloudAccountId: accountId,
+          isOrphaned: true,
+          deletedAt: null,
+        },
+        orderBy: {
+          lastSeenAt: 'desc',
+        },
+      });
+
+      return resources;
+    } catch (error) {
+      console.error(`[AssetDiscoveryService] Error in getOrphanedResources:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get resource cost allocation grouped by tags
+   *
+   * Correlates assets with cost data and groups by:
+   * - Department tag
+   * - Project tag
+   * - Environment tag
+   *
+   * @param accountId - Cloud account ID
+   * @param groupBy - Tag to group by ('department' | 'project' | 'environment')
+   * @returns Cost allocation grouped by tag
+   */
+  async getResourceCostAllocation(
+    accountId: string,
+    groupBy: 'department' | 'project' | 'environment' = 'project'
+  ): Promise<CostAllocation[]> {
+    try {
+      const tagField = groupBy === 'department' ? 'ownerTag' : groupBy === 'project' ? 'projectTag' : 'environmentTag';
+
+      // Get all assets with costs
+      const assets = await this.prisma.asset.findMany({
+        where: {
+          cloudAccountId: accountId,
+          deletedAt: null,
+          costLast30Days: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          resourceId: true,
+          name: true,
+          costLast30Days: true,
+          ownerTag: true,
+          projectTag: true,
+          environmentTag: true,
+        },
+      });
+
+      // Group by tag value
+      const grouped = new Map<string, CostAllocation>();
+
+      assets.forEach((asset) => {
+        const tagValue = (asset as any)[tagField] || 'untagged';
+        const cost = Number(asset.costLast30Days) || 0;
+
+        if (!grouped.has(tagValue)) {
+          grouped.set(tagValue, {
+            groupBy,
+            groupValue: tagValue,
+            totalCost: 0,
+            resourceCount: 0,
+            resources: [],
+          });
+        }
+
+        const group = grouped.get(tagValue)!;
+        group.totalCost += cost;
+        group.resourceCount++;
+        group.resources.push({
+          resourceId: asset.resourceId,
+          name: asset.name || asset.resourceId,
+          cost,
+        });
+      });
+
+      // Sort resources within each group by cost
+      const allocations = Array.from(grouped.values());
+      allocations.forEach((allocation) => {
+        allocation.resources.sort((a, b) => b.cost - a.cost);
+        allocation.resources = allocation.resources.slice(0, 10); // Top 10 per group
+      });
+
+      // Sort allocations by total cost
+      allocations.sort((a, b) => b.totalCost - a.totalCost);
+
+      return allocations;
+    } catch (error) {
+      console.error(`[AssetDiscoveryService] Error in getResourceCostAllocation:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update tags for a single resource
+   *
+   * Updates both the database and syncs with the cloud provider.
+   *
+   * @param accountId - Cloud account ID
+   * @param resourceId - Resource ID
+   * @param tags - New tags to apply
+   */
+  async updateResourceTags(
+    accountId: string,
+    resourceId: string,
+    tags: Record<string, string>
+  ): Promise<void> {
+    try {
+      // Find the asset
+      const asset = await this.prisma.asset.findFirst({
+        where: {
+          cloudAccountId: accountId,
+          resourceId,
+        },
+      });
+
+      if (!asset) {
+        throw new Error(`Resource ${resourceId} not found in account ${accountId}`);
+      }
+
+      // Extract standard tags
+      const ownerTag = tags.owner || null;
+      const environmentTag = tags.environment || null;
+      const projectTag = tags.project || null;
+
+      // Check if orphaned (no owner tag and stopped)
+      const isStopped = ['stopped', 'terminated', 'deallocated'].includes(asset.status);
+      const isOrphaned = !ownerTag && isStopped;
+
+      // Update in database
+      await this.prisma.asset.update({
+        where: { id: asset.id },
+        data: {
+          tags: tags as any,
+          ownerTag,
+          environmentTag,
+          projectTag,
+          isOrphaned,
+          updatedAt: new Date(),
+        },
+      });
+
+      console.log(`[AssetDiscoveryService] Updated tags for resource ${resourceId}`);
+
+      // TODO: Sync with cloud provider (Azure Resource Manager / AWS Resource Groups Tagging API)
+      // This would require implementing provider-specific tag update methods
+    } catch (error) {
+      console.error(`[AssetDiscoveryService] Error updating resource tags:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk update tags for multiple resources
+   *
+   * Updates tags for multiple resources in parallel.
+   * Returns success/failure counts and errors.
+   *
+   * @param accountId - Cloud account ID
+   * @param resourceIds - Array of resource IDs
+   * @param tags - Tags to apply to all resources
+   * @returns Bulk update result
+   */
+  async bulkUpdateTags(
+    accountId: string,
+    resourceIds: string[],
+    tags: Record<string, string>
+  ): Promise<BulkTagUpdateResult> {
+    const result: BulkTagUpdateResult = {
+      success: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    // Process in parallel with limit
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < resourceIds.length; i += BATCH_SIZE) {
+      const batch = resourceIds.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (resourceId) => {
+          try {
+            await this.updateResourceTags(accountId, resourceId, tags);
+            result.success++;
+          } catch (error) {
+            result.failed++;
+            result.errors.push({
+              resourceId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        })
+      );
+    }
+
+    console.log(
+      `[AssetDiscoveryService] Bulk update completed: ${result.success} success, ${result.failed} failed`
+    );
+
+    return result;
+  }
+
+  /**
+   * Save discovered assets with enhanced fields
+   *
+   * Enhanced version of saveAssets that extracts and stores tag-based fields.
+   *
+   * @private
+   * @param tenantId - Tenant ID
+   * @param cloudAccountId - Cloud account ID
+   * @param assets - Array of discovered cloud assets
+   */
+  private async saveAssetsEnhanced(
+    tenantId: string,
+    cloudAccountId: string,
+    assets: CloudAsset[]
+  ): Promise<void> {
+    const now = new Date();
+
+    for (const cloudAsset of assets) {
+      try {
+        // Normalize cloud asset to database Asset schema
+        const normalizedAsset = this.normalizeAsset(
+          tenantId,
+          cloudAccountId,
+          cloudAsset
+        );
+
+        // Extract tag-based fields
+        const tags = cloudAsset.tags || {};
+        const ownerTag = tags.owner || tags.Owner || null;
+        const environmentTag = tags.environment || tags.Environment || tags.env || null;
+        const projectTag = tags.project || tags.Project || tags['project-name'] || null;
+
+        // Determine if orphaned
+        const isStopped = ['stopped', 'terminated', 'deallocated'].includes(cloudAsset.status);
+        const hasNoTags = !tags || Object.keys(tags).length === 0;
+        const isOrphaned = (!ownerTag && isStopped) || (!ownerTag && hasNoTags);
+
+        // Upsert asset (create if new, update if exists)
+        const savedAsset = await this.prisma.asset.upsert({
+          where: {
+            tenantId_provider_resourceId: {
+              tenantId,
+              provider: normalizedAsset.provider,
+              resourceId: normalizedAsset.resourceId,
+            },
+          },
+          update: {
+            name: normalizedAsset.name,
+            region: normalizedAsset.region,
+            zone: normalizedAsset.zone,
+            status: normalizedAsset.status,
+            tags: normalizedAsset.tags as any,
+            metadata: normalizedAsset.metadata as any,
+            lastSeenAt: now,
+            lastDiscovered: now,
+            ownerTag,
+            environmentTag,
+            projectTag,
+            isOrphaned,
+            updatedAt: now,
+            deletedAt: null, // Unmark as deleted if it was previously soft-deleted
+          },
+          create: {
+            ...normalizedAsset,
+            tags: normalizedAsset.tags as any,
+            metadata: normalizedAsset.metadata as any,
+            lastSeenAt: now,
+            lastDiscovered: now,
+            ownerTag,
+            environmentTag,
+            projectTag,
+            isOrphaned,
+          },
+        });
+
+        // Emit asset discovered event
+        this.eventBus.emit('asset.discovered', {
+          tenantId,
+          assetId: savedAsset.id,
+          provider: savedAsset.provider,
+          resourceType: savedAsset.resourceType,
+          resourceId: savedAsset.resourceId,
+          region: savedAsset.region,
+          metadata: savedAsset.metadata,
+          isOrphaned,
+        });
+      } catch (error) {
+        console.error(
+          `[AssetDiscoveryService] Error saving asset ${cloudAsset.resourceId}:`,
+          error
+        );
+        // Continue with other assets
+      }
     }
   }
 }

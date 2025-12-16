@@ -24,20 +24,22 @@ model Tenant {
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  users               User[]
-  cloudAccounts       CloudAccount[]
-  apiKeys             ApiKey[]
-  auditLogs           AuditLog[]
-  billingUsage        BillingUsage[]
-  subscriptions       Subscription[]
-  assets              Asset[]
-  costData            CostData[]
-  costAnomalies       CostAnomaly[]
-  costRecommendations CostRecommendation[]
-  securityScans       SecurityScan[]
-  securityFindings    SecurityFinding[]
-  incidents           Incident[]
-  reports             Report[]
+  users                       User[]
+  cloudAccounts               CloudAccount[]
+  apiKeys                     ApiKey[]
+  auditLogs                   AuditLog[]
+  billingUsage                BillingUsage[]
+  subscriptions               Subscription[]
+  assets                      Asset[]
+  costData                    CostData[]
+  costAnomalies               CostAnomaly[]
+  costRecommendations         CostRecommendation[]
+  securityScans               SecurityScan[]
+  securityFindings            SecurityFinding[]
+  incidents                   Incident[]
+  reports                     Report[]
+  logAnalyticsQueries         LogAnalyticsQuery[]
+  azureAdvisorRecommendations AzureAdvisorRecommendation[]
 
   @@map("tenants")
 }
@@ -71,9 +73,10 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  apiKeys   ApiKey[]
-  auditLogs AuditLog[]
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  apiKeys        ApiKey[]
+  auditLogs      AuditLog[]
+  advisorActions AdvisorAction[]
 
   @@index([tenantId])
   @@index([email])
@@ -237,6 +240,14 @@ model Asset {
   tags     Json @default("{}") @db.Json
   metadata Json @default("{}") @db.Json // Provider-specific data
 
+  // Enhanced asset management fields
+  lastDiscovered DateTime? @map("last_discovered") @db.Timestamptz(6) // Last successful discovery
+  isOrphaned     Boolean   @default(false) @map("is_orphaned") // Resources without owner tag or stopped
+  costLast30Days Decimal?  @map("cost_last_30_days") @db.Decimal(10, 2) // Cost allocation
+  ownerTag       String?   @map("owner_tag") @db.VarChar(255) // Tag-based ownership
+  environmentTag String?   @map("environment_tag") @db.VarChar(50) // prod, dev, staging
+  projectTag     String?   @map("project_tag") @db.VarChar(255) // Project identifier
+
   // Discovery tracking
   firstSeenAt DateTime  @default(now()) @map("first_seen_at") @db.Timestamptz(6)
   lastSeenAt  DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
@@ -260,6 +271,12 @@ model Asset {
   @@index([tenantId, resourceType]) // Resource type filtering
   @@index([tenantId, region]) // Location-based queries
   @@index([tenantId, provider, status]) // Provider-specific active resources
+  // Enhanced asset management indexes
+  @@index([tenantId, isOrphaned]) // Orphaned resources query
+  @@index([tenantId, ownerTag]) // Owner-based filtering
+  @@index([tenantId, environmentTag]) // Environment-based filtering
+  @@index([tenantId, projectTag]) // Project-based filtering
+  @@index([lastDiscovered]) // Discovery tracking
   @@map("assets")
 }
 
@@ -514,4 +531,101 @@ model Report {
   @@index([tenantId])
   @@index([generatedAt])
   @@map("reports")
+}
+
+// ============================================================
+// MODULE: LOG ANALYTICS (KQL Query Management)
+// ============================================================
+model LogAnalyticsQuery {
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  accountId   String  @map("account_id") @db.VarChar(255)
+  name        String  @db.VarChar(255)
+  query       String  @db.Text
+  description String? @db.Text
+  createdBy   String? @map("created_by") @db.VarChar(255)
+
+  lastExecuted   DateTime? @map("last_executed") @db.Timestamptz(6)
+  executionCount Int       @default(0) @map("execution_count")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, accountId, name])
+  @@index([tenantId, accountId])
+  @@index([lastExecuted(sort: Desc)])
+  @@map("log_analytics_queries")
+}
+
+// ============================================================
+// MODULE: AZURE ADVISOR (Recommendations Management)
+// ============================================================
+model AzureAdvisorRecommendation {
+  id                    String @id @default(uuid()) @map("recommendation_id") @db.Uuid
+  tenantId              String @map("tenant_id") @db.Uuid
+  azureRecommendationId String @map("azure_recommendation_id") @db.VarChar(500)
+
+  // Recommendation metadata
+  category         String  @db.VarChar(50) // Cost, Security, Reliability, Performance, OperationalExcellence
+  impact           String  @db.VarChar(20) // High, Medium, Low
+  shortDescription String  @map("short_description") @db.Text
+  longDescription  String? @map("long_description") @db.Text
+
+  // Resource information
+  resourceId   String  @map("resource_id") @db.VarChar(500)
+  resourceType String? @map("resource_type") @db.VarChar(100)
+
+  // Savings information (for Cost recommendations)
+  potentialSavingsAmount   Decimal? @map("potential_savings_amount") @db.Decimal(10, 2)
+  potentialSavingsCurrency String?  @map("potential_savings_currency") @db.VarChar(10)
+
+  // Remediation
+  remediationSteps Json @map("remediation_steps") @db.Json // Array of strings
+
+  // Status tracking
+  status          String    @default("Active") @db.VarChar(50) // Active, Suppressed, Dismissed, Resolved
+  suppressedUntil DateTime? @map("suppressed_until") @db.Timestamptz(6)
+
+  // Timestamps
+  lastUpdated DateTime @default(now()) @map("last_updated") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actions AdvisorAction[]
+
+  @@unique([tenantId, azureRecommendationId], name: "tenantId_azureRecommendationId")
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@index([tenantId, status])
+  @@index([tenantId, impact])
+  @@index([category, status])
+  @@map("azure_advisor_recommendations")
+}
+
+model AdvisorAction {
+  id               String @id @default(uuid()) @map("action_id") @db.Uuid
+  recommendationId String @map("recommendation_id") @db.Uuid
+  userId           String @map("user_id") @db.Uuid
+
+  // Action details
+  actionType   String  @map("action_type") @db.VarChar(50) // suppress, dismiss, apply, resolve
+  durationDays Int?    @map("duration_days") // For suppress actions
+  notes        String? @db.Text
+
+  // Timestamp
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  recommendation AzureAdvisorRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user           User                       @relation(fields: [userId], references: [id])
+
+  @@index([recommendationId])
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt(sort: Desc)])
+  @@map("advisor_actions")
 }

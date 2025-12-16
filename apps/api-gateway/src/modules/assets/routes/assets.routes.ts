@@ -199,6 +199,95 @@ router.get('/:id', readLimiter, (req, res) => assetsController.get(req, res));
  */
 router.post('/discover', writeLimiter, (req, res) => assetsController.discover(req, res));
 
+/**
+ * @route   GET /api/v1/assets/orphaned
+ * @desc    Get orphaned resources for a cloud account
+ * @access  Authenticated users
+ * @limit   100 requests per 15 minutes per IP
+ *
+ * Query Parameters:
+ * - accountId: Cloud account UUID (required)
+ *
+ * Example Request:
+ * GET /api/v1/assets/orphaned?accountId=account-uuid
+ */
+router.get('/orphaned', readLimiter, (req, res) => assetsController.getOrphaned(req, res));
+
+/**
+ * @route   GET /api/v1/assets/by-type/:type
+ * @desc    Get resources of a specific type
+ * @access  Authenticated users
+ * @limit   100 requests per 15 minutes per IP
+ *
+ * URL Parameters:
+ * - type: Resource type (e.g., "ec2_instance", "azure_vm")
+ *
+ * Query Parameters:
+ * - accountId: Cloud account UUID (required)
+ *
+ * Example Request:
+ * GET /api/v1/assets/by-type/ec2_instance?accountId=account-uuid
+ */
+router.get('/by-type/:type', readLimiter, (req, res) => assetsController.getByType(req, res));
+
+/**
+ * @route   GET /api/v1/assets/cost-allocation
+ * @desc    Get cost allocation grouped by tags
+ * @access  Authenticated users
+ * @limit   100 requests per 15 minutes per IP
+ *
+ * Query Parameters:
+ * - accountId: Cloud account UUID (required)
+ * - groupBy: Tag to group by ('department' | 'project' | 'environment') (default: 'project')
+ *
+ * Example Request:
+ * GET /api/v1/assets/cost-allocation?accountId=account-uuid&groupBy=project
+ */
+router.get('/cost-allocation', readLimiter, (req, res) => assetsController.getCostAllocation(req, res));
+
+/**
+ * @route   PATCH /api/v1/assets/:id/tags
+ * @desc    Update tags for a single resource
+ * @access  Authenticated users
+ * @limit   20 requests per 15 minutes per IP
+ *
+ * URL Parameters:
+ * - id: Asset UUID
+ *
+ * Request Body:
+ * {
+ *   "tags": {
+ *     "owner": "john.doe@example.com",
+ *     "environment": "production",
+ *     "project": "web-app"
+ *   }
+ * }
+ *
+ * Example Request:
+ * PATCH /api/v1/assets/550e8400-e29b-41d4-a716-446655440000/tags
+ */
+router.patch('/:id/tags', writeLimiter, (req, res) => assetsController.updateTags(req, res));
+
+/**
+ * @route   POST /api/v1/assets/bulk-tag
+ * @desc    Bulk update tags for multiple resources
+ * @access  Authenticated users
+ * @limit   20 requests per 15 minutes per IP
+ *
+ * Request Body:
+ * {
+ *   "resourceIds": ["id1", "id2", "id3"],
+ *   "tags": {
+ *     "environment": "production",
+ *     "team": "platform"
+ *   }
+ * }
+ *
+ * Example Request:
+ * POST /api/v1/assets/bulk-tag
+ */
+router.post('/bulk-tag', writeLimiter, (req, res) => assetsController.bulkUpdateTags(req, res));
+
 // ============================================================
 // Export Router
 // ============================================================
