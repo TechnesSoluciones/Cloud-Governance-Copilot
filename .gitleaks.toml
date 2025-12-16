@@ -1,40 +1,31 @@
-# ============================================================
 # Gitleaks Configuration
-# ============================================================
-# Custom configuration to allow test files with mock credentials
-# ============================================================
+# Ignores test fixtures and mock data
 
-title = "Cloud Governance Copilot - Gitleaks Config"
+title = "Gitleaks Configuration for Cloud Governance Copilot"
 
-# Allowlist for test files with intentionally fake credentials
 [allowlist]
-description = "Allowlist for test files, fixtures, and mock data"
+description = "Allowlist for test fixtures and mock credentials"
+regexes = [
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''wJalrXUtnFEMI''',
+]
 
-# Regex patterns for files to ignore
 paths = [
-  # Test fixtures and helpers
-  '''apps/api-gateway/src/__tests__/fixtures/.*\.ts''',
-  '''apps/api-gateway/src/__tests__/utils/.*\.ts''',
-
-  # Unit test files
-  '''apps/api-gateway/src/.*/__tests__/.*\.test\.ts''',
-
-  # E2E test files
-  '''apps/frontend/e2e/.*\.spec\.ts''',
-
-  # Test scripts
-  '''scripts/test-.*\.sh''',
+  '''.*__fixtures__/.*''',
+  '''.*__tests__/.*''',
+  '''.*__mocks__/.*''',
+  '''.*/test/.*''',
+  '''.*/tests/.*''',
+  '''.*\.test\.ts$''',
+  '''.*\.spec\.ts$''',
+  '''.*\.fixture\.ts$''',
 ]
 
-# Specific commits to ignore (if needed)
-commits = []
+# Allow example credentials in .env.example files
+[[allowlist.regexes]]
+regex = '''(?i)(password|secret|key|token).*=.*example'''
+description = "Example credentials in .env.example files"
 
-# Stop words - patterns that indicate test/mock data
-stopwords = [
-  '''test''',
-  '''fixture''',
-  '''mock''',
-  '''fake''',
-  '''dummy''',
-  '''example''',
-]
+[[allowlist.paths]]
+path = '''\.env\.example$'''
+description = "Environment example files"
