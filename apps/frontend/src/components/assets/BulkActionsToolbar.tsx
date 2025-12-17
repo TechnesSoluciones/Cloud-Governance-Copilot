@@ -226,7 +226,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
           <div className="flex items-center gap-2">
             {/* Tag Button */}
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => setShowTagModal(true)}
               disabled={isUpdatingTags}
@@ -249,7 +249,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   className="bg-white text-brand-orange hover:bg-gray-100"
                 >
@@ -270,7 +270,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             {/* Delete Button */}
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => setShowDeleteModal(true)}
               className="bg-red-100 text-red-700 hover:bg-red-200"
