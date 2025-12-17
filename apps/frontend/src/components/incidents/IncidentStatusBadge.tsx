@@ -16,7 +16,7 @@ const statusConfig: Record<
   IncidentStatus,
   {
     label: string;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    variant: 'error' | 'default' | 'success' | 'warning' | 'info' | 'secondary';
     className: string;
   }
 > = {
