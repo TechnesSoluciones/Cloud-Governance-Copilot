@@ -257,7 +257,7 @@ export function PolicyComplianceWidget({
                       {policy.policyName}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{policy.category}</Badge>
+                      <Badge variant="secondary">{policy.category}</Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-2">

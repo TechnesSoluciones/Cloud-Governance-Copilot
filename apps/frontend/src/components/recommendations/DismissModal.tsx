@@ -210,7 +210,7 @@ export const DismissModal: React.FC<DismissModalProps> = ({
           <Button
             onClick={handleConfirm}
             disabled={isLoading || !isValid}
-            variant="error"
+            variant="destructive"
             className="bg-error hover:bg-error/90"
           >
             {isLoading ? (

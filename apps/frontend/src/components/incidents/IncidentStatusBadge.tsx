@@ -3,7 +3,7 @@
  * Displays incident status with appropriate color coding
  */
 
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { IncidentStatus } from '@/lib/api/incidents';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +16,7 @@ const statusConfig: Record<
   IncidentStatus,
   {
     label: string;
-    variant: 'error' | 'default' | 'success' | 'warning' | 'info' | 'secondary';
+    variant: NonNullable<BadgeProps['variant']>;
     className: string;
   }
 > = {
@@ -37,7 +37,7 @@ const statusConfig: Record<
   },
   resolved: {
     label: 'Resolved',
-    variant: 'default',
+    variant: 'success',
     className: 'bg-green-500 hover:bg-green-600 text-white',
   },
   closed: {
@@ -45,7 +45,7 @@ const statusConfig: Record<
     variant: 'secondary',
     className: 'bg-gray-500 hover:bg-gray-600 text-white dark:bg-gray-600 dark:hover:bg-gray-700',
   },
-};
+} as const;
 
 export function IncidentStatusBadge({ status, className }: IncidentStatusBadgeProps) {
   const config = statusConfig[status];

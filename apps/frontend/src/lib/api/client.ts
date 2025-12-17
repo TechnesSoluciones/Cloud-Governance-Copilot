@@ -2,7 +2,7 @@
  * API Client with error handling and token management
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export interface ApiResponse<T = any> {
   success: boolean;

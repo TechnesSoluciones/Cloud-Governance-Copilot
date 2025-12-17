@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 
 // Use INTERNAL_API_URL for server-side calls (Docker service name)
 // Fall back to NEXT_PUBLIC_API_URL for development outside Docker
-const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export const authOptions: NextAuthOptions = {
   providers: [

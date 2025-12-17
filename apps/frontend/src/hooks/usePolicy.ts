@@ -11,7 +11,7 @@ import {
 import { useSession } from 'next-auth/react';
 
 // API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 // Type Definitions
 
@@ -271,7 +271,7 @@ export function usePolicy(accountId: string, policyId?: string) {
   );
 
   return {
-    compliance: complianceQuery.data?.data,
+    compliance: complianceQuery.data?.data?.compliance,
     nonCompliantResources: nonCompliantQuery.data?.data?.resources,
     isLoading: complianceQuery.isLoading || nonCompliantQuery.isLoading,
     error: complianceQuery.error || nonCompliantQuery.error,
