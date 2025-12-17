@@ -379,7 +379,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="error" onClick={handleDelete}>
               <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
               Delete Resources
             </Button>

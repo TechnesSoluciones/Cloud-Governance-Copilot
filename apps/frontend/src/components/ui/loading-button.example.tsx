@@ -73,7 +73,7 @@ export function LoadingButtonExamples() {
 
         {/* Destructive variant */}
         <LoadingButton
-          variant="destructive"
+          variant="error"
           isLoading={isLoading}
           loadingText="Deleting..."
           onClick={handleSubmit}
@@ -182,7 +182,7 @@ export function LoadingButtonExamples() {
 
         {/* Delete account */}
         <LoadingButton
-          variant="destructive"
+          variant="error"
           isLoading={isLoading}
           loadingText="Deleting account..."
           onClick={handleSubmit}

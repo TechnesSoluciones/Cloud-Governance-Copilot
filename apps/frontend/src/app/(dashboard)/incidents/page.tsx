@@ -229,7 +229,7 @@ export default function IncidentsPage() {
 
       {/* Error Alert */}
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="error">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertDescription>
             Failed to load incidents:{' '}
