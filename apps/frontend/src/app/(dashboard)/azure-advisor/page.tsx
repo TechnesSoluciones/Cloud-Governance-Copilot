@@ -127,7 +127,7 @@ export default function AzureAdvisorPage() {
   /**
    * Handle sort changes
    */
-  const handleSortChange = (newSortBy: string, newSortOrder: 'asc' | 'desc') => {
+  const handleSortChange = (newSortBy: 'lastUpdated' | 'impact' | 'category' | 'savings', newSortOrder: 'asc' | 'desc') => {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
   };
