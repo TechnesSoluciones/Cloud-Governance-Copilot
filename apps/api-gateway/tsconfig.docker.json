@@ -57,6 +57,9 @@
     "src/integrations/azure/log-analytics.service.ts",
     "src/integrations/azure/policy.service.ts",
     "src/integrations/azure/security-scanner.service.ts",
-    "src/integrations/azure/service-health.service.ts"
+    "src/integrations/azure/service-health.service.ts",
+    "src/jobs/service-health-monitor.job.ts",
+    "src/modules/service-health/services/service-health.service.ts",
+    "src/modules/assets/services/resource-dependencies.service.ts"
   ]
 }
