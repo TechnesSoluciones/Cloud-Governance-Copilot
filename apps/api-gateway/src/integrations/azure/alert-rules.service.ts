@@ -391,7 +391,7 @@ export class AzureAlertRulesService {
             severity: 2, // Activity log alerts don't have severity
             targetResourceId: alert.scopes?.[0] || '',
             condition: JSON.stringify(alert.condition),
-            actionGroups: alert.actions?.actionGroups?.map((ag) => ag.actionGroupId || '') || [],
+            actionGroups: alert.actions?.actionGroups?.map((ag: any) => ag.actionGroupId || '') || [],
             evaluationFrequency: 'PT1M', // Default for activity log
             windowSize: 'PT5M', // Default for activity log
             autoMitigate: false,
@@ -646,7 +646,7 @@ export class AzureAlertRulesService {
           severity: 2,
           targetResourceId: updated.scopes?.[0] || '',
           condition: JSON.stringify(updated.condition),
-          actionGroups: updated.actions?.actionGroups?.map((ag) => ag.actionGroupId || '') || [],
+          actionGroups: updated.actions?.actionGroups?.map((ag: any) => ag.actionGroupId || '') || [],
           evaluationFrequency: 'PT1M',
           windowSize: 'PT5M',
           autoMitigate: false,
@@ -781,7 +781,7 @@ export class AzureAlertRulesService {
         severity: 2,
         targetResourceId: activityAlert.scopes?.[0] || '',
         condition: JSON.stringify(activityAlert.condition),
-        actionGroups: activityAlert.actions?.actionGroups?.map((ag) => ag.actionGroupId || '') || [],
+        actionGroups: activityAlert.actions?.actionGroups?.map((ag: any) => ag.actionGroupId || '') || [],
         evaluationFrequency: 'PT1M',
         windowSize: 'PT5M',
         autoMitigate: false,

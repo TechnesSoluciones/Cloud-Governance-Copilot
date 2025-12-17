@@ -20,7 +20,6 @@ import { AzureResourceGraphService } from './resource-graph.service';
 import type {
   PolicyAssignment,
   PolicyDefinition,
-  PolicyState,
 } from '@azure/arm-policy';
 import type { CloudProviderCredentials } from '../cloud-provider.interface';
 

@@ -17,8 +17,6 @@ import { AdvisorManagementClient } from '@azure/arm-advisor';
 import { ClientSecretCredential } from '@azure/identity';
 import type {
   ResourceRecommendationBase,
-  RecommendationCategory,
-  Impact,
 } from '@azure/arm-advisor';
 import type { CloudProviderCredentials } from '../cloud-provider.interface';
 
@@ -332,14 +330,17 @@ export class AzureAdvisorService {
       }
     }
 
-    // Extract recommended actions
+    // Extract recommended actions from extended properties
     const recommendedActions: string[] = [];
-    if (rec.recommendedActions) {
-      rec.recommendedActions.forEach((action) => {
-        if (action && typeof action === 'object' && 'actionText' in action) {
-          recommendedActions.push(String(action.actionText));
-        }
-      });
+    if (rec.extendedProperties && typeof rec.extendedProperties === 'object') {
+      const actions = (rec.extendedProperties as any).recommendedActions;
+      if (Array.isArray(actions)) {
+        actions.forEach((action: any) => {
+          if (action && typeof action === 'object' && 'actionText' in action) {
+            recommendedActions.push(String(action.actionText));
+          }
+        });
+      }
     }
 
     return {
@@ -357,7 +358,7 @@ export class AzureAdvisorService {
         resourceId: rec.resourceMetadata?.resourceId,
         resourceType,
         resourceGroup,
-        region: rec.resourceMetadata?.location,
+        region: (rec.resourceMetadata as any)?.location || undefined,
         estimatedSavings,
         recommendedActions,
       },
