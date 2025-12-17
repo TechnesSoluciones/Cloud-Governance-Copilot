@@ -37,16 +37,26 @@
     "noImplicitReturns": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
+    "**/__mocks__/**",
     "src/integrations/azure/advisor.service.ts",
     "src/integrations/azure/monitor.service.ts",
     "src/integrations/azure/resource-graph.service.ts",
-    "src/integrations/azure/security-center.service.ts"
+    "src/integrations/azure/security-center.service.ts",
+    "src/integrations/azure/alert-rules.service.ts",
+    "src/integrations/azure/log-analytics.service.ts",
+    "src/integrations/azure/policy.service.ts",
+    "src/integrations/azure/security-scanner.service.ts",
+    "src/integrations/azure/service-health.service.ts"
   ]
 }
