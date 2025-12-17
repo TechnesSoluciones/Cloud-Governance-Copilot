@@ -65,7 +65,7 @@ export default function AzureAdvisorPage() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<string>('lastUpdated');
+  const [sortBy, setSortBy] = useState<'lastUpdated' | 'impact' | 'category' | 'savings'>('lastUpdated');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Modal state
