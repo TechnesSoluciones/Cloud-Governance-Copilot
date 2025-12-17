@@ -256,56 +256,56 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
 
-            # Create docker-compose.yml
-            cat > docker-compose.yml <<'COMPOSE_EOF'
-            networks:
-              copilot-network:
-                driver: bridge
+            # Create docker-compose.yml with proper indentation
+            cat > docker-compose.yml << 'COMPOSE_EOF'
+networks:
+  copilot-network:
+    driver: bridge
 
-            services:
-              api-gateway:
-                image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
-                container_name: copilot-api-gateway
-                restart: unless-stopped
-                ports:
-                  - "3010:3010"
-                env_file:
-                  - .env
-                environment:
-                  - NODE_ENV=production
-                  - PORT=3010
-                networks:
-                  - copilot-network
-                healthcheck:
-                  test: ["CMD", "curl", "-f", "http://localhost:3010/health"]
-                  interval: 30s
-                  timeout: 10s
-                  retries: 3
-                  start_period: 40s
+services:
+  api-gateway:
+    image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
+    container_name: copilot-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3010:3010"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3010
+    networks:
+      - copilot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-              frontend:
-                image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
-                container_name: copilot-frontend
-                restart: unless-stopped
-                ports:
-                  - "3000:3000"
-                env_file:
-                  - .env
-                environment:
-                  - NODE_ENV=production
-                  - PORT=3000
-                depends_on:
-                  api-gateway:
-                    condition: service_healthy
-                networks:
-                  - copilot-network
-                healthcheck:
-                  test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-                  interval: 30s
-                  timeout: 10s
-                  retries: 3
-                  start_period: 40s
-            COMPOSE_EOF
+  frontend:
+    image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
+    container_name: copilot-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - copilot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+COMPOSE_EOF
 
             # Stop and remove old containers
             docker compose down || true
