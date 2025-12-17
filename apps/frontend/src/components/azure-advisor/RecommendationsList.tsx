@@ -75,7 +75,7 @@ const COLUMNS: Column[] = [
   { key: 'resource', label: 'Resource', sortable: false, width: 'w-48' },
   { key: 'impact', label: 'Impact', sortable: true, width: 'w-24' },
   { key: 'savings', label: 'Potential Savings', sortable: true, width: 'w-32' },
-  { key: 'status', label: 'Status', sortable: true, width: 'w-28' },
+  { key: 'status', label: 'Status', sortable: false, width: 'w-28' },
   { key: 'actions', label: 'Actions', sortable: false, width: 'w-40' },
 ];
 
@@ -233,12 +233,12 @@ export function RecommendationsList({
                       className={`${col.width} ${
                         col.sortable ? 'cursor-pointer hover:bg-gray-50' : ''
                       }`}
-                      onClick={() => col.sortable && handleSort(col.key)}
+                      onClick={() => col.sortable && handleSort(col.key as 'lastUpdated' | 'impact' | 'category' | 'savings')}
                       role={col.sortable ? 'button' : undefined}
                       tabIndex={col.sortable ? 0 : undefined}
                       onKeyDown={(e) => {
                         if (col.sortable && (e.key === 'Enter' || e.key === ' ')) {
-                          handleSort(col.key);
+                          handleSort(col.key as 'lastUpdated' | 'impact' | 'category' | 'savings');
                         }
                       }}
                     >
