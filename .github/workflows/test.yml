@@ -36,6 +36,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        working-directory: ./apps/api-gateway
+        run: npx prisma generate
+
       - name: Run unit tests
         working-directory: ./apps/api-gateway
         run: npm run test:unit
@@ -67,6 +71,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        working-directory: ./apps/api-gateway
+        run: npx prisma generate
+
       - name: Lint API Gateway
         working-directory: ./apps/api-gateway
         run: npm run lint
@@ -93,6 +101,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./apps/api-gateway
+        run: npx prisma generate
 
       - name: Type check API Gateway
         working-directory: ./apps/api-gateway
