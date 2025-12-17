@@ -26,13 +26,28 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
+import { logger } from '@/lib/logger';
 import {
   RefreshCw,
   Download,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Server,
+  Package,
+  MapPin,
 } from 'lucide-react';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PremiumFilterBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_BACKGROUNDS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS
+} from '@/components/shared/premium';
 import {
   useResources,
   extractResourcesData,
@@ -256,7 +271,7 @@ function ResourcesPageContent() {
         'success'
       );
     } catch (err) {
-      console.error('Export error:', err);
+      logger.error('Export error:', err);
       addToast('Failed to export resources', 'error');
     }
   };
@@ -269,44 +284,72 @@ function ResourcesPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-              Azure Resources
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Browse and manage your Azure resource inventory
-            </p>
-          </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Azure Resources"
+          subtitle="Browse and manage your Azure resource inventory"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleRefresh}
+                disabled={isFetching}
+                className="shadow-lg"
+                aria-label="Refresh resources"
+              >
+                <RefreshCw
+                  className={`h-5 w-5 mr-2 ${isFetching ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+                {isFetching ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <Button
+                onClick={handleExport}
+                disabled={resources.length === 0}
+                className="bg-brand-orange hover:bg-brand-orange-dark text-white shadow-lg"
+                aria-label="Export to CSV"
+              >
+                <Download className="h-5 w-5 mr-2" aria-hidden="true" />
+                Export CSV
+              </Button>
+            </>
+          }
+        />
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={isFetching}
-              aria-label="Refresh resources"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`}
-                aria-hidden="true"
-              />
-              Refresh
-            </Button>
-            <Button
-              onClick={handleExport}
-              disabled={resources.length === 0}
-              className="bg-brand-orange hover:bg-brand-orange-dark text-white"
-              aria-label="Export to CSV"
-            >
-              <Download className="h-4 w-4 mr-2" aria-hidden="true" />
-              Export CSV
-            </Button>
-          </div>
-        </div>
+        {/* Premium Stats Bar */}
+        {!isLoading && !error && (
+          <PremiumStatsBar
+            stats={[
+              {
+                label: 'Total Resources',
+                value: pagination.total.toLocaleString(),
+                icon: <Server className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.azure,
+                iconColor: PREMIUM_ICON_COLORS.azure,
+                subtitle: `${resources.length} visible on this page`,
+              },
+              {
+                label: 'Resource Types',
+                value: new Set(resources.map(r => r.type)).size,
+                icon: <Package className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.info,
+                iconColor: PREMIUM_ICON_COLORS.info,
+                subtitle: 'Unique types in current view',
+              },
+              {
+                label: 'Locations',
+                value: new Set(resources.map(r => r.location)).size,
+                icon: <MapPin className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.success,
+                iconColor: PREMIUM_ICON_COLORS.success,
+                subtitle: 'Azure regions',
+              },
+            ]}
+          />
+        )}
 
         {/* Filters */}
         <ResourceFilters

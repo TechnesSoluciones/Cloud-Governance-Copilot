@@ -34,7 +34,20 @@ import {
   AlertCircle,
   TrendingUp,
   Filter,
+  DollarSign,
+  TrendingDown,
+  Activity,
 } from 'lucide-react';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_BACKGROUNDS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS
+} from '@/components/shared/premium';
 import {
   formatCurrency,
   calculateTrend,
@@ -45,6 +58,7 @@ import {
 } from '@/lib/costs';
 import { ServiceData } from '@/components/costs/ServiceBreakdown';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { StatCardGridSkeleton, ChartSkeleton, CardSkeleton } from '@/components/skeletons';
 
@@ -182,6 +196,9 @@ function CostsPageContent() {
   const [serviceViewMode, setServiceViewMode] = useState<'chart' | 'table'>('chart');
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
 
+  // Toast notifications
+  const { addToast } = useToast();
+
   // Convert date range to API format
   const apiDateRange = useMemo(
     () => ({
@@ -300,7 +317,7 @@ function CostsPageContent() {
   // Handle generate report (placeholder for PDF generation)
   const handleGenerateReport = () => {
     // TODO: Implement PDF report generation
-    alert('PDF report generation will be implemented soon!');
+    addToast('PDF report generation will be implemented soon!', 'info');
   };
 
   // Show loading state
@@ -319,47 +336,46 @@ function CostsPageContent() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cost Analysis</h1>
-          <p className="text-gray-600 mt-1">
-            Monitor and optimize your cloud spending across all providers
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            aria-label="Refresh cost data"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCosts}
-            aria-label="Export cost data to CSV"
-          >
-            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-            Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateReport}
-            aria-label="Generate cost report"
-          >
-            <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
-            Generate Report
-          </Button>
-        </div>
-      </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Cost Analysis"
+          subtitle="Monitor and optimize your cloud spending across all providers"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                aria-label="Refresh cost data"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCosts}
+                aria-label="Export cost data to CSV"
+              >
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateReport}
+                className="shadow-lg"
+                aria-label="Generate cost report"
+              >
+                <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
+                Generate Report
+              </Button>
+            </>
+          }
+        />
 
       {/* Filters Section */}
       <div className="grid gap-4 lg:grid-cols-[1fr,auto]">
@@ -465,17 +481,46 @@ function CostsPageContent() {
         </Card>
       )}
 
-      {/* Cost Overview Cards */}
-      <CostOverviewCards
-        currentMonth={currentMonthCost}
-        previousMonth={previousMonthCost}
-        trend={trend}
-        percentageChange={percentageChange}
-        forecast={forecast}
-        topService={topService}
-        topServiceCost={topServiceCost}
-        currency={currency}
-        isLoading={isLoading}
+      {/* Premium Stats Bar - Cost KPIs */}
+      <PremiumStatsBar
+        stats={[
+          {
+            label: 'Current Month',
+            value: formatCurrency(currentMonthCost, currency),
+            icon: <DollarSign className="h-14 w-14" />,
+            iconBg: PREMIUM_GRADIENTS.warning,
+            iconColor: PREMIUM_ICON_COLORS.warning,
+            trend: {
+              value: Math.abs(percentageChange),
+              direction: trend === 'up' ? 'up' : trend === 'down' ? 'down' : 'stable',
+            },
+            subtitle: 'vs last month',
+          },
+          {
+            label: 'Previous Month',
+            value: formatCurrency(previousMonthCost, currency),
+            icon: <TrendingDown className="h-14 w-14" />,
+            iconBg: PREMIUM_GRADIENTS.info,
+            iconColor: PREMIUM_ICON_COLORS.info,
+            subtitle: format(subMonths(dateRange.start, 1), 'MMMM yyyy'),
+          },
+          {
+            label: 'Forecast',
+            value: formatCurrency(forecast, currency),
+            icon: <TrendingUp className="h-14 w-14" />,
+            iconBg: PREMIUM_GRADIENTS.success,
+            iconColor: PREMIUM_ICON_COLORS.success,
+            subtitle: 'Projected end of month',
+          },
+          {
+            label: 'Top Service',
+            value: formatCurrency(topServiceCost, currency),
+            icon: <Activity className="h-14 w-14" />,
+            iconBg: PREMIUM_GRADIENTS.azure,
+            iconColor: PREMIUM_ICON_COLORS.azure,
+            subtitle: topService || 'N/A',
+          },
+        ]}
       />
 
       {/* Cost Trend Chart */}
@@ -571,6 +616,7 @@ function CostsPageContent() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

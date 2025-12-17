@@ -20,6 +20,41 @@ const navItems: NavItem[] = [
     icon: <Icons.home className="h-5 w-5" />,
   },
   {
+    label: 'Costs',
+    href: '/costs',
+    icon: <Icons.dollarSign className="h-5 w-5" />,
+  },
+  {
+    label: 'Security',
+    href: '/security',
+    icon: <Icons.shield className="h-5 w-5" />,
+  },
+  {
+    label: 'Resources',
+    href: '/resources',
+    icon: <Icons.server className="h-5 w-5" />,
+  },
+  {
+    label: 'Recommendations',
+    href: '/recommendations',
+    icon: <Icons.trendingUp className="h-5 w-5" />,
+  },
+  {
+    label: 'Incidents',
+    href: '/incidents',
+    icon: <Icons.alertTriangle className="h-5 w-5" />,
+  },
+  {
+    label: 'Assets',
+    href: '/assets',
+    icon: <Icons.package className="h-5 w-5" />,
+  },
+  {
+    label: 'Azure Advisor',
+    href: '/azure-advisor',
+    icon: <Icons.cloud className="h-5 w-5" />,
+  },
+  {
     label: 'Cloud Accounts',
     href: '/cloud-accounts',
     icon: <Icons.cloud className="h-5 w-5" />,
@@ -27,7 +62,7 @@ const navItems: NavItem[] = [
   {
     label: 'Audit Logs',
     href: '/audit-logs',
-    icon: <Icons.shield className="h-5 w-5" />,
+    icon: <Icons.activity className="h-5 w-5" />,
   },
   {
     label: 'Settings',

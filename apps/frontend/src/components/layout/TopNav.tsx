@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Avatar } from '@/components/ui/avatar';
 import {
@@ -62,12 +63,12 @@ export const TopNav: React.FC<TopNavProps> = ({ onMenuClick, breadcrumbs = [] })
                 />
               )}
               {crumb.href ? (
-                <a
+                <Link
                   href={crumb.href}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {crumb.label}
-                </a>
+                </Link>
               ) : (
                 <span className="font-medium text-foreground">{crumb.label}</span>
               )}
