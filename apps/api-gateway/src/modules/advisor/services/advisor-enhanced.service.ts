@@ -348,7 +348,7 @@ export class AdvisorEnhancedService {
       if (rec) {
         await this.prisma.advisorAction.create({
           data: {
-            recommendationId: rec.recommendationId,
+            recommendationId: rec.id,
             userId,
             actionType: 'suppress',
             durationDays,
