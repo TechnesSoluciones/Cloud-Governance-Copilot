@@ -221,7 +221,7 @@ export default function CloudAccountsPage() {
           <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
             Cancel
           </Button>
-          <Button variant="error" onClick={confirmDelete}>
+          <Button variant="destructive" onClick={confirmDelete}>
             Delete
           </Button>
         </DialogFooter>
