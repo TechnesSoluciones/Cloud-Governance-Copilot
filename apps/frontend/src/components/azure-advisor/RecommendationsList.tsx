@@ -54,9 +54,9 @@ export interface RecommendationsListProps {
   currentPage?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
-  sortBy?: string;
+  sortBy?: 'lastUpdated' | 'impact' | 'category' | 'savings';
   sortOrder?: 'asc' | 'desc';
-  onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
+  onSortChange?: (sortBy: 'lastUpdated' | 'impact' | 'category' | 'savings', sortOrder: 'asc' | 'desc') => void;
 }
 
 /**
@@ -172,7 +172,7 @@ export function RecommendationsList({
   /**
    * Handle column sort
    */
-  const handleSort = (columnKey: string) => {
+  const handleSort = (columnKey: 'lastUpdated' | 'impact' | 'category' | 'savings') => {
     if (!onSortChange) return;
 
     const newSortOrder =
