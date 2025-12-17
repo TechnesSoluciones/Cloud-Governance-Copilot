@@ -487,7 +487,7 @@ export default function IncidentDetailPage() {
                         <TableCell>{resource.type}</TableCell>
                         <TableCell>{resource.location}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{resource.provider.toUpperCase()}</Badge>
+                          <Badge variant="secondary">{resource.provider.toUpperCase()}</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge
