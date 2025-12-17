@@ -4,6 +4,7 @@ import { JwtPayload } from '../types/auth.types';
 
 // Extend Express Request type to include user
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: JwtPayload;

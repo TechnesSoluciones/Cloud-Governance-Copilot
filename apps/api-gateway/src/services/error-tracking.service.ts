@@ -169,6 +169,7 @@ class ErrorTrackingService {
   private initializeSentry(): void {
     try {
       // Try to load @sentry/node
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Sentry = require('@sentry/node');
 
       if (!this.config.dsn) {
@@ -213,6 +214,7 @@ class ErrorTrackingService {
   private initializeDatadog(): void {
     try {
       // Try to load dd-trace
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const tracer = require('dd-trace');
 
       tracer.init({

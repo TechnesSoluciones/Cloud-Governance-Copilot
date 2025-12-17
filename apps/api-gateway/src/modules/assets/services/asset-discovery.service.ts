@@ -433,6 +433,12 @@ export class AssetDiscoveryService {
       tags: cloudAsset.tags as any, // Prisma Json type
       metadata: cloudAsset.metadata as any, // Prisma Json type
       deletedAt: null,
+      lastDiscovered: new Date(),
+      isOrphaned: false,
+      costLast30Days: null,
+      ownerTag: null,
+      environmentTag: null,
+      projectTag: null,
     };
   }
 

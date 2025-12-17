@@ -4,6 +4,7 @@ import { logger, LogContext } from '../services/logger.service';
 
 // Extend Express Request interface to include tracing context
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       requestId?: string;
@@ -102,7 +103,7 @@ export function requestTracing(config?: Partial<RequestTracingConfig>) {
     req.startTime = startTime;
 
     // Extract user ID from request (if authenticated)
-    // @ts-ignore - req.user might be set by auth middleware
+    // @ts-expect-error - req.user might be set by auth middleware
     const userId = req.user?.id || req.user?.userId;
 
     // Create log context

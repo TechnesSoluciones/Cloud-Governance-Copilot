@@ -71,6 +71,7 @@ class MetricsService {
   private initialize(): void {
     try {
       // Try to load prom-client
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       this.promClient = require('prom-client') as PrometheusClient;
       this.usePrometheus = true;
       this.initializePrometheusMetrics();

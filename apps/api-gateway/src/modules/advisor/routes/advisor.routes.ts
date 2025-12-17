@@ -20,7 +20,7 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AdvisorController } from '../controllers/advisor.controller';
-import { authMiddleware } from '../../../middleware/auth';
+import { authenticate } from '../../../middleware/auth';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -101,9 +101,9 @@ const suppressRateLimiter = rateLimit({
  */
 router.get(
   '/recommendations',
-  authMiddleware,
+  authenticate,
   advisorRateLimiter,
-  advisorController.getRecommendations.bind(advisorController)
+  (req, res) => advisorController.getRecommendations(req as any, res)
 );
 
 /**
@@ -116,9 +116,9 @@ router.get(
  */
 router.get(
   '/recommendations/:id',
-  authMiddleware,
+  authenticate,
   advisorRateLimiter,
-  advisorController.getRecommendationById.bind(advisorController)
+  (req, res) => advisorController.getRecommendationById(req as any, res)
 );
 
 /**
@@ -136,9 +136,9 @@ router.get(
  */
 router.post(
   '/recommendations/:id/suppress',
-  authMiddleware,
+  authenticate,
   suppressRateLimiter,
-  advisorController.suppressRecommendation.bind(advisorController)
+  (req, res) => advisorController.suppressRecommendation(req as any, res)
 );
 
 /**
@@ -154,9 +154,9 @@ router.post(
  */
 router.get(
   '/summary',
-  authMiddleware,
+  authenticate,
   advisorRateLimiter,
-  advisorController.getSummary.bind(advisorController)
+  (req, res) => advisorController.getSummary(req as any, res)
 );
 
 export default router;

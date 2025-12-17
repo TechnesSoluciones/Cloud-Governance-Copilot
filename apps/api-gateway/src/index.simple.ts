@@ -1,7 +1,7 @@
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import 'dotenv/config';
 
 const app = express();
 const PORT = process.env.API_PORT || 4000;

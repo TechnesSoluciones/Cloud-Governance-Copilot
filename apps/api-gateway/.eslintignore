@@ -1,0 +1,14 @@
+# Test files
+**/__tests__/**
+**/__fixtures__/**
+**/__mocks__/**
+*.test.ts
+*.spec.ts
+
+# Build output
+dist/
+build/
+node_modules/
+
+# Generated files
+*.d.ts

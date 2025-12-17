@@ -276,17 +276,13 @@ export class AlertRulesManagementService {
   private async getAccountCredentials(accountId: string): Promise<CloudProviderCredentials> {
     const account = await this.prisma.cloudAccount.findUnique({
       where: { id: accountId },
-      select: {
-        provider: true,
-        credentials: true,
-      },
     });
 
     if (!account) {
       throw new Error('Cloud account not found');
     }
 
-    const credentials = account.credentials as any;
+    const credentials = account as any;
 
     if (account.provider === 'azure') {
       return {
