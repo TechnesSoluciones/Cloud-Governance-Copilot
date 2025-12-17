@@ -260,21 +260,16 @@ export function AlertDetailModal({
                   </Button>
                 </>
               )}
-              <Button
-                variant="outline"
-                className="flex-1"
-                asChild
+              <a
+                href={`https://portal.azure.com/#blade/Microsoft_Azure_Monitoring/AzureMonitoringBrowseBlade/alertId/${alert.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2"
                 aria-label="View in Azure Monitor"
               >
-                <a
-                  href={`https://portal.azure.com/#blade/Microsoft_Azure_Monitoring/AzureMonitoringBrowseBlade/alertId/${alert.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
-                  View in Azure Monitor
-                </a>
-              </Button>
+                <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
+                View in Azure Monitor
+              </a>
             </div>
           </>
         ) : (
