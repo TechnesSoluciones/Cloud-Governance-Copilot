@@ -15,7 +15,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { AzureMonitorService } from '../../../integrations/azure/monitor.service';
+// Temporarily disabled - Azure SDK dependencies missing
+// import { AzureMonitorService } from '../../../integrations/azure/monitor.service';
 import type { CloudProviderCredentials } from '../../../integrations/cloud-provider.interface';
 import {
   Alert,
@@ -87,28 +88,33 @@ export class IncidentsService {
       return cached;
     }
 
-    const monitorService = new AzureMonitorService(credentials);
+    // Temporarily disabled - Azure SDK dependencies missing
+    // const monitorService = new AzureMonitorService(credentials);
+    //
+    // const azureAlerts = await monitorService.getAlerts({
+    //   severity: filters?.severity,
+    //   status: filters?.status?.map((s) => s.charAt(0).toUpperCase() + s.slice(1)),
+    //   resourceType: filters?.resourceType,
+    //   timeRange: filters?.timeRange,
+    // });
+    //
+    // const alerts: AlertResponseDto[] = azureAlerts.map((alert) => ({
+    //   id: alert.id,
+    //   alertId: alert.id,
+    //   alertName: alert.name,
+    //   severity: alert.severity,
+    //   status: this.normalizeAlertStatus(alert.status),
+    //   resourceId: alert.affectedResources[0],
+    //   resourceType: this.extractResourceType(alert.affectedResources[0]),
+    //   description: alert.description,
+    //   firedAt: alert.firedDateTime.toISOString(),
+    //   resolvedAt: alert.resolvedDateTime?.toISOString(),
+    //   metadata: {},
+    // }));
 
-    const azureAlerts = await monitorService.getAlerts({
-      severity: filters?.severity,
-      status: filters?.status?.map((s) => s.charAt(0).toUpperCase() + s.slice(1)),
-      resourceType: filters?.resourceType,
-      timeRange: filters?.timeRange,
-    });
-
-    const alerts: AlertResponseDto[] = azureAlerts.map((alert) => ({
-      id: alert.id,
-      alertId: alert.id,
-      alertName: alert.name,
-      severity: alert.severity,
-      status: this.normalizeAlertStatus(alert.status),
-      resourceId: alert.affectedResources[0],
-      resourceType: this.extractResourceType(alert.affectedResources[0]),
-      description: alert.description,
-      firedAt: alert.firedDateTime.toISOString(),
-      resolvedAt: alert.resolvedDateTime?.toISOString(),
-      metadata: {},
-    }));
+    // Temporary: Return empty array until Azure SDK is available
+    const alerts: AlertResponseDto[] = [];
+    console.log(`[IncidentsService] Azure Monitor temporarily unavailable - returning empty alerts for account ${accountId}`);
 
     this.setCache(cacheKey, alerts);
     return alerts;
@@ -163,28 +169,33 @@ export class IncidentsService {
       return cached;
     }
 
-    const monitorService = new AzureMonitorService(credentials);
+    // Temporarily disabled - Azure SDK dependencies missing
+    // const monitorService = new AzureMonitorService(credentials);
+    //
+    // const azureLogs = await monitorService.getActivityLogsAdvanced(filters.timeRange, {
+    //   status: filters.status,
+    //   operationName: filters.operationName,
+    //   resourceType: filters.resourceType,
+    //   level: filters.level,
+    // });
+    //
+    // const logs: ActivityLogResponseDto[] = azureLogs.map((log) => ({
+    //   id: log.resourceId || `${log.operationName}-${log.eventTimestamp.getTime()}`,
+    //   operationName: log.operationName,
+    //   operationId: log.resourceId,
+    //   status: log.status as any,
+    //   caller: log.caller,
+    //   resourceId: log.resourceId,
+    //   resourceType: log.resourceType,
+    //   eventTimestamp: log.eventTimestamp.toISOString(),
+    //   level: log.level as any,
+    //   description: log.description,
+    //   metadata: log.properties,
+    // }));
 
-    const azureLogs = await monitorService.getActivityLogsAdvanced(filters.timeRange, {
-      status: filters.status,
-      operationName: filters.operationName,
-      resourceType: filters.resourceType,
-      level: filters.level,
-    });
-
-    const logs: ActivityLogResponseDto[] = azureLogs.map((log) => ({
-      id: log.resourceId || `${log.operationName}-${log.eventTimestamp.getTime()}`,
-      operationName: log.operationName,
-      operationId: log.resourceId,
-      status: log.status as any,
-      caller: log.caller,
-      resourceId: log.resourceId,
-      resourceType: log.resourceType,
-      eventTimestamp: log.eventTimestamp.toISOString(),
-      level: log.level as any,
-      description: log.description,
-      metadata: log.properties,
-    }));
+    // Temporary: Return empty array until Azure SDK is available
+    const logs: ActivityLogResponseDto[] = [];
+    console.log(`[IncidentsService] Azure Monitor temporarily unavailable - returning empty activity logs for account ${accountId}`);
 
     this.setCache(cacheKey, logs);
     return logs;
