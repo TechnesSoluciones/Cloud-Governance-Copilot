@@ -130,7 +130,7 @@ export default function IncidentDetailPage() {
   if (error || !incident) {
     return (
       <div className="container mx-auto space-y-6 p-6">
-        <Alert variant="destructive">
+        <Alert variant="error">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertDescription>
             Failed to load incident details. Please try again later.
