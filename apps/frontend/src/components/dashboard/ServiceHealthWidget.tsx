@@ -17,12 +17,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  InformationCircleIcon,
-  WrenchScrewdriverIcon,
-  ArrowPathIcon,
-} from '@heroicons/react/24/outline';
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Wrench,
+  RefreshCw,
+} from 'lucide-react';
 
 interface ServiceHealthStatus {
   overallStatus: 'available' | 'degraded' | 'unavailable' | 'unknown';
@@ -147,28 +147,28 @@ export default function ServiceHealthWidget({
     switch (status) {
       case 'available':
         return {
-          icon: <CheckCircleIcon className="h-6 w-6 text-green-500" />,
+          icon: <CheckCircle className="h-6 w-6 text-green-500" />,
           text: 'All systems operational',
           bgColor: 'bg-green-50',
           borderColor: 'border-green-200',
         };
       case 'degraded':
         return {
-          icon: <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500" />,
+          icon: <AlertTriangle className="h-6 w-6 text-yellow-500" />,
           text: 'Service degradation detected',
           bgColor: 'bg-yellow-50',
           borderColor: 'border-yellow-200',
         };
       case 'unavailable':
         return {
-          icon: <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />,
+          icon: <AlertTriangle className="h-6 w-6 text-red-500" />,
           text: 'Service outage detected',
           bgColor: 'bg-red-50',
           borderColor: 'border-red-200',
         };
       default:
         return {
-          icon: <InformationCircleIcon className="h-6 w-6 text-gray-500" />,
+          icon: <Info className="h-6 w-6 text-gray-500" />,
           text: 'Status unknown',
           bgColor: 'bg-gray-50',
           borderColor: 'border-gray-200',
@@ -241,7 +241,7 @@ export default function ServiceHealthWidget({
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-start">
-          <ExclamationTriangleIcon className="h-6 w-6 text-red-500 mr-3" />
+          <AlertTriangle className="h-6 w-6 text-red-500 mr-3" />
           <div className="flex-1">
             <h3 className="text-sm font-medium text-gray-900">
               Unable to load service health
@@ -287,7 +287,7 @@ export default function ServiceHealthWidget({
             className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
             title="Refresh"
           >
-            <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -301,7 +301,7 @@ export default function ServiceHealthWidget({
       <div className="px-6 py-4 grid grid-cols-2 gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
+            <AlertTriangle className="h-5 w-5 text-red-500" />
             <span className="text-2xl font-bold text-gray-900">
               {status.activeIncidents}
             </span>
@@ -310,7 +310,7 @@ export default function ServiceHealthWidget({
         </div>
         <div>
           <div className="flex items-center space-x-2">
-            <WrenchScrewdriverIcon className="h-5 w-5 text-blue-500" />
+            <Wrench className="h-5 w-5 text-blue-500" />
             <span className="text-2xl font-bold text-gray-900">
               {status.activeMaintenances}
             </span>
@@ -328,11 +328,11 @@ export default function ServiceHealthWidget({
               <div key={event.id} className="flex items-start space-x-3">
                 <div className="flex-shrink-0 mt-0.5">
                   {event.eventType === 'incident' ? (
-                    <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
                   ) : event.eventType === 'maintenance' ? (
-                    <WrenchScrewdriverIcon className="h-5 w-5 text-blue-500" />
+                    <Wrench className="h-5 w-5 text-blue-500" />
                   ) : (
-                    <InformationCircleIcon className="h-5 w-5 text-gray-500" />
+                    <Info className="h-5 w-5 text-gray-500" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
