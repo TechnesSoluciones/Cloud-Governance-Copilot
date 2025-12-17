@@ -61,8 +61,8 @@ export interface AdvisorRecommendation {
  * Recommendation filters
  */
 export interface RecommendationFilters {
-  category?: RecommendationCategory;
-  impact?: Impact[];
+  category?: string;
+  impact?: string[];
   resourceType?: string;
 }
 

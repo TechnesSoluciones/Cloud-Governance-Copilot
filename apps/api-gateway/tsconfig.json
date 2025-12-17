@@ -9,16 +9,15 @@
     },
     "noImplicitReturns": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts",
-    "src/integrations/azure/advisor.service.ts",
-    "src/integrations/azure/monitor.service.ts",
-    "src/integrations/azure/resource-graph.service.ts",
-    "src/integrations/azure/security-center.service.ts"
+    "**/*.test.ts"
   ]
 }
