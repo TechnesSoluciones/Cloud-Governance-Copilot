@@ -506,29 +506,5 @@ export interface IncidentFiltersValidation {
 // EXPORT ALL
 // ============================================================================
 
-export type {
-  // Re-export for convenience
-  AlertDto,
-  AlertFiltersDto,
-  AlertsResponseDto,
-  ActivityLogDto,
-  ActivityLogFiltersDto,
-  ActivityLogsResponseDto,
-  IncidentDto,
-  IncidentFiltersDto,
-  IncidentsResponseDto,
-  LogQueryDto,
-  LogQueryResultDto,
-  KQLTemplateDto,
-  AlertRuleDto,
-  CreateAlertRuleDto,
-  UpdateAlertRuleDto,
-  AlertRuleTemplateDto,
-  AlertRulesResponseDto,
-  ServiceHealthDto,
-  ServiceHealthIncidentDto,
-  PlannedMaintenanceDto,
-  HealthAdvisoryDto,
-  MetricDto,
-  MetricFiltersDto,
-};
+// Types are already exported at their definitions
+// No need to re-export them here
