@@ -19,9 +19,11 @@ import { ClientSecretCredential } from '@azure/identity';
 import type {
   SecureScoreItem,
   SecureScoreControlDetails,
-  Assessment,
   AssessmentStatus,
 } from '@azure/arm-security';
+
+// Type alias for assessment (SDK may not export Assessment directly)
+type Assessment = any;
 import type {
   CloudProviderCredentials,
   SecurityFinding,

@@ -15,13 +15,11 @@
 
 import { ResourceGraphClient } from '@azure/arm-resourcegraph';
 import { ClientSecretCredential } from '@azure/identity';
-import type {
-  QueryRequest,
-  QueryResponse,
-  Column,
-  Table,
-} from '@azure/arm-resourcegraph';
 import type { CloudProviderCredentials } from '../cloud-provider.interface';
+
+// Types from @azure/arm-resourcegraph (may vary by version)
+type Column = any;
+type Table = any;
 
 /**
  * Azure Resource Graph configuration
