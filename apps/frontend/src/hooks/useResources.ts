@@ -116,7 +116,7 @@ export function useResources(
       }
 
       const queryString = queryParams.toString();
-      const endpoint = `/api/v1/resources${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `/resources${queryString ? `?${queryString}` : ''}`;
 
       return apiGet<ResourcesResponse>(endpoint, token);
     },

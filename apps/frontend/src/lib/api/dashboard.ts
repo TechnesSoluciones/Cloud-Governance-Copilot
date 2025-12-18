@@ -115,7 +115,7 @@ export const dashboardApi = {
     }
 
     const queryString = buildQueryString({ accountId });
-    return apiGet<DashboardOverviewResponse>(`/api/v1/dashboard/overview${queryString}`, token);
+    return apiGet<DashboardOverviewResponse>(`/dashboard/overview${queryString}`, token);
   },
 
   /**
@@ -131,7 +131,7 @@ export const dashboardApi = {
     }
 
     const queryString = buildQueryString({ accountId });
-    return apiGet<HealthStatusResponse>(`/api/v1/dashboard/health${queryString}`, token);
+    return apiGet<HealthStatusResponse>(`/dashboard/health${queryString}`, token);
   },
 };
 

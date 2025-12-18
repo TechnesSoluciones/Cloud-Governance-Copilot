@@ -216,7 +216,7 @@ class IncidentsApiClient {
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
     const query = queryParams.toString();
-    const endpoint = `/api/v1/incidents${query ? `?${query}` : ''}`;
+    const endpoint = `/incidents${query ? `?${query}` : ''}`;
 
     return apiGet<ListIncidentsResponse>(endpoint, token);
   }
@@ -228,7 +228,7 @@ class IncidentsApiClient {
     id: string,
     token?: string
   ): Promise<ApiResponse<IncidentDetailResponse>> {
-    return apiGet<IncidentDetailResponse>(`/api/v1/incidents/${id}`, token);
+    return apiGet<IncidentDetailResponse>(`/incidents/${id}`, token);
   }
 
   /**
@@ -240,7 +240,7 @@ class IncidentsApiClient {
     token?: string
   ): Promise<ApiResponse<UpdateIncidentStatusResponse>> {
     return apiPatch<UpdateIncidentStatusResponse>(
-      `/api/v1/incidents/${id}/status`,
+      `/incidents/${id}/status`,
       data,
       token
     );
@@ -255,7 +255,7 @@ class IncidentsApiClient {
     token?: string
   ): Promise<ApiResponse<AddCommentResponse>> {
     return apiPost<AddCommentResponse>(
-      `/api/v1/incidents/${incidentId}/comments`,
+      `/incidents/${incidentId}/comments`,
       data,
       token
     );
@@ -279,7 +279,7 @@ class IncidentsApiClient {
     if (params.limit) queryParams.append('limit', params.limit.toString());
 
     const query = queryParams.toString();
-    const endpoint = `/api/v1/alerts${query ? `?${query}` : ''}`;
+    const endpoint = `/alerts${query ? `?${query}` : ''}`;
 
     return apiGet<ListAlertsResponse>(endpoint, token);
   }
@@ -291,7 +291,7 @@ class IncidentsApiClient {
     id: string,
     token?: string
   ): Promise<ApiResponse<AlertDetailResponse>> {
-    return apiGet<AlertDetailResponse>(`/api/v1/alerts/${id}`, token);
+    return apiGet<AlertDetailResponse>(`/alerts/${id}`, token);
   }
 
   /**
@@ -312,7 +312,7 @@ class IncidentsApiClient {
     if (params.limit) queryParams.append('limit', params.limit.toString());
 
     const query = queryParams.toString();
-    const endpoint = `/api/v1/activity-logs${query ? `?${query}` : ''}`;
+    const endpoint = `/activity-logs${query ? `?${query}` : ''}`;
 
     return apiGet<ActivityLogsResponse>(endpoint, token);
   }

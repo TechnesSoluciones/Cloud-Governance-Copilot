@@ -31,7 +31,7 @@ export const userApi = {
    * Get current user profile
    */
   getProfile: async (accessToken: string): Promise<ApiResponse<User>> => {
-    return apiGet('/api/v1/users/me', accessToken);
+    return apiGet('/users/me', accessToken);
   },
 
   /**
@@ -41,7 +41,7 @@ export const userApi = {
     data: UpdateUserDto,
     accessToken: string
   ): Promise<ApiResponse<User>> => {
-    return apiPatch('/api/v1/users/me', data, accessToken);
+    return apiPatch('/users/me', data, accessToken);
   },
 
   /**
@@ -51,7 +51,7 @@ export const userApi = {
     data: ChangePasswordDto,
     accessToken: string
   ): Promise<ApiResponse> => {
-    return apiPost('/api/v1/users/me/change-password', data, accessToken);
+    return apiPost('/users/me/change-password', data, accessToken);
   },
 
   /**

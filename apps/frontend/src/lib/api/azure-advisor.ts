@@ -80,7 +80,7 @@ export const azureAdvisorApi = {
 
     const queryString = buildQueryString(queryParams);
     return apiGet<PaginatedRecommendationsResponse>(
-      `/api/v1/advisor/recommendations${queryString}`,
+      `/advisor/recommendations${queryString}`,
       token
     );
   },
@@ -101,7 +101,7 @@ export const azureAdvisorApi = {
     token?: string
   ): Promise<ApiResponse<AdvisorRecommendationDTO>> => {
     return apiGet<AdvisorRecommendationDTO>(
-      `/api/v1/advisor/recommendations/${id}`,
+      `/advisor/recommendations/${id}`,
       token
     );
   },
@@ -133,7 +133,7 @@ export const azureAdvisorApi = {
 
     const queryString = buildQueryString(queryParams);
     return apiGet<RecommendationSummaryDTO>(
-      `/api/v1/advisor/summary${queryString}`,
+      `/advisor/summary${queryString}`,
       token
     );
   },
@@ -152,7 +152,7 @@ export const azureAdvisorApi = {
     token?: string
   ): Promise<ApiResponse<PotentialSavingsDashboardDTO>> => {
     return apiGet<PotentialSavingsDashboardDTO>(
-      '/api/v1/advisor/savings',
+      '/advisor/savings',
       token
     );
   },
@@ -179,7 +179,7 @@ export const azureAdvisorApi = {
     token?: string
   ): Promise<ApiResponse<AdvisorRecommendationDTO>> => {
     return apiPost<AdvisorRecommendationDTO>(
-      `/api/v1/advisor/recommendations/${id}/suppress`,
+      `/advisor/recommendations/${id}/suppress`,
       request,
       token
     );
@@ -207,7 +207,7 @@ export const azureAdvisorApi = {
     token?: string
   ): Promise<ApiResponse<AdvisorRecommendationDTO>> => {
     return apiPost<AdvisorRecommendationDTO>(
-      `/api/v1/advisor/recommendations/${id}/dismiss`,
+      `/advisor/recommendations/${id}/dismiss`,
       request,
       token
     );
@@ -235,7 +235,7 @@ export const azureAdvisorApi = {
     token?: string
   ): Promise<ApiResponse<AdvisorRecommendationDTO>> => {
     return apiPost<AdvisorRecommendationDTO>(
-      `/api/v1/advisor/recommendations/${id}/apply`,
+      `/advisor/recommendations/${id}/apply`,
       request,
       token
     );
@@ -263,7 +263,7 @@ export const azureAdvisorApi = {
     token?: string
   ): Promise<ApiResponse<AdvisorRecommendationDTO>> => {
     return apiPost<AdvisorRecommendationDTO>(
-      `/api/v1/advisor/recommendations/${id}/resolve`,
+      `/advisor/recommendations/${id}/resolve`,
       { notes },
       token
     );

@@ -195,7 +195,7 @@ export const finopsApi = {
     }
 
     const queryString = buildQueryString(queryParams);
-    return apiGet<CostsResponse>(`/api/v1/finops/costs${queryString}`, token);
+    return apiGet<CostsResponse>(`/finops/costs${queryString}`, token);
   },
 
   /**
@@ -221,7 +221,7 @@ export const finopsApi = {
     }
 
     const queryString = buildQueryString(queryParams);
-    return apiGet<CostsByServiceResponse>(`/api/v1/finops/costs/by-service${queryString}`, token);
+    return apiGet<CostsByServiceResponse>(`/finops/costs/by-service${queryString}`, token);
   },
 
   /**
@@ -250,7 +250,7 @@ export const finopsApi = {
     }
 
     const queryString = buildQueryString(queryParams);
-    return apiGet<CostTrendsResponse>(`/api/v1/finops/costs/trends${queryString}`, token);
+    return apiGet<CostTrendsResponse>(`/finops/costs/trends${queryString}`, token);
   },
 
   /**
@@ -282,7 +282,7 @@ export const finopsApi = {
     }
 
     const queryString = buildQueryString(queryParams);
-    return apiGet<AnomaliesResponse>(`/api/v1/finops/anomalies${queryString}`, token);
+    return apiGet<AnomaliesResponse>(`/finops/anomalies${queryString}`, token);
   },
 
   /**

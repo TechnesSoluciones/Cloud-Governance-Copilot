@@ -152,7 +152,7 @@ export const assetsApi = {
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
     const queryString = queryParams.toString();
-    const endpoint = `/api/v1/assets${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/assets${queryString ? `?${queryString}` : ''}`;
 
     return apiGet<ListAssetsResponse>(endpoint, token);
   },
@@ -161,7 +161,7 @@ export const assetsApi = {
    * Get a single asset by ID
    */
   getById: async (id: string, token?: string): Promise<ApiResponse<AssetDetailResponse>> => {
-    return apiGet<AssetDetailResponse>(`/api/v1/assets/${id}`, token);
+    return apiGet<AssetDetailResponse>(`/assets/${id}`, token);
   },
 
   /**
@@ -171,7 +171,7 @@ export const assetsApi = {
     params: TriggerDiscoveryParams = {},
     token?: string
   ): Promise<ApiResponse<TriggerDiscoveryResponse>> => {
-    return apiPost<TriggerDiscoveryResponse>('/api/v1/assets/discover', params, token);
+    return apiPost<TriggerDiscoveryResponse>('/assets/discover', params, token);
   },
 
   /**
@@ -182,7 +182,7 @@ export const assetsApi = {
     token?: string
   ): Promise<ApiResponse<OrphanedAssetsResponse>> => {
     return apiGet<OrphanedAssetsResponse>(
-      `/api/v1/assets/orphaned?accountId=${accountId}`,
+      `/assets/orphaned?accountId=${accountId}`,
       token
     );
   },
@@ -196,7 +196,7 @@ export const assetsApi = {
     token?: string
   ): Promise<ApiResponse<ListAssetsResponse>> => {
     return apiGet<ListAssetsResponse>(
-      `/api/v1/assets/by-type/${type}?accountId=${accountId}`,
+      `/assets/by-type/${type}?accountId=${accountId}`,
       token
     );
   },
@@ -210,7 +210,7 @@ export const assetsApi = {
     token?: string
   ): Promise<ApiResponse<CostAllocationResponse>> => {
     return apiGet<CostAllocationResponse>(
-      `/api/v1/assets/cost-allocation?accountId=${accountId}&groupBy=${groupBy}`,
+      `/assets/cost-allocation?accountId=${accountId}&groupBy=${groupBy}`,
       token
     );
   },
@@ -219,7 +219,7 @@ export const assetsApi = {
    * Get asset statistics
    */
   getStats: async (accountId: string, token?: string): Promise<ApiResponse<AssetStatsResponse>> => {
-    return apiGet<AssetStatsResponse>(`/api/v1/assets/stats?accountId=${accountId}`, token);
+    return apiGet<AssetStatsResponse>(`/assets/stats?accountId=${accountId}`, token);
   },
 
   /**
@@ -230,7 +230,7 @@ export const assetsApi = {
     params: UpdateTagsParams,
     token?: string
   ): Promise<ApiResponse<UpdateTagsResponse>> => {
-    return apiPost<UpdateTagsResponse>(`/api/v1/assets/${id}/tags`, params, token);
+    return apiPost<UpdateTagsResponse>(`/assets/${id}/tags`, params, token);
   },
 
   /**
@@ -240,6 +240,6 @@ export const assetsApi = {
     params: BulkTagParams,
     token?: string
   ): Promise<ApiResponse<BulkTagResponse>> => {
-    return apiPost<BulkTagResponse>('/api/v1/assets/bulk-tag', params, token);
+    return apiPost<BulkTagResponse>('/assets/bulk-tag', params, token);
   },
 };

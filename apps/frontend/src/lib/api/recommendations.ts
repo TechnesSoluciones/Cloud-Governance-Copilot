@@ -222,7 +222,7 @@ export const recommendationsApi = {
     token?: string
   ): Promise<ApiResponse<GenerateRecommendationsResponse>> => {
     return apiPost<GenerateRecommendationsResponse>(
-      '/api/v1/finops/recommendations/generate',
+      '/finops/recommendations/generate',
       params,
       token
     );
@@ -249,7 +249,7 @@ export const recommendationsApi = {
 
     const queryString = buildQueryString(queryParams);
     return apiGet<ListRecommendationsResponse>(
-      `/api/v1/finops/recommendations${queryString}`,
+      `/finops/recommendations${queryString}`,
       token
     );
   },
@@ -269,7 +269,7 @@ export const recommendationsApi = {
 
     const queryString = buildQueryString(queryParams);
     return apiGet<RecommendationsSummary>(
-      `/api/v1/finops/recommendations/summary${queryString}`,
+      `/finops/recommendations/summary${queryString}`,
       token
     );
   },
@@ -283,7 +283,7 @@ export const recommendationsApi = {
     token?: string
   ): Promise<ApiResponse<Recommendation>> => {
     return apiGet<Recommendation>(
-      `/api/v1/finops/recommendations/${id}`,
+      `/finops/recommendations/${id}`,
       token
     );
   },
@@ -298,7 +298,7 @@ export const recommendationsApi = {
     token?: string
   ): Promise<ApiResponse<Recommendation>> => {
     return apiPost<Recommendation>(
-      `/api/v1/finops/recommendations/${id}/apply`,
+      `/finops/recommendations/${id}/apply`,
       params,
       token
     );
@@ -314,7 +314,7 @@ export const recommendationsApi = {
     token?: string
   ): Promise<ApiResponse<Recommendation>> => {
     return apiPost<Recommendation>(
-      `/api/v1/finops/recommendations/${id}/dismiss`,
+      `/finops/recommendations/${id}/dismiss`,
       params,
       token
     );

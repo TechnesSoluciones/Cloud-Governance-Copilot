@@ -164,7 +164,7 @@ export const securityApi = {
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
     const queryString = queryParams.toString();
-    const endpoint = `/api/v1/security/findings${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/security/findings${queryString ? `?${queryString}` : ''}`;
 
     return apiGet<ListFindingsResponse>(endpoint, token);
   },
@@ -176,7 +176,7 @@ export const securityApi = {
     id: string,
     token?: string
   ): Promise<ApiResponse<FindingDetailResponse>> => {
-    return apiGet<FindingDetailResponse>(`/api/v1/security/findings/${id}`, token);
+    return apiGet<FindingDetailResponse>(`/security/findings/${id}`, token);
   },
 
   /**
@@ -194,7 +194,7 @@ export const securityApi = {
     if (params.status) queryParams.append('status', params.status);
 
     const queryString = queryParams.toString();
-    const endpoint = `/api/v1/security/scans${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/security/scans${queryString ? `?${queryString}` : ''}`;
 
     return apiGet<ListScansResponse>(endpoint, token);
   },
@@ -203,7 +203,7 @@ export const securityApi = {
    * Get a single scan by ID
    */
   getScan: async (id: string, token?: string): Promise<ApiResponse<ScanDetailResponse>> => {
-    return apiGet<ScanDetailResponse>(`/api/v1/security/scans/${id}`, token);
+    return apiGet<ScanDetailResponse>(`/security/scans/${id}`, token);
   },
 
   /**
@@ -213,7 +213,7 @@ export const securityApi = {
     params: TriggerScanParams = {},
     token?: string
   ): Promise<ApiResponse<TriggerScanResponse>> => {
-    return apiPost<TriggerScanResponse>('/api/v1/security/scans', params, token);
+    return apiPost<TriggerScanResponse>('/security/scans', params, token);
   },
 
   /**
@@ -225,7 +225,7 @@ export const securityApi = {
     token?: string
   ): Promise<ApiResponse<ResolveFindingResponse>> => {
     return apiPatch<ResolveFindingResponse>(
-      `/api/v1/security/findings/${id}/resolve`,
+      `/security/findings/${id}/resolve`,
       params,
       token
     );
@@ -240,7 +240,7 @@ export const securityApi = {
     token?: string
   ): Promise<ApiResponse<DismissFindingResponse>> => {
     return apiPatch<DismissFindingResponse>(
-      `/api/v1/security/findings/${id}/dismiss`,
+      `/security/findings/${id}/dismiss`,
       params,
       token
     );
@@ -250,6 +250,6 @@ export const securityApi = {
    * Get security summary statistics
    */
   getSummary: async (token?: string): Promise<ApiResponse<SummaryResponse>> => {
-    return apiGet<SummaryResponse>('/api/v1/security/summary', token);
+    return apiGet<SummaryResponse>('/security/summary', token);
   },
 };

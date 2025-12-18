@@ -71,7 +71,7 @@ export const resourcesApi = {
     }
 
     const queryString = queryParams.toString();
-    const endpoint = `/api/v1/resources${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/resources${queryString ? `?${queryString}` : ''}`;
 
     return apiGet<ResourcesResponse>(endpoint, token);
   },
@@ -92,7 +92,7 @@ export const resourcesApi = {
     id: string,
     token?: string
   ): Promise<ApiResponse<Resource>> => {
-    return apiGet<Resource>(`/api/v1/resources/${id}`, token);
+    return apiGet<Resource>(`/resources/${id}`, token);
   },
 
   /**
@@ -113,7 +113,7 @@ export const resourcesApi = {
   getResourceTypes: async (
     token?: string
   ): Promise<ApiResponse<string[]>> => {
-    return apiGet<string[]>('/api/v1/resources/types', token);
+    return apiGet<string[]>('/resources/types', token);
   },
 
   /**
@@ -134,7 +134,7 @@ export const resourcesApi = {
   getLocations: async (
     token?: string
   ): Promise<ApiResponse<string[]>> => {
-    return apiGet<string[]>('/api/v1/resources/locations', token);
+    return apiGet<string[]>('/resources/locations', token);
   },
 
   /**
@@ -155,7 +155,7 @@ export const resourcesApi = {
   getResourceGroups: async (
     token?: string
   ): Promise<ApiResponse<string[]>> => {
-    return apiGet<string[]>('/api/v1/resources/groups', token);
+    return apiGet<string[]>('/resources/groups', token);
   },
 };
 
