@@ -36,9 +36,40 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // TODO: Replace with actual account selection logic
-  // For now, using a placeholder - in production, get from user's selected account or first Azure account
-  const accountId = 'azure-account-1';
+  // Get user's cloud accounts
+  const [cloudAccounts, setCloudAccounts] = React.useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = React.useState<string | null>(null);
+  const [accountsLoading, setAccountsLoading] = React.useState(true);
+
+  // Fetch cloud accounts on mount
+  React.useEffect(() => {
+    const fetchAccounts = async () => {
+      if (!session) return;
+
+      try {
+        const response = await fetch('/api/v1/cloud-accounts', {
+          headers: {
+            'Authorization': `Bearer ${(session as any).accessToken}`
+          }
+        });
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          setCloudAccounts(data.data);
+          // Auto-select first account if available
+          if (data.data.length > 0) {
+            setSelectedAccountId(data.data[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch cloud accounts:', err);
+      } finally {
+        setAccountsLoading(false);
+      }
+    };
+
+    fetchAccounts();
+  }, [session]);
 
   const {
     overview,
@@ -48,7 +79,7 @@ export default function DashboardPage() {
     refetch,
     isRefetching,
     lastUpdated,
-  } = useDashboard(accountId);
+  } = useDashboard(selectedAccountId || '');
 
   const user = session?.user as any;
   const userName = user?.fullName || user?.name || 'User';
@@ -70,6 +101,41 @@ export default function DashboardPage() {
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
           <p className="text-muted-foreground">Loading session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state when no cloud accounts are configured
+  if (!accountsLoading && cloudAccounts.length === 0) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+          <PremiumSectionHeader
+            title="Azure Dashboard"
+            subtitle={`Welcome back, ${userName}`}
+          />
+          <Card className="p-12 text-center">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="h-24 w-24 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
+                <Server className="h-12 w-12 text-orange-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold">No Cloud Accounts Connected</h3>
+                <p className="text-muted-foreground">
+                  Connect your first cloud account to start monitoring your infrastructure, costs, and security.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => router.push('/cloud-accounts/new')}
+                className="shadow-lg"
+              >
+                <Icons.plus className="h-5 w-5 mr-2" />
+                Add Cloud Account
+              </Button>
+            </div>
+          </Card>
         </div>
       </div>
     );
