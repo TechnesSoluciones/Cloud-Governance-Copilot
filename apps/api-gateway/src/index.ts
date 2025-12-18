@@ -14,6 +14,7 @@ import dashboardRoutes from './routes/dashboard.routes';
 import resourcesRoutes from './routes/resources.routes';
 import finopsRoutes from './modules/finops/routes';
 import azureSecurityRoutes from './routes/azure-security.routes';
+import securityRoutes from './modules/security/routes/security.routes';
 import healthRoutes from './routes/health.routes';
 import dependenciesRoutes from './routes/dependencies.routes';
 import incidentsRoutes from './modules/incidents/routes';
@@ -87,6 +88,7 @@ app.get('/api/v1', (req, res) => {
       dashboard: '/api/v1/dashboard',
       resources: '/api/v1/resources',
       finops: '/api/v1/finops',
+      security: '/api/v1/security',
       azureSecurity: '/api/v1/security/azure',
       dependencies: '/api/v1/dependencies',
       incidents: '/api/v1/incidents',
@@ -113,6 +115,9 @@ app.use('/api/v1/resources', resourcesRoutes);
 
 // FinOps routes
 app.use('/api/v1/finops', finopsRoutes);
+
+// Security routes
+app.use('/api/v1/security', securityRoutes);
 
 // Azure Security routes
 app.use('/api/v1/security/azure', azureSecurityRoutes);
