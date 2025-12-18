@@ -52,6 +52,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - INTERNAL_API_URL=http://copilot-api-gateway:3010
       - PORT=3000
     depends_on:
       api-gateway:
