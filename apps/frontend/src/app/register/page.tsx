@@ -48,7 +48,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/auth/register`, {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
