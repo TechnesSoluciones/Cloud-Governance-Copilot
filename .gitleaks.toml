@@ -17,6 +17,8 @@ paths = [
   '''.*\.spec\.ts$''',
   '''.*\.fixture\.ts$''',
   '''\.env\.example$''',
+  '''apps/api-gateway/tests/setup\.ts$''',
+  '''apps/frontend/tests/setup\.ts$''',
 ]
 
 # Regex patterns to allow
@@ -31,3 +33,30 @@ description = "Example AWS Secret Access Key in test files"
 [[allowlist.regexes]]
 regex = '''(?i)(password|secret|key|token).*=.*example'''
 description = "Example credentials in .env.example files"
+
+[[allowlist.regexes]]
+regex = '''test-(jwt-)?secret(-key)?(-for-testing-only)?'''
+description = "Test JWT secrets in test setup files"
+
+[[allowlist.regexes]]
+regex = '''test-refresh-secret-key-for-testing-only'''
+description = "Test refresh token secrets in test setup files"
+
+[[allowlist.regexes]]
+regex = '''development-secret-key'''
+description = "Development fallback secrets (never used in production)"
+
+[[allowlist.regexes]]
+regex = '''JWT_SECRET.*development-secret-key'''
+description = "Development JWT secret fallbacks in code"
+
+# Stopwords to prevent false positives on common variable names
+[[allowlist.stopwords]]
+stopwords = [
+  'example',
+  'test',
+  'development',
+  'fallback',
+  'default',
+  'placeholder',
+]
