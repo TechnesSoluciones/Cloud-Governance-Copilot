@@ -56,6 +56,7 @@ import {
   useAssetStats,
   extractAssetsData,
 } from '@/hooks/useAssets';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
 import type { Asset } from '@/lib/api/assets';
 import {
   AdvancedFilters,
@@ -105,8 +106,9 @@ export default function AssetsPage() {
   // Discovery state
   const [isDiscoveryActive, setIsDiscoveryActive] = useState(false);
 
-  // For demo purposes, use a mock account ID (in production this would come from user context)
-  const accountId = 'demo-account';
+  // Get cloud accounts and selected account
+  const { selectedAccount, isLoading: isLoadingAccounts } = useCloudAccounts();
+  const accountId = selectedAccount?.id || '';
 
   // Fetch assets with filters
   const {
