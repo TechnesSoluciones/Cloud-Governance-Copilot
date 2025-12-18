@@ -18,13 +18,16 @@
  * @module integrations/azure/service-health.service
  */
 
-import { ResourceHealthClient } from '@azure/arm-resourcehealth';
+import { MicrosoftResourceHealth } from '@azure/arm-resourcehealth';
 import { ClientSecretCredential } from '@azure/identity';
 import type {
   AvailabilityStatusPropertiesRecentlyResolved,
   Event,
   AvailabilityStatus,
 } from '@azure/arm-resourcehealth';
+
+// Type alias for client (SDK may not export ResourceHealthClient)
+type ResourceHealthClient = MicrosoftResourceHealth;
 import type { CloudProviderCredentials } from '../cloud-provider.interface';
 
 /**
@@ -224,7 +227,7 @@ export class AzureServiceHealthService {
     );
 
     // Initialize Resource Health client
-    this.client = new ResourceHealthClient(this.credential, this.config.subscriptionId);
+    this.client = new MicrosoftResourceHealth(this.credential, this.config.subscriptionId);
 
     console.log(
       '[AzureServiceHealthService] Initialized for subscription:',
@@ -339,11 +342,11 @@ export class AzureServiceHealthService {
       const issues: ServiceIssue[] = [];
 
       // List service health events (incidents and communications)
-      const eventsIterator = this.client.events.listBySubscriptionId();
+      const eventsIterator = (this.client as any).events.listBySubscriptionId();
 
       for await (const event of eventsIterator) {
         // Filter by impact type if specified
-        if (impactType && event.properties?.impactType !== impactType) {
+        if (impactType && (event as any).properties?.impactType !== impactType) {
           continue;
         }
 
@@ -388,16 +391,16 @@ export class AzureServiceHealthService {
       futureDate.setDate(futureDate.getDate() + days);
 
       // List service health events filtered for planned maintenance
-      const eventsIterator = this.client.events.listBySubscriptionId();
+      const eventsIterator = (this.client as any).events.listBySubscriptionId();
 
       for await (const event of eventsIterator) {
         // Filter for planned maintenance and action required events
         if (
-          event.properties?.impactType === 'ActionRequired' ||
-          event.properties?.eventType === 'PlannedMaintenance'
+          (event as any).properties?.impactType === 'ActionRequired' ||
+          (event as any).properties?.eventType === 'PlannedMaintenance'
         ) {
-          const startTime = event.properties?.impactStartTime
-            ? new Date(event.properties.impactStartTime)
+          const startTime = (event as any).properties?.impactStartTime
+            ? new Date((event as any).properties.impactStartTime)
             : now;
 
           // Only include events within the specified time window
@@ -449,12 +452,12 @@ export class AzureServiceHealthService {
       startDate.setDate(startDate.getDate() - days);
 
       // List service health events
-      const eventsIterator = this.client.events.listBySubscriptionId();
+      const eventsIterator = (this.client as any).events.listBySubscriptionId();
 
       for await (const event of eventsIterator) {
-        const startTime = event.properties?.impactStartTime
-          ? new Date(event.properties.impactStartTime)
-          : new Date(event.properties?.lastUpdateTime || new Date());
+        const startTime = (event as any).properties?.impactStartTime
+          ? new Date((event as any).properties.impactStartTime)
+          : new Date((event as any).properties?.lastUpdateTime || new Date());
 
         // Filter events within the time range
         if (startTime >= startDate) {
@@ -522,11 +525,11 @@ export class AzureServiceHealthService {
    * @private
    */
   private normalizeServiceIssue(event: Event): ServiceIssue | null {
-    if (!event.properties || !event.id || !event.name) {
+    if (!(event as any).properties || !event.id || !event.name) {
       return null;
     }
 
-    const props = event.properties;
+    const props = (event as any).properties;
 
     // Determine severity based on impact level and type
     let severity: 'critical' | 'high' | 'medium' | 'low' | 'informational' = 'informational';
@@ -601,11 +604,11 @@ export class AzureServiceHealthService {
    * @private
    */
   private normalizeMaintenanceEvent(event: Event): MaintenanceEvent | null {
-    if (!event.properties || !event.id || !event.name) {
+    if (!(event as any).properties || !event.id || !event.name) {
       return null;
     }
 
-    const props = event.properties;
+    const props = (event as any).properties;
 
     // Extract affected services and regions
     const affectedServices: string[] = [];
@@ -668,11 +671,11 @@ export class AzureServiceHealthService {
    * @private
    */
   private normalizeHealthEvent(event: Event): HealthEvent | null {
-    if (!event.properties || !event.id || !event.name) {
+    if (!(event as any).properties || !event.id || !event.name) {
       return null;
     }
 
-    const props = event.properties;
+    const props = (event as any).properties;
 
     // Extract affected services and regions
     const affectedServices: string[] = [];
@@ -747,7 +750,7 @@ export class AzureServiceHealthService {
     resourceId: string,
     status: AvailabilityStatus
   ): ResourceHealth {
-    const props = status.properties;
+    const props = (status as any).properties;
 
     // Extract resource type from resource ID
     const resourceType = this.extractResourceType(resourceId);
@@ -772,7 +775,7 @@ export class AzureServiceHealthService {
     }> = [];
 
     if (props?.serviceImpactingEvents) {
-      props.serviceImpactingEvents.forEach((event) => {
+      props.serviceImpactingEvents.forEach((event: any) => {
         serviceImpactingEvents.push({
           eventStartTime: event.eventStartTime ? new Date(event.eventStartTime) : undefined,
           eventStatusLastModifiedTime: event.eventStatusLastModifiedTime
@@ -789,13 +792,13 @@ export class AzureServiceHealthService {
     let recentlyResolved: ResourceHealth['recentlyResolved'];
     if (props?.recentlyResolved) {
       recentlyResolved = {
-        unavailableOccurredTime: props.recentlyResolved.unavailableOccurredTime
-          ? new Date(props.recentlyResolved.unavailableOccurredTime)
+        unavailableOccurredTime: props.recentlyResolved.unavailableOccuredTime
+          ? new Date(props.recentlyResolved.unavailableOccuredTime)
           : undefined,
         resolvedTime: props.recentlyResolved.resolvedTime
           ? new Date(props.recentlyResolved.resolvedTime)
           : undefined,
-        unavailabilitySummary: props.recentlyResolved.unavailabilitySummary,
+        unavailabilitySummary: props.recentlyResolved.unavailableSummary,
       };
     }
 
@@ -807,7 +810,7 @@ export class AzureServiceHealthService {
       summary: String(props?.summary || 'No summary available'),
       detailedStatus: props?.detailedStatus,
       reasonChronicity: (props?.reasonChronicity as 'Transient' | 'Persistent' | 'Unknown') || 'Unknown',
-      occurredTime: props?.occurredTime ? new Date(props.occurredTime) : undefined,
+      occurredTime: props?.occuredTime ? new Date(props.occuredTime) : undefined,
       reportedTime: new Date(props?.reportedTime || new Date()),
       rootCauseAttributionTime: props?.rootCauseAttributionTime
         ? new Date(props.rootCauseAttributionTime)

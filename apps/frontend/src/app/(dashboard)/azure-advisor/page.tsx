@@ -23,6 +23,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PREMIUM_GRADIENTS,
+} from '@/components/shared/premium';
 import {
   useRecommendations,
   useRecommendationsSummary,
@@ -248,35 +254,30 @@ export default function AzureAdvisorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              Azure Advisor
-            </h1>
-            <p className="mt-2 text-base text-gray-600">
-              Personalized best practices recommendations to optimize your Azure
-              resources
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Azure Advisor"
+          subtitle="Personalized best practices recommendations to optimize your Azure resources"
+          actions={
             <Button
               variant="outline"
+              size="lg"
               onClick={handleRefresh}
               disabled={isLoadingRecommendations}
+              className="shadow-lg"
               aria-label="Refresh recommendations"
             >
               <RefreshCw
-                className={`h-4 w-4 mr-2 ${
+                className={`h-5 w-5 mr-2 ${
                   isLoadingRecommendations ? 'animate-spin' : ''
                 }`}
               />
-              Refresh
+              {isLoadingRecommendations ? 'Refreshing...' : 'Refresh'}
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Summary Cards */}
         {activeTab === 'recommendations' && (

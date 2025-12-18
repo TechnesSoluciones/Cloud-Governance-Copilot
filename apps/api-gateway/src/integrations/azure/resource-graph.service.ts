@@ -20,6 +20,8 @@ import type { CloudProviderCredentials } from '../cloud-provider.interface';
 // Types from @azure/arm-resourcegraph (may vary by version)
 type Column = any;
 type Table = any;
+type QueryRequest = any;
+type QueryResponse = any;
 
 /**
  * Azure Resource Graph configuration

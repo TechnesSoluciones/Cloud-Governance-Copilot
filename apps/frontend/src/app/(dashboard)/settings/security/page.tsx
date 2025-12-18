@@ -15,6 +15,12 @@ import { authApi } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 import { changePasswordSchema, ChangePasswordInput, mfaDisableSchema } from '@/lib/validation/auth';
 
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PREMIUM_GRADIENTS,
+} from '@/components/shared/premium';
+
 export default function SecuritySettingsPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
@@ -219,15 +225,13 @@ export default function SecuritySettingsPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Security Settings</h1>
-          <p className="text-gray-600 mt-2">
-            Manage your password and two-factor authentication
-          </p>
-        </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-4xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Security Settings"
+          subtitle="Manage your password and two-factor authentication"
+        />
 
         {/* Change Password Card */}
         <Card>

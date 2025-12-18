@@ -177,7 +177,7 @@ export class AzureSecurityCenterService {
       const scope = `/subscriptions/${this.config.subscriptionId}`;
 
       // Get the primary secure score
-      const scoresIterator = this.client.secureScores.list(scope);
+      const scoresIterator = this.client.secureScores.list(scope as any);
       const scores: SecureScoreItem[] = [];
 
       for await (const score of scoresIterator) {
@@ -191,18 +191,18 @@ export class AzureSecurityCenterService {
 
       const primaryScore = scores[0];
 
-      const current = primaryScore.properties?.score?.current || 0;
-      const max = primaryScore.properties?.score?.max || 0;
+      const current = (primaryScore as any).properties?.score?.current || 0;
+      const max = (primaryScore as any).properties?.score?.max || 0;
       const percentage = max > 0 ? Math.round((current / max) * 100) : 0;
 
       return {
-        displayName: primaryScore.properties?.displayName || 'Overall Security Score',
+        displayName: (primaryScore as any).properties?.displayName || 'Overall Security Score',
         score: {
           current,
           max,
           percentage,
         },
-        weight: primaryScore.properties?.weight || 0,
+        weight: (primaryScore as any).properties?.weight || 0,
       };
     } catch (error) {
       console.error('[AzureSecurityCenterService] Failed to get security score:', error);
@@ -228,22 +228,22 @@ export class AzureSecurityCenterService {
   async getSecurityScoreControls(): Promise<SecurityScoreResult[]> {
     try {
       const scope = `/subscriptions/${this.config.subscriptionId}`;
-      const controlsIterator = this.client.secureScoreControls.list(scope);
+      const controlsIterator = this.client.secureScoreControls.list(scope as any);
       const controls: SecurityScoreResult[] = [];
 
       for await (const control of controlsIterator) {
-        const current = control.properties?.score?.current || 0;
-        const max = control.properties?.score?.max || 0;
+        const current = (control as any).properties?.score?.current || 0;
+        const max = (control as any).properties?.score?.max || 0;
         const percentage = max > 0 ? Math.round((current / max) * 100) : 0;
 
         controls.push({
-          displayName: control.properties?.displayName || 'Unknown Control',
+          displayName: (control as any).properties?.displayName || 'Unknown Control',
           score: {
             current,
             max,
             percentage,
           },
-          weight: control.properties?.weight || 0,
+          weight: (control as any).properties?.weight || 0,
         });
       }
 
@@ -362,20 +362,20 @@ export class AzureSecurityCenterService {
   async getComplianceResults(): Promise<ComplianceResult[]> {
     try {
       const scope = `/subscriptions/${this.config.subscriptionId}`;
-      const complianceIterator = this.client.regulatoryComplianceStandards.list(scope);
+      const complianceIterator = this.client.regulatoryComplianceStandards.list(scope as any);
       const results: ComplianceResult[] = [];
 
       for await (const standard of complianceIterator) {
-        const passedControls = standard.properties?.passedControls || 0;
-        const failedControls = standard.properties?.failedControls || 0;
-        const skippedControls = standard.properties?.skippedControls || 0;
+        const passedControls = (standard as any).properties?.passedControls || 0;
+        const failedControls = (standard as any).properties?.failedControls || 0;
+        const skippedControls = (standard as any).properties?.skippedControls || 0;
         const totalControls = passedControls + failedControls + skippedControls;
 
         const compliancePercentage =
           totalControls > 0 ? Math.round((passedControls / totalControls) * 100) : 0;
 
         results.push({
-          standardName: standard.properties?.description || standard.name || 'Unknown',
+          standardName: (standard as any).properties?.description || standard.name || 'Unknown',
           passedControls,
           failedControls,
           skippedControls,
@@ -403,8 +403,8 @@ export class AzureSecurityCenterService {
    * @private
    */
   private normalizeAssessment(assessment: Assessment): SecurityAssessment {
-    const metadata = assessment.properties?.metadata;
-    const status = this.normalizeAssessmentStatus(assessment.properties?.status);
+    const metadata = (assessment as any).properties?.metadata;
+    const status = this.normalizeAssessmentStatus((assessment as any).properties?.status);
 
     return {
       id: assessment.id || '',
@@ -413,8 +413,8 @@ export class AzureSecurityCenterService {
       description: metadata?.description || '',
       severity: this.normalizeSeverity(metadata?.severity),
       status,
-      resourceId: assessment.properties?.resourceDetails?.id,
-      resourceType: this.extractResourceType(assessment.properties?.resourceDetails?.id),
+      resourceId: (assessment as any).properties?.resourceDetails?.id,
+      resourceType: this.extractResourceType((assessment as any).properties?.resourceDetails?.id),
       remediation: metadata?.remediationDescription,
       category: metadata?.category || 'General',
       compliance: metadata?.implementationEffort ? [metadata.implementationEffort] : [],

@@ -478,7 +478,7 @@ export class AzureAlertRulesService {
         createdAlert = await this.monitorClient.metricAlerts.createOrUpdate(
           config.resourceGroupName,
           config.name,
-          metricAlertParams
+          metricAlertParams as any
         );
       } else if (config.condition.type === 'activityLog') {
         // Create activity log alert

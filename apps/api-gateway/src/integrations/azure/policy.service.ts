@@ -657,13 +657,13 @@ export class AzurePolicyService {
     return {
       id: assignment.id || '',
       name: assignment.name || '',
-      displayName: assignment.properties?.displayName || assignment.name || 'Unknown Policy',
-      description: assignment.properties?.description || '',
-      policyDefinitionId: assignment.properties?.policyDefinitionId || '',
-      scope: assignment.properties?.scope || '',
-      enforcementMode: assignment.properties?.enforcementMode === 'DoNotEnforce' ? 'DoNotEnforce' : 'Default',
-      parameters: assignment.properties?.parameters,
-      metadata: assignment.properties?.metadata,
+      displayName: (assignment as any).properties?.displayName || assignment.name || 'Unknown Policy',
+      description: (assignment as any).properties?.description || '',
+      policyDefinitionId: (assignment as any).properties?.policyDefinitionId || '',
+      scope: (assignment as any).properties?.scope || '',
+      enforcementMode: (assignment as any).properties?.enforcementMode === 'DoNotEnforce' ? 'DoNotEnforce' : 'Default',
+      parameters: (assignment as any).properties?.parameters,
+      metadata: (assignment as any).properties?.metadata,
     };
   }
 
@@ -676,14 +676,14 @@ export class AzurePolicyService {
     return {
       id: definition.id || '',
       name: definition.name || '',
-      displayName: definition.properties?.displayName || definition.name || 'Unknown Policy',
-      description: definition.properties?.description || '',
-      policyType: definition.properties?.policyType || 'BuiltIn',
-      mode: definition.properties?.mode || 'All',
-      category: definition.properties?.metadata?.category || 'General',
+      displayName: (definition as any).properties?.displayName || definition.name || 'Unknown Policy',
+      description: (definition as any).properties?.description || '',
+      policyType: (definition as any).properties?.policyType || 'BuiltIn',
+      mode: (definition as any).properties?.mode || 'All',
+      category: (definition as any).properties?.metadata?.category || 'General',
       effect: this.extractPolicyEffect(definition),
-      parameters: definition.properties?.parameters,
-      metadata: definition.properties?.metadata,
+      parameters: (definition as any).properties?.parameters,
+      metadata: (definition as any).properties?.metadata,
     };
   }
 
@@ -693,7 +693,7 @@ export class AzurePolicyService {
    * @private
    */
   private extractPolicyEffect(definition: PolicyDefinition): string {
-    const policyRule = definition.properties?.policyRule as any;
+    const policyRule = (definition as any).properties?.policyRule as any;
     return policyRule?.then?.effect || 'Audit';
   }
 

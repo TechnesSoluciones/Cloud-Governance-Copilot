@@ -49,6 +49,9 @@ import {
 import { cn } from '@/lib/utils';
 import { IncidentStatus } from '@/lib/api/incidents';
 
+// Premium Design System
+import { PREMIUM_GRADIENTS } from '@/components/shared/premium';
+
 export default function IncidentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -117,11 +120,13 @@ export default function IncidentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto space-y-6 p-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-96 w-full" />
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-6">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
         </div>
       </div>
     );
@@ -129,17 +134,19 @@ export default function IncidentDetailPage() {
 
   if (error || !incident) {
     return (
-      <div className="container mx-auto space-y-6 p-6">
-        <Alert variant="error">
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          <AlertDescription>
-            Failed to load incident details. Please try again later.
-          </AlertDescription>
-        </Alert>
-        <Button onClick={handleBack} variant="outline" className="gap-2">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to Incidents
-        </Button>
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <Alert variant="error">
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            <AlertDescription>
+              Failed to load incident details. Please try again later.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleBack} variant="outline" size="lg" className="gap-2 shadow-lg">
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            Back to Incidents
+          </Button>
+        </div>
       </div>
     );
   }
@@ -148,7 +155,8 @@ export default function IncidentDetailPage() {
   const canResolve = incident.status !== 'resolved' && incident.status !== 'closed';
 
   return (
-    <div className="container mx-auto space-y-6 p-6">
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
       {/* Back Button */}
       <Button
         onClick={handleBack}

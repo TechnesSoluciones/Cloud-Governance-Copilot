@@ -757,7 +757,7 @@ export class ResourceDependenciesService {
    */
   private extractCycle(start: string, end: string, parent: Map<string, string | null>): string[] {
     const cycle: string[] = [end];
-    let current = start;
+    let current: string | null = start;
 
     while (current !== end && current !== null) {
       cycle.unshift(current);

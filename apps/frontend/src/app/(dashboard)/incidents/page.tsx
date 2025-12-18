@@ -25,8 +25,18 @@ import {
   X,
   TrendingUp,
   Activity,
+  AlertOctagon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS,
+} from '@/components/shared/premium';
 
 export default function IncidentsPage() {
   const [showFilters, setShowFilters] = useState(false);
@@ -102,130 +112,100 @@ export default function IncidentsPage() {
     (filters.resourceType ? 1 : 0);
 
   return (
-    <div className="container mx-auto space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Incident Management
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Monitor and manage cloud infrastructure incidents
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-2"
-            aria-label={showFilters ? 'Hide filters' : 'Show filters'}
-            aria-expanded={showFilters}
-          >
-            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isRefetching}
-            className="gap-2"
-            aria-label="Refresh incidents"
-          >
-            <RefreshCw
-              className={cn('h-4 w-4', isRefetching && 'animate-spin')}
-              aria-hidden="true"
-            />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Incident Management"
+          subtitle="Monitor and manage cloud infrastructure incidents"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2 shadow-lg"
+                aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+                aria-expanded={showFilters}
+              >
+                <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+                Filters
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleRefresh}
+                disabled={isRefetching}
+                className="gap-2 shadow-lg"
+                aria-label="Refresh incidents"
+              >
+                <RefreshCw
+                  className={cn('h-5 w-5', isRefetching && 'animate-spin')}
+                  aria-hidden="true"
+                />
+                {isRefetching ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </>
+          }
+        />
 
-      {/* Stats Cards */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : incidentsData ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Active Incidents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600 dark:text-blue-500" aria-hidden="true" />
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {incidentsData.metadata.activeCount}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Critical
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500" aria-hidden="true" />
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {incidentsData.metadata.criticalCount}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                High Priority
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-500" aria-hidden="true" />
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {incidentsData.metadata.highCount}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Incidents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {incidentsData.pagination.total}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Last updated: {lastUpdated}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
+        {/* Premium Stats Bar */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : incidentsData ? (
+          <PremiumStatsBar
+            stats={[
+              {
+                label: 'Active Incidents',
+                value: incidentsData.metadata.activeCount,
+                icon: <Activity className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.azure,
+                iconColor: PREMIUM_ICON_COLORS.azure,
+                subtitle: 'Currently open',
+              },
+              {
+                label: 'Critical',
+                value: incidentsData.metadata.criticalCount,
+                icon: <AlertOctagon className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.error,
+                iconColor: PREMIUM_ICON_COLORS.error,
+                subtitle: 'Require immediate action',
+              },
+              {
+                label: 'High Priority',
+                value: incidentsData.metadata.highCount,
+                icon: <AlertTriangle className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.warning,
+                iconColor: PREMIUM_ICON_COLORS.warning,
+                subtitle: 'Needs attention',
+              },
+              {
+                label: 'Total Incidents',
+                value: incidentsData.pagination.total,
+                icon: <TrendingUp className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.info,
+                iconColor: PREMIUM_ICON_COLORS.info,
+                subtitle: `Last updated: ${lastUpdated}`,
+              },
+            ]}
+          />
+        ) : null}
 
       {/* Error Alert */}
       {error && (

@@ -277,7 +277,7 @@ export class AzureLogAnalyticsService {
       // Execute query with timeout
       const result = await Promise.race([
         this.logsClient.queryWorkspace(workspaceId, query, {
-          duration: timespanInterval,
+          duration: timespanInterval as any,
         }),
         this.createTimeoutPromise(timeout),
       ]) as LogsQueryResult;
@@ -285,7 +285,7 @@ export class AzureLogAnalyticsService {
       // Process result
       if (result.status === 'Success' && result.tables.length > 0) {
         const table = result.tables[0];
-        const columns = table.columns.map((col) => col.name || '');
+        const columns = (table as any).columns.map((col: any) => col.name || '');
         const rows = table.rows.slice(0, maxRows);
 
         const executionTime = Date.now() - startTime;
@@ -599,7 +599,7 @@ export class AzureLogAnalyticsService {
       if (!timespan.start || !timespan.end) {
         throw new Error('Custom timespan requires start and end dates');
       }
-      return { start: timespan.start, end: timespan.end };
+      return { start: timespan.start, end: timespan.end } as any;
     }
 
     const end = new Date();
@@ -617,7 +617,7 @@ export class AzureLogAnalyticsService {
         break;
     }
 
-    return { start, end };
+    return { start, end } as any;
   }
 
   /**

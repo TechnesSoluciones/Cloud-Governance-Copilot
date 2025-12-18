@@ -21,7 +21,25 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GridCardsSkeleton, StatCardGridSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
-import { Sparkles, AlertCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Sparkles,
+  AlertCircle,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  DollarSign,
+  CheckCircle,
+} from 'lucide-react';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS,
+} from '@/components/shared/premium';
 import {
   useRecommendations,
   useRecommendationsSummary,
@@ -36,9 +54,9 @@ import {
   RecommendationStatus,
   RecommendationType,
   RecommendationPriority,
+  formatSavings,
 } from '@/lib/api/recommendations';
 import { Provider } from '@/lib/api/finops';
-import { RecommendationsKPIs } from '@/components/recommendations/RecommendationsKPIs';
 import { RecommendationsFilters } from '@/components/recommendations/RecommendationsFilters';
 import { RecommendationCard } from '@/components/recommendations/RecommendationCard';
 import { ApplyModal } from '@/components/recommendations/ApplyModal';
@@ -208,43 +226,77 @@ export default function RecommendationsPage() {
   }, [status, type, provider, priority]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              Recommendations
-            </h1>
-            <p className="mt-2 text-base text-gray-600">
-              AI-powered cost optimization recommendations for your cloud infrastructure
-            </p>
-          </div>
-          <Button
-            onClick={handleGenerateRecommendations}
-            disabled={isGenerating}
-            className="bg-brand-orange hover:bg-brand-orange-dark text-white"
-          >
-            {isGenerating ? (
-              <>
-                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" aria-hidden="true" />
-                Generate Recommendations
-              </>
-            )}
-          </Button>
-        </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Recommendations"
+          subtitle="AI-powered cost optimization recommendations for your cloud infrastructure"
+          actions={
+            <Button
+              onClick={handleGenerateRecommendations}
+              disabled={isGenerating}
+              size="lg"
+              className="bg-brand-orange hover:bg-brand-orange-dark text-white shadow-lg"
+            >
+              {isGenerating ? (
+                <>
+                  <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 mr-2" aria-hidden="true" />
+                  Generate Recommendations
+                </>
+              )}
+            </Button>
+          }
+        />
 
-        {/* KPIs */}
+        {/* Premium Stats Bar */}
         {isLoadingSummary ? (
           <StatCardGridSkeleton count={4} />
-        ) : (
-          <RecommendationsKPIs summary={summaryData} isLoading={false} />
-        )}
+        ) : summaryData ? (
+          <PremiumStatsBar
+            stats={[
+              {
+                label: 'Total Open',
+                value: summaryData.totalRecommendations || 0,
+                icon: <TrendingUp className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.azure,
+                iconColor: PREMIUM_ICON_COLORS.azure,
+                subtitle: 'Open recommendations',
+              },
+              {
+                label: 'Potential Savings',
+                value: summaryData.totalEstimatedSavings
+                  ? formatSavings(summaryData.totalEstimatedSavings)
+                  : '$0',
+                icon: <DollarSign className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.warning,
+                iconColor: PREMIUM_ICON_COLORS.warning,
+                subtitle: 'Monthly savings opportunity',
+              },
+              {
+                label: 'High Priority',
+                value: summaryData.byPriority.high || 0,
+                icon: <AlertCircle className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.error,
+                iconColor: PREMIUM_ICON_COLORS.error,
+                subtitle: 'Critical items',
+              },
+              {
+                label: 'Applied',
+                value: 0,
+                icon: <CheckCircle className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.success,
+                iconColor: PREMIUM_ICON_COLORS.success,
+                subtitle: 'Successfully applied',
+              },
+            ]}
+          />
+        ) : null}
 
         {/* Filters */}
         <RecommendationsFilters

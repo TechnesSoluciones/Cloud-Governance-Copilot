@@ -41,6 +41,15 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS,
+} from '@/components/shared/premium';
 import {
   useAssets,
   useAssetDiscovery,
@@ -239,95 +248,76 @@ export default function AssetsPage() {
   }, [filters, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-[1800px] mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Asset Inventory</h1>
-            <p className="text-muted-foreground mt-1">
-              Discover and manage your cloud infrastructure assets
-            </p>
-          </div>
-          <Button
-            onClick={handleTriggerDiscovery}
-            disabled={isTriggering || isDiscoveryActive}
-            className="bg-brand-orange hover:bg-brand-orange-dark text-white"
-          >
-            {isTriggering || isDiscoveryActive ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
-                {isTriggering ? 'Discovering...' : 'Discovery Active...'}
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                Discover Assets
-              </>
-            )}
-          </Button>
-        </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-[1800px] mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Asset Inventory"
+          subtitle="Discover and manage your cloud infrastructure assets"
+          actions={
+            <Button
+              onClick={handleTriggerDiscovery}
+              disabled={isTriggering || isDiscoveryActive}
+              size="lg"
+              className="bg-brand-orange hover:bg-brand-orange-dark text-white shadow-lg"
+            >
+              {isTriggering || isDiscoveryActive ? (
+                <>
+                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" aria-hidden="true" />
+                  {isTriggering ? 'Discovering...' : 'Discovery Active...'}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-5 w-5 mr-2" aria-hidden="true" />
+                  Discover Assets
+                </>
+              )}
+            </Button>
+          }
+        />
 
-        {/* Stats Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total Assets</p>
-                <p className="text-2xl font-bold mt-1">
-                  {stats?.totalAssets.toLocaleString() || totalCount.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Server className="h-6 w-6 text-blue-600" aria-hidden="true" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Orphaned Resources</p>
-                <p className="text-2xl font-bold mt-1 text-brand-orange">
-                  {stats?.orphanedAssets || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-brand-orange" aria-hidden="true" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Cost</p>
-                <p className="text-2xl font-bold mt-1">
-                  ${(stats?.monthlyCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-600" aria-hidden="true" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Last Scan</p>
-                <p className="text-sm font-semibold mt-1">
-                  {stats?.lastScanTime
-                    ? formatDistanceToNow(new Date(stats.lastScanTime), { addSuffix: true })
-                    : '5 min ago'}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Clock className="h-6 w-6 text-purple-600" aria-hidden="true" />
-              </div>
-            </div>
-          </Card>
-        </div>
+        {/* Premium Stats Bar */}
+        <PremiumStatsBar
+          stats={[
+            {
+              label: 'Total Assets',
+              value: (stats?.totalAssets || totalCount).toLocaleString(),
+              icon: <Server className="h-14 w-14" />,
+              iconBg: PREMIUM_GRADIENTS.azure,
+              iconColor: PREMIUM_ICON_COLORS.azure,
+              subtitle: 'Cloud resources',
+            },
+            {
+              label: 'Orphaned Resources',
+              value: stats?.orphanedAssets || 0,
+              icon: <AlertCircle className="h-14 w-14" />,
+              iconBg: PREMIUM_GRADIENTS.warning,
+              iconColor: PREMIUM_ICON_COLORS.warning,
+              subtitle: 'Missing tags',
+            },
+            {
+              label: 'Monthly Cost',
+              value: `$${(stats?.monthlyCost || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`,
+              icon: <DollarSign className="h-14 w-14" />,
+              iconBg: PREMIUM_GRADIENTS.success,
+              iconColor: PREMIUM_ICON_COLORS.success,
+              subtitle: 'Infrastructure spend',
+            },
+            {
+              label: 'Last Scan',
+              value: stats?.lastScanTime
+                ? formatDistanceToNow(new Date(stats.lastScanTime), { addSuffix: true })
+                : '5 min ago',
+              icon: <Clock className="h-14 w-14" />,
+              iconBg: PREMIUM_GRADIENTS.info,
+              iconColor: PREMIUM_ICON_COLORS.info,
+              subtitle: 'Discovery status',
+            },
+          ]}
+        />
 
         {/* Discovery Active Banner */}
         {isDiscoveryActive && (

@@ -292,7 +292,7 @@ export class AzureMonitorService {
 
       const filter = filterParts.join(' and ');
 
-      const logsIterator = this.monitorClient.activityLogs.list({ filter });
+      const logsIterator = this.monitorClient.activityLogs.list(filter);
       const logs: ActivityLogEntry[] = [];
 
       for await (const log of logsIterator) {
@@ -377,7 +377,7 @@ export class AzureMonitorService {
    */
   async getActiveAlerts(): Promise<TriggeredAlert[]> {
     try {
-      const alertsIterator = this.monitorClient.alerts.getAll();
+      const alertsIterator = (this.monitorClient as any).alerts.getAll();
       const alerts: TriggeredAlert[] = [];
 
       for await (const alert of alertsIterator) {
@@ -441,7 +441,7 @@ export class AzureMonitorService {
         duration: {
           start: timespan.start,
           end: timespan.end,
-        },
+        } as any,
       });
 
       if (result.status === 'Success' && result.tables.length > 0) {
@@ -450,7 +450,7 @@ export class AzureMonitorService {
 
         for (const row of table.rows) {
           const rowObject: any = {};
-          table.columns.forEach((column, index) => {
+          (table as any).columns.forEach((column: any, index: number) => {
             rowObject[column.name || `column${index}`] = row[index];
           });
           rows.push(rowObject);
@@ -572,7 +572,7 @@ export class AzureMonitorService {
     timeRange?: { start: Date; end: Date };
   }): Promise<TriggeredAlert[]> {
     try {
-      const alertsIterator = this.monitorClient.alerts.getAll();
+      const alertsIterator = (this.monitorClient as any).alerts.getAll();
       const alerts: TriggeredAlert[] = [];
 
       for await (const alert of alertsIterator) {
@@ -710,7 +710,7 @@ export class AzureMonitorService {
 
       const filter = filterParts.join(' and ');
 
-      const logsIterator = this.monitorClient.activityLogs.list({ filter });
+      const logsIterator = this.monitorClient.activityLogs.list(filter);
       const logs: ActivityLogEntry[] = [];
       let count = 0;
       const MAX_LOGS = 1000; // Pagination limit

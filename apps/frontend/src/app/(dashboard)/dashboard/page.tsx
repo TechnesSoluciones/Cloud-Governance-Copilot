@@ -8,10 +8,21 @@ import { StatCardGridSkeleton, CardSkeleton } from '@/components/ui/skeleton';
 import { Icons } from '@/components/icons';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { useDashboard } from '@/hooks/useDashboard';
+import { Server, DollarSign, Shield, Bell, RefreshCw } from 'lucide-react';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_BACKGROUNDS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS
+} from '@/components/shared/premium';
 
 // Azure Dashboard Components
-import { OverviewCards } from '@/components/dashboard/azure/OverviewCards';
 import { ResourceDistribution } from '@/components/dashboard/azure/ResourceDistribution';
 import { HealthStatus } from '@/components/dashboard/azure/HealthStatus';
 import { RecentActivity } from '@/components/dashboard/azure/RecentActivity';
@@ -65,42 +76,40 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Azure Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back, {userName}
-          </p>
-        </div>
-
-        {/* Refresh Button with Auto-refresh Indicator */}
-        <div className="flex items-center gap-3">
-          {lastUpdated > 0 && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Icons.clock className="h-3 w-3" aria-hidden="true" />
-              <span>Updated {formatLastUpdated(lastUpdated)}</span>
-              <Badge variant="secondary" className="text-xs">
-                Auto-refresh: 5min
-              </Badge>
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isRefetching}
-            aria-label="Refresh dashboard data"
-          >
-            <Icons.refresh
-              className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`}
-              aria-hidden="true"
-            />
-            {isRefetching ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Azure Dashboard"
+          subtitle={`Welcome back, ${userName}`}
+          actions={
+            <>
+              {lastUpdated > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Icons.clock className="h-3 w-3" aria-hidden="true" />
+                  <span>Updated {formatLastUpdated(lastUpdated)}</span>
+                  <Badge variant="secondary" className="text-xs">
+                    Auto-refresh: 5min
+                  </Badge>
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => refetch()}
+                disabled={isRefetching}
+                className="shadow-lg"
+                aria-label="Refresh dashboard data"
+              >
+                <RefreshCw
+                  className={`h-5 w-5 mr-2 ${isRefetching ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+                {isRefetching ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </>
+          }
+        />
 
       {/* Error State */}
       {error && !isLoading && (
@@ -140,8 +149,47 @@ export default function DashboardPage() {
       {/* Dashboard Content */}
       {!isLoading && !error && overview && health && (
         <>
-          {/* Overview Cards - Total Resources, Costs, Security, Alerts */}
-          <OverviewCards overview={overview} />
+          {/* Premium Stats Bar - KPI Metrics */}
+          <PremiumStatsBar
+            stats={[
+              {
+                label: 'Total Resources',
+                value: overview.resources.total.toLocaleString(),
+                icon: <Server className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.azure,
+                iconColor: PREMIUM_ICON_COLORS.azure,
+                subtitle: `Across ${overview.resources.byLocation.length} location${overview.resources.byLocation.length !== 1 ? 's' : ''}`,
+              },
+              {
+                label: 'Monthly Cost',
+                value: `$${overview.costs.currentMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                icon: <DollarSign className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.warning,
+                iconColor: PREMIUM_ICON_COLORS.warning,
+                trend: {
+                  value: overview.costs.percentageChange,
+                  direction: overview.costs.trend === 'up' ? 'up' : overview.costs.trend === 'down' ? 'down' : 'stable',
+                },
+                subtitle: 'vs last month',
+              },
+              {
+                label: 'Security Score',
+                value: `${overview.security.score}/100`,
+                icon: <Shield className="h-14 w-14" />,
+                iconBg: overview.security.score >= 80 ? PREMIUM_GRADIENTS.success : overview.security.score >= 60 ? PREMIUM_GRADIENTS.warning : PREMIUM_GRADIENTS.error,
+                iconColor: overview.security.score >= 80 ? PREMIUM_ICON_COLORS.success : overview.security.score >= 60 ? PREMIUM_ICON_COLORS.warning : PREMIUM_ICON_COLORS.error,
+                subtitle: `${overview.security.criticalIssues} critical, ${overview.security.highIssues} high`,
+              },
+              {
+                label: 'Active Alerts',
+                value: overview.alerts.active,
+                icon: <Bell className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.error,
+                iconColor: PREMIUM_ICON_COLORS.error,
+                subtitle: `${overview.alerts.recent.length} in last 24 hours`,
+              },
+            ]}
+          />
 
           {/* Resource Distribution Charts */}
           <ResourceDistribution overview={overview} />
@@ -178,50 +226,60 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Quick Actions */}
+      {/* Premium Quick Actions */}
       {!isLoading && !error && overview && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Button
-            variant="outline"
-            className="h-auto flex-col items-start gap-2 p-4"
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card
+            className={`cursor-pointer border-2 ${PREMIUM_TRANSITIONS.card} hover:shadow-xl hover:-translate-y-1 hover:border-orange-400/20`}
             onClick={() => router.push('/costs')}
           >
-            <Icons.dollarSign className="h-5 w-5" />
-            <div className="text-left">
-              <div className="font-semibold">Cost Analysis</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                View detailed cost breakdown
+            <div className="p-6 flex items-start gap-4">
+              <div className={`p-3 rounded-xl ${PREMIUM_GRADIENTS.warning}`}>
+                <Icons.dollarSign className={`h-10 w-10 ${PREMIUM_ICON_COLORS.warning}`} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-lg">Cost Analysis</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  View detailed cost breakdown
+                </div>
               </div>
             </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto flex-col items-start gap-2 p-4"
+          </Card>
+          <Card
+            className={`cursor-pointer border-2 ${PREMIUM_TRANSITIONS.card} hover:shadow-xl hover:-translate-y-1 hover:border-orange-400/20`}
             onClick={() => router.push('/security')}
           >
-            <Icons.shield className="h-5 w-5" />
-            <div className="text-left">
-              <div className="font-semibold">Security Dashboard</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                Review security findings
+            <div className="p-6 flex items-start gap-4">
+              <div className={`p-3 rounded-xl ${PREMIUM_GRADIENTS.error}`}>
+                <Icons.shield className={`h-10 w-10 ${PREMIUM_ICON_COLORS.error}`} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-lg">Security Dashboard</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Review security findings
+                </div>
               </div>
             </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto flex-col items-start gap-2 p-4"
+          </Card>
+          <Card
+            className={`cursor-pointer border-2 ${PREMIUM_TRANSITIONS.card} hover:shadow-xl hover:-translate-y-1 hover:border-orange-400/20`}
             onClick={() => router.push('/assets')}
           >
-            <Icons.server className="h-5 w-5" />
-            <div className="text-left">
-              <div className="font-semibold">View All Resources</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                Explore resource inventory
+            <div className="p-6 flex items-start gap-4">
+              <div className={`p-3 rounded-xl ${PREMIUM_GRADIENTS.azure}`}>
+                <Icons.server className={`h-10 w-10 ${PREMIUM_ICON_COLORS.azure}`} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-lg">View All Resources</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Explore resource inventory
+                </div>
               </div>
             </div>
-          </Button>
+          </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

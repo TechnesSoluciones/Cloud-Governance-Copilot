@@ -10,6 +10,12 @@ import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBann
 import { userApi, User } from '@/lib/api/user';
 import { ApiError } from '@/lib/api/client';
 
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PREMIUM_GRADIENTS,
+} from '@/components/shared/premium';
+
 export default function ProfileSettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -99,15 +105,13 @@ export default function ProfileSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Profile Settings</h1>
-          <p className="text-gray-600 mt-2">
-            Manage your account information and preferences
-          </p>
-        </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-4xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Profile Settings"
+          subtitle="Manage your account information and preferences"
+        />
 
         {/* Email Verification Banner */}
         {!user.isEmailVerified && (

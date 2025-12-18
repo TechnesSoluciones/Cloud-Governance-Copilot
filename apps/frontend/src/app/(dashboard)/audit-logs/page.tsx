@@ -7,6 +7,22 @@ import { AuditTable } from '@/components/audit/AuditTable';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { StatCardGridSkeleton } from '@/components/ui/skeleton';
+import {
+  FileText,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Download,
+} from 'lucide-react';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS,
+} from '@/components/shared/premium';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -181,57 +197,61 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-muted-foreground mt-1">
-            Track all activities across your cloud accounts
-          </p>
-        </div>
-        <Button variant="outline" onClick={handleExport}>
-          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          Export
-        </Button>
-      </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Audit Logs"
+          subtitle="Track all activities across your cloud accounts"
+          actions={
+            <Button variant="outline" size="lg" onClick={handleExport} className="shadow-lg">
+              <Download className="h-5 w-5 mr-2" aria-hidden="true" />
+              Export
+            </Button>
+          }
+        />
 
-      {/* Stats Summary */}
-      {isLoadingStats ? (
-        <StatCardGridSkeleton count={4} />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground">Total Events</div>
-            <div className="text-2xl font-bold mt-1">{filteredLogs.length}</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground">Success</div>
-            <div className="text-2xl font-bold text-green-600 mt-1">
-              {filteredLogs.filter((log) => log.status === 'success').length}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground">Failures</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">
-              {filteredLogs.filter((log) => log.status === 'failure').length}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground">Pending</div>
-            <div className="text-2xl font-bold text-amber-600 mt-1">
-              {filteredLogs.filter((log) => log.status === 'pending').length}
-            </div>
-          </div>
-        </div>
-      )}
+        {/* Premium Stats Bar */}
+        {isLoadingStats ? (
+          <StatCardGridSkeleton count={4} />
+        ) : (
+          <PremiumStatsBar
+            stats={[
+              {
+                label: 'Total Events',
+                value: filteredLogs.length,
+                icon: <FileText className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.azure,
+                iconColor: PREMIUM_ICON_COLORS.azure,
+                subtitle: 'Audit records',
+              },
+              {
+                label: 'Success',
+                value: filteredLogs.filter((log) => log.status === 'success').length,
+                icon: <CheckCircle className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.success,
+                iconColor: PREMIUM_ICON_COLORS.success,
+                subtitle: 'Completed actions',
+              },
+              {
+                label: 'Failures',
+                value: filteredLogs.filter((log) => log.status === 'failure').length,
+                icon: <XCircle className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.error,
+                iconColor: PREMIUM_ICON_COLORS.error,
+                subtitle: 'Failed attempts',
+              },
+              {
+                label: 'Pending',
+                value: filteredLogs.filter((log) => log.status === 'pending').length,
+                icon: <Clock className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.warning,
+                iconColor: PREMIUM_ICON_COLORS.warning,
+                subtitle: 'In progress',
+              },
+            ]}
+          />
+        )}
 
       {/* Filters */}
       <AuditFilters

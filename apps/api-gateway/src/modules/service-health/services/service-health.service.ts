@@ -407,10 +407,10 @@ export class ServiceHealthModuleService {
 
     const credentials: CloudProviderCredentials = {
       provider: 'azure',
-      azureClientId: account.azureClientId || undefined,
-      azureClientSecret: account.azureClientSecret || undefined,
-      azureTenantId: account.azureTenantId || undefined,
-      azureSubscriptionId: account.azureSubscriptionId || undefined,
+      azureClientId: (account as any).azureClientId || undefined,
+      azureClientSecret: (account as any).azureClientSecret || undefined,
+      azureTenantId: (account as any).azureTenantId || undefined,
+      azureSubscriptionId: (account as any).azureSubscriptionId || undefined,
     };
 
     if (

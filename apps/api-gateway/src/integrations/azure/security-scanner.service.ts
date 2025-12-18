@@ -21,8 +21,8 @@
  * @module integrations/azure/security-scanner.service
  */
 
-import { StorageManagementClient } from '@azure/arm-storage';
-import { NetworkManagementClient } from '@azure/arm-network';
+import { StorageManagementClient, StorageAccount } from '@azure/arm-storage';
+import { NetworkManagementClient, NetworkSecurityGroup } from '@azure/arm-network';
 import { DefaultAzureCredential, ClientSecretCredential, TokenCredential } from '@azure/identity';
 import { logger } from '../../utils/logger';
 
@@ -189,7 +189,7 @@ export class AzureSecurityScannerService {
       logger.info('Starting Azure Storage Account security scan');
 
       // List all storage accounts in the subscription
-      const storageAccounts = [];
+      const storageAccounts: StorageAccount[] = [];
       for await (const account of this.storageClient.storageAccounts.list()) {
         storageAccounts.push(account);
       }
@@ -321,7 +321,7 @@ export class AzureSecurityScannerService {
       logger.info('Starting Azure Network Security Group security scan');
 
       // List all NSGs in the subscription
-      const nsgs = [];
+      const nsgs: NetworkSecurityGroup[] = [];
       for await (const nsg of this.networkClient.networkSecurityGroups.listAll()) {
         nsgs.push(nsg);
       }

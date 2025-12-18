@@ -45,8 +45,19 @@ import {
   AlertOctagon,
   AlertTriangle,
   Activity,
+  Calendar,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PremiumStatsBar,
+  PREMIUM_GRADIENTS,
+  PREMIUM_ICON_BACKGROUNDS,
+  PREMIUM_ICON_COLORS,
+  PREMIUM_TRANSITIONS
+} from '@/components/shared/premium';
 import {
   useFindings,
   useSummary,
@@ -334,55 +345,52 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-              Security Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Monitor and manage your cloud security posture
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Last updated: {formatDistanceToNow(lastRefresh, { addSuffix: true })}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={isLoadingSummary || isLoadingFindings}
-              aria-label="Refresh dashboard"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${
-                  isLoadingSummary || isLoadingFindings ? 'animate-spin' : ''
-                }`}
-                aria-hidden="true"
-              />
-              Refresh
-            </Button>
-            <Button
-              onClick={handleTriggerScan}
-              disabled={isTriggering || isScanActive}
-              className="bg-brand-orange hover:bg-brand-orange-dark text-white"
-            >
-              {isTriggering || isScanActive ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
-                  {isTriggering ? 'Starting...' : 'Scanning...'}
-                </>
-              ) : (
-                <>
-                  <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Run Security Scan
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Security Dashboard"
+          subtitle="Monitor and manage your cloud security posture"
+          actions={
+            <>
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isLoadingSummary || isLoadingFindings}
+                aria-label="Refresh dashboard"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${
+                    isLoadingSummary || isLoadingFindings ? 'animate-spin' : ''
+                  }`}
+                  aria-hidden="true"
+                />
+                Refresh
+              </Button>
+              <Button
+                onClick={handleTriggerScan}
+                disabled={isTriggering || isScanActive}
+                className="bg-brand-orange hover:bg-brand-orange-dark text-white shadow-lg"
+              >
+                {isTriggering || isScanActive ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                    {isTriggering ? 'Starting...' : 'Scanning...'}
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
+                    Run Security Scan
+                  </>
+                )}
+              </Button>
+            </>
+          }
+        />
 
         {/* Scan Active Banner */}
         {isScanActive && (
@@ -402,6 +410,48 @@ export default function SecurityPage() {
               </div>
             </div>
           </Card>
+        )}
+
+        {/* Premium Stats Bar - Security KPIs */}
+        {!isLoadingSummary && (
+          <PremiumStatsBar
+            stats={[
+              {
+                label: 'Total Findings',
+                value: summaryData?.totalFindings || 0,
+                icon: <Shield className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.azure,
+                iconColor: PREMIUM_ICON_COLORS.azure,
+                subtitle: `${summaryData?.openCount || 0} open, ${summaryData?.resolvedCount || 0} resolved`,
+              },
+              {
+                label: 'Critical',
+                value: summaryData?.criticalCount || 0,
+                icon: <AlertOctagon className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.error,
+                iconColor: PREMIUM_ICON_COLORS.error,
+                subtitle: 'Immediate action required',
+              },
+              {
+                label: 'High Priority',
+                value: summaryData?.highCount || 0,
+                icon: <AlertTriangle className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.warning,
+                iconColor: PREMIUM_ICON_COLORS.warning,
+                subtitle: 'Priority resolution',
+              },
+              {
+                label: 'Last Scan',
+                value: summaryData?.lastScanDate
+                  ? formatDistanceToNow(new Date(summaryData.lastScanDate), { addSuffix: true })
+                  : 'Never',
+                icon: <Activity className="h-14 w-14" />,
+                iconBg: PREMIUM_GRADIENTS.info,
+                iconColor: PREMIUM_ICON_COLORS.info,
+                subtitle: summaryData?.lastScanDate ? 'Completed' : 'No scans yet',
+              },
+            ]}
+          />
         )}
 
         {/* Overview Section */}

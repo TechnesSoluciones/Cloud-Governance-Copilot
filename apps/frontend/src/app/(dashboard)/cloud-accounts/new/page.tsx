@@ -11,6 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CardSkeleton } from '@/components/skeletons';
 
+// Premium Design System Components
+import {
+  PremiumSectionHeader,
+  PREMIUM_GRADIENTS,
+} from '@/components/shared/premium';
+
 type WizardStep = 'provider' | 'credentials' | 'test' | 'complete';
 
 function NewCloudAccountPageContent() {
@@ -148,14 +154,13 @@ function NewCloudAccountPageContent() {
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Add Cloud Account</h1>
-        <p className="text-muted-foreground mt-1">
-          Connect a new cloud provider to your governance platform
-        </p>
-      </div>
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+      <div className="max-w-4xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Add Cloud Account"
+          subtitle="Connect a new cloud provider to your governance platform"
+        />
 
       {/* Progress Steps */}
       <nav aria-label="Progress">
