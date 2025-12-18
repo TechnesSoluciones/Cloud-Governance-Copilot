@@ -233,6 +233,7 @@ jobs:
           ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
 
           # Application URLs
+          INTERNAL_API_URL=${{ secrets.INTERNAL_API_URL }}
           NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
 
