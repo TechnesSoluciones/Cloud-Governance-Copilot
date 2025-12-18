@@ -15,4 +15,7 @@ export type { PremiumStatsBarProps, StatConfig } from './PremiumStatsBar';
 export { PremiumFilterBar } from './PremiumFilterBar';
 export type { PremiumFilterBarProps } from './PremiumFilterBar';
 
+export { PremiumEmptyState, EmptyStateVariants } from './PremiumEmptyState';
+export type { PremiumEmptyStateProps } from './PremiumEmptyState';
+
 export * from './design-tokens';

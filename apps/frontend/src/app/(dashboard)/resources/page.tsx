@@ -23,6 +23,7 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -43,6 +44,8 @@ import {
   PremiumSectionHeader,
   PremiumStatsBar,
   PremiumFilterBar,
+  PremiumEmptyState,
+  EmptyStateVariants,
   PREMIUM_GRADIENTS,
   PREMIUM_ICON_BACKGROUNDS,
   PREMIUM_ICON_COLORS,
@@ -54,6 +57,7 @@ import {
   extractPaginationData,
   getUniqueResourceGroups,
 } from '@/hooks/useResources';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
 import {
   ResourceTable,
   ResourceFilters,
@@ -171,7 +175,11 @@ const Pagination: React.FC<PaginationProps> = ({
  * Main Resources Page Component (wrapped in ErrorBoundary)
  */
 function ResourcesPageContent() {
+  const router = useRouter();
   const { addToast } = useToast();
+
+  // Cloud accounts
+  const { cloudAccounts, isLoading: isLoadingAccounts } = useCloudAccounts();
 
   // State
   const [filters, setFilters] = useState<IResourceFilters>({});
@@ -282,6 +290,75 @@ function ResourcesPageContent() {
   const handleRetry = () => {
     refetch();
   };
+
+  /**
+   * Show loading state while fetching cloud accounts or initial resources
+   */
+  if (isLoadingAccounts || (isLoading && !resourcesResponse)) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <PremiumSectionHeader
+            title="Azure Resources"
+            subtitle="Browse and manage your Azure resource inventory"
+          />
+          <TableSkeletonWithFilters />
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Show empty state when no cloud accounts are connected
+   */
+  if (!isLoadingAccounts && (!cloudAccounts || cloudAccounts.length === 0)) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <PremiumSectionHeader
+            title="Azure Resources"
+            subtitle="Browse and manage your Azure resource inventory"
+          />
+          <PremiumEmptyState
+            {...EmptyStateVariants.noCloudAccounts(() => router.push('/cloud-accounts/new'))}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Show empty state when cloud accounts exist but no resources found
+   */
+  if (!isLoading && !error && resources.length === 0 && pagination.total === 0) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <PremiumSectionHeader
+            title="Azure Resources"
+            subtitle="Browse and manage your Azure resource inventory"
+            actions={
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleRefresh}
+                disabled={isFetching}
+                className="shadow-lg"
+                aria-label="Refresh resources"
+              >
+                <RefreshCw
+                  className={`h-5 w-5 mr-2 ${isFetching ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+                {isFetching ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            }
+          />
+          <PremiumEmptyState {...EmptyStateVariants.noResources()} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>

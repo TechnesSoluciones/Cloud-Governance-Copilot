@@ -27,6 +27,8 @@ import { useToast } from '@/components/ui/toast';
 // Premium Design System Components
 import {
   PremiumSectionHeader,
+  PremiumEmptyState,
+  EmptyStateVariants,
   PREMIUM_GRADIENTS,
 } from '@/components/shared/premium';
 import {
@@ -52,11 +54,19 @@ import {
   RecommendationDetailModal,
   SavingsDashboard,
 } from '@/components/azure-advisor';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
+import { useRouter } from 'next/navigation';
 
 const ITEMS_PER_PAGE = 50;
 
 export default function AzureAdvisorPage() {
   const { addToast } = useToast();
+  const router = useRouter();
+
+  // Get cloud accounts
+  const { cloudAccounts, isLoading: isLoadingAccounts } = useCloudAccounts();
+  const azureAccounts = cloudAccounts.filter((account) => account.provider === 'AZURE');
+  const hasAzureAccounts = azureAccounts.length > 0;
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'recommendations' | 'savings'>('recommendations');
@@ -253,6 +263,11 @@ export default function AzureAdvisorPage() {
     addToast('Refreshing recommendations...', 'info');
   };
 
+  // Handle empty states early
+  const handleNavigateToCloudAccounts = () => {
+    router.push('/cloud-accounts');
+  };
+
   return (
     <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
       <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
@@ -265,7 +280,7 @@ export default function AzureAdvisorPage() {
               variant="outline"
               size="lg"
               onClick={handleRefresh}
-              disabled={isLoadingRecommendations}
+              disabled={isLoadingRecommendations || !hasAzureAccounts}
               className="shadow-lg"
               aria-label="Refresh recommendations"
             >
@@ -279,10 +294,19 @@ export default function AzureAdvisorPage() {
           }
         />
 
-        {/* Summary Cards */}
-        {activeTab === 'recommendations' && (
-          <RecommendationsSummary data={summaryData} isLoading={isLoadingSummary} />
-        )}
+        {/* Empty State - No Azure Accounts */}
+        {!isLoadingAccounts && !hasAzureAccounts ? (
+          <PremiumEmptyState
+            {...EmptyStateVariants.noCloudAccounts(handleNavigateToCloudAccounts)}
+            title="No Azure Accounts Connected"
+            description="Connect your Azure account to start receiving personalized recommendations to optimize your cloud resources."
+          />
+        ) : (
+          <>
+            {/* Summary Cards */}
+            {activeTab === 'recommendations' && (
+              <RecommendationsSummary data={summaryData} isLoading={isLoadingSummary} />
+            )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)}>
@@ -339,21 +363,28 @@ export default function AzureAdvisorPage() {
               </div>
             )}
 
-            {/* Recommendations List */}
-            <RecommendationsList
-              recommendations={recommendations}
-              isLoading={isLoadingRecommendations}
-              onViewDetails={handleViewDetails}
-              onSuppress={handleSuppress}
-              onDismiss={handleDismiss}
-              totalCount={totalCount}
-              currentPage={currentPage}
-              pageSize={ITEMS_PER_PAGE}
-              onPageChange={handlePageChange}
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSortChange={handleSortChange}
-            />
+            {/* Empty State - No Recommendations */}
+            {!isLoadingRecommendations && !recommendationsError && recommendations.length === 0 ? (
+              <PremiumEmptyState
+                {...EmptyStateVariants.noRecommendations()}
+              />
+            ) : (
+              /* Recommendations List */
+              <RecommendationsList
+                recommendations={recommendations}
+                isLoading={isLoadingRecommendations}
+                onViewDetails={handleViewDetails}
+                onSuppress={handleSuppress}
+                onDismiss={handleDismiss}
+                totalCount={totalCount}
+                currentPage={currentPage}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={handlePageChange}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
+              />
+            )}
           </TabsContent>
 
           {/* Savings Dashboard Tab */}
@@ -361,20 +392,24 @@ export default function AzureAdvisorPage() {
             <SavingsDashboard data={savingsData} isLoading={isLoadingSavings} />
           </TabsContent>
         </Tabs>
+          </>
+        )}
       </div>
 
       {/* Detail Modal */}
-      <RecommendationDetailModal
-        open={detailModalOpen}
-        onOpenChange={setDetailModalOpen}
-        recommendation={selectedRecommendation}
-        onApply={handleApplyRecommendation}
-        onSuppress={handleSuppressRecommendation}
-        onDismiss={handleDismissRecommendation}
-        isApplying={isApplying}
-        isSuppressing={isSuppressing}
-        isDismissing={isDismissing}
-      />
+      {hasAzureAccounts && (
+        <RecommendationDetailModal
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          recommendation={selectedRecommendation}
+          onApply={handleApplyRecommendation}
+          onSuppress={handleSuppressRecommendation}
+          onDismiss={handleDismissRecommendation}
+          isApplying={isApplying}
+          isSuppressing={isSuppressing}
+          isDismissing={isDismissing}
+        />
+      )}
     </div>
   );
 }

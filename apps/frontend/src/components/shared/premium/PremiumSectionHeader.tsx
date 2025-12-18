@@ -8,8 +8,8 @@ import * as React from 'react';
 import { PREMIUM_GRADIENTS } from './design-tokens';
 
 export interface PremiumSectionHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: string | React.ReactNode;
+  subtitle?: string | React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
 }

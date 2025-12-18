@@ -50,7 +50,12 @@ import { cn } from '@/lib/utils';
 import { IncidentStatus } from '@/lib/api/incidents';
 
 // Premium Design System
-import { PREMIUM_GRADIENTS } from '@/components/shared/premium';
+import {
+  PremiumSectionHeader,
+  PREMIUM_GRADIENTS,
+  PREMIUM_TRANSITIONS,
+  PREMIUM_HOVER_EFFECTS,
+} from '@/components/shared/premium';
 
 export default function IncidentDetailPage() {
   const params = useParams();
@@ -168,43 +173,44 @@ export default function IncidentDetailPage() {
         Back to Incidents
       </Button>
 
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <SeverityIndicator severity={incident.severity} />
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {incident.title}
-              </h1>
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-              <div className="flex items-center gap-2">
-                <span>Status:</span>
-                <IncidentStatusBadge status={incident.status} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" aria-hidden="true" />
-                <time dateTime={incident.createdAt}>
-                  Created {formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true })}
-                </time>
-              </div>
-              {incident.assignedTo && (
-                <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" aria-hidden="true" />
-                  <span>Assigned to {incident.assignedTo}</span>
-                </div>
-              )}
-            </div>
+      {/* Premium Header with Incident Details */}
+      <PremiumSectionHeader
+        title={
+          <div className="flex items-center gap-3">
+            <SeverityIndicator severity={incident.severity} />
+            <span>{incident.title || 'Incident Details'}</span>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2">
+        }
+        subtitle={
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span>ID: {incidentId}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Status:</span>
+              <IncidentStatusBadge status={incident.status} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              <time dateTime={incident.createdAt}>
+                Created {formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true })}
+              </time>
+            </div>
+            {incident.assignedTo && (
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" aria-hidden="true" />
+                <span>Assigned to {incident.assignedTo}</span>
+              </div>
+            )}
+          </div>
+        }
+        actions={
+          <>
             {canAcknowledge && (
               <Button
                 onClick={() => handleStatusChange('acknowledged')}
                 disabled={isUpdatingStatus}
-                className="gap-2"
+                className="gap-2 shadow-lg"
                 aria-label="Acknowledge incident"
               >
                 <CheckCircle className="h-4 w-4" aria-hidden="true" />
@@ -216,7 +222,7 @@ export default function IncidentDetailPage() {
                 onClick={() => handleStatusChange('resolved')}
                 disabled={isUpdatingStatus}
                 variant="outline"
-                className="gap-2"
+                className="gap-2 shadow-lg"
                 aria-label="Resolve incident"
               >
                 <CheckCircle className="h-4 w-4" aria-hidden="true" />
@@ -227,15 +233,15 @@ export default function IncidentDetailPage() {
               onClick={() => handleStatusChange('investigating')}
               disabled={isUpdatingStatus || incident.status === 'investigating'}
               variant="outline"
-              className="gap-2"
+              className="gap-2 shadow-lg"
               aria-label="Mark as investigating"
             >
               <TrendingUp className="h-4 w-4" aria-hidden="true" />
               Investigating
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -258,7 +264,7 @@ export default function IncidentDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <Card>
+          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
             <CardHeader>
               <CardTitle>Incident Details</CardTitle>
             </CardHeader>
@@ -335,7 +341,7 @@ export default function IncidentDetailPage() {
           </Card>
 
           {/* Comments Section */}
-          <Card>
+          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
@@ -402,7 +408,7 @@ export default function IncidentDetailPage() {
 
         {/* Alerts Tab */}
         <TabsContent value="alerts">
-          <Card>
+          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" aria-hidden="true" />
@@ -469,7 +475,7 @@ export default function IncidentDetailPage() {
 
         {/* Resources Tab */}
         <TabsContent value="resources">
-          <Card>
+          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5" aria-hidden="true" />
@@ -521,7 +527,7 @@ export default function IncidentDetailPage() {
 
         {/* Timeline Tab */}
         <TabsContent value="timeline">
-          <Card>
+          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" aria-hidden="true" />

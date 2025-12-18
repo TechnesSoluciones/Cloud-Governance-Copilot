@@ -36,6 +36,8 @@ import {
 import {
   PremiumSectionHeader,
   PremiumStatsBar,
+  PremiumEmptyState,
+  EmptyStateVariants,
   PREMIUM_GRADIENTS,
   PREMIUM_ICON_COLORS,
   PREMIUM_TRANSITIONS,
@@ -358,38 +360,27 @@ export default function RecommendationsPage() {
         {!isLoadingRecommendations &&
           !recommendationsError &&
           recommendations.length === 0 && (
-            <Card className="p-12 text-center">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <div className="p-4 bg-gray-100 rounded-full">
-                  <Sparkles className="h-12 w-12 text-gray-400" aria-hidden="true" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    No recommendations found
-                  </h3>
-                  <p className="mt-2 text-sm text-gray-600 max-w-md">
-                    {status || type || provider || priority
-                      ? 'Try adjusting your filters to see more recommendations.'
-                      : 'Generate recommendations to get started with cost optimization.'}
-                  </p>
-                </div>
-                {(status || type || provider || priority) && (
-                  <Button variant="outline" onClick={handleClearFilters}>
-                    Clear Filters
-                  </Button>
-                )}
-                {!status && !type && !provider && !priority && (
-                  <Button
-                    onClick={handleGenerateRecommendations}
-                    disabled={isGenerating}
-                    className="bg-brand-orange hover:bg-brand-orange-dark text-white"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" aria-hidden="true" />
-                    Generate Recommendations
-                  </Button>
-                )}
-              </div>
-            </Card>
+            <PremiumEmptyState
+              {...EmptyStateVariants.noRecommendations()}
+              description={
+                status || type || provider || priority
+                  ? 'No recommendations match your current filters. Try adjusting your search criteria or clearing all filters.'
+                  : 'You\'re all caught up! There are no active recommendations at this time. Generate new recommendations to discover cost optimization opportunities.'
+              }
+              action={
+                status || type || provider || priority
+                  ? {
+                      label: 'Clear Filters',
+                      onClick: handleClearFilters,
+                      variant: 'outline' as const,
+                    }
+                  : {
+                      label: 'Generate Recommendations',
+                      onClick: handleGenerateRecommendations,
+                      variant: 'default' as const,
+                    }
+              }
+            />
           )}
 
         {/* Recommendations Grid */}

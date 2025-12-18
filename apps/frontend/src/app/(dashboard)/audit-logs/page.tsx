@@ -28,9 +28,10 @@ const ITEMS_PER_PAGE = 20;
 
 export default function AuditLogsPage() {
   const { addToast } = useToast();
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isLoadingStats, setIsLoadingStats] = React.useState(true);
-  const [allLogs, setAllLogs] = React.useState<AuditEvent[]>([]);
+  // Note: Audit logs feature requires backend API implementation
+  const [isLoading] = React.useState(false);
+  const [isLoadingStats] = React.useState(false);
+  const [allLogs] = React.useState<AuditEvent[]>([]);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [sortColumn, setSortColumn] = React.useState<keyof AuditEvent>('timestamp');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
@@ -42,63 +43,6 @@ export default function AuditLogsPage() {
     dateFrom: '',
     dateTo: '',
   });
-
-  React.useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      // Mock data - in production, fetch from API
-      const mockLogs: AuditEvent[] = [];
-      const actions = [
-        'Created EC2 instance',
-        'Updated security group',
-        'Deleted S3 bucket',
-        'Created IAM user',
-        'Modified RDS instance',
-        'Updated CloudFormation stack',
-        'Created Lambda function',
-        'Deleted VPC',
-        'Modified Auto Scaling group',
-        'Created EBS volume',
-      ];
-      const users = [
-        'john.doe@example.com',
-        'jane.smith@example.com',
-        'admin@example.com',
-        'bob.jones@example.com',
-        'alice.williams@example.com',
-      ];
-      const resources = [
-        'i-0123456789abcdef0',
-        'sg-0987654321fedcba',
-        'my-test-bucket',
-        'new-developer',
-        'production-db',
-        'main-stack',
-        'data-processor',
-        'vpc-legacy',
-        'web-asg',
-        'vol-backup-001',
-      ];
-      const statuses: AuditEvent['status'][] = ['success', 'failure', 'pending'];
-
-      for (let i = 0; i < 50; i++) {
-        mockLogs.push({
-          id: `log-${i}`,
-          timestamp: new Date(Date.now() - i * 1000 * 60 * 15).toISOString(),
-          user: users[Math.floor(Math.random() * users.length)],
-          action: actions[Math.floor(Math.random() * actions.length)],
-          resource: resources[Math.floor(Math.random() * resources.length)],
-          status: statuses[Math.floor(Math.random() * statuses.length)],
-        });
-      }
-
-      setAllLogs(mockLogs);
-      setIsLoading(false);
-      setIsLoadingStats(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const filteredLogs = React.useMemo(() => {
     let result = [...allLogs];

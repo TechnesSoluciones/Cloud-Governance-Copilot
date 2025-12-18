@@ -245,9 +245,9 @@ function CostsPageContent() {
   const previousCostsData = previousCosts.data?.success ? previousCosts.data.data : null;
 
   // Calculate KPIs
-  const currentMonthCost = costsData?.summary.totalCost || 0;
-  const previousMonthCost = previousCostsData?.summary.totalCost || 0;
-  const currency = costsData?.summary.currency || 'USD';
+  const currentMonthCost = costsData?.summary?.totalCost || 0;
+  const previousMonthCost = previousCostsData?.summary?.totalCost || 0;
+  const currency = costsData?.summary?.currency || 'USD';
 
   const trend = calculateTrend(currentMonthCost, previousMonthCost);
   const percentageChange = calculatePercentageChange(currentMonthCost, previousMonthCost);

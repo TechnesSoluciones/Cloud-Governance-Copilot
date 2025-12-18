@@ -10,12 +10,19 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { GridCardsSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
+import {
+  PremiumSectionHeader,
+  PREMIUM_GRADIENTS,
+} from '@/components/shared/premium';
 
 export default function CloudAccountsPage() {
   const router = useRouter();
   const { addToast } = useToast();
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [accounts, setAccounts] = React.useState<CloudAccount[]>([]);
+
+  // Use real API hook instead of mock data
+  const { cloudAccounts, isLoading, refetch } = useCloudAccounts();
+
   const [searchQuery, setSearchQuery] = React.useState('');
   const [providerFilter, setProviderFilter] = React.useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -28,52 +35,13 @@ export default function CloudAccountsPage() {
     { value: 'gcp', label: 'GCP' },
   ];
 
-  React.useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      // Mock data - in production, fetch from API
-      setAccounts([
-        {
-          id: '1',
-          name: 'Production AWS',
-          provider: 'aws',
-          status: 'connected',
-          lastSync: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          resourceCount: 142,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-        },
-        {
-          id: '2',
-          name: 'Development Azure',
-          provider: 'azure',
-          status: 'connected',
-          lastSync: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-          resourceCount: 38,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
-        },
-        {
-          id: '3',
-          name: 'Staging GCP',
-          provider: 'gcp',
-          status: 'error',
-          lastSync: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          resourceCount: 27,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-        },
-      ]);
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const filteredAccounts = React.useMemo(() => {
-    return accounts.filter((account) => {
+    return cloudAccounts.filter((account) => {
       const matchesSearch = account.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesProvider = providerFilter === 'all' || account.provider === providerFilter;
       return matchesSearch && matchesProvider;
     });
-  }, [accounts, searchQuery, providerFilter]);
+  }, [cloudAccounts, searchQuery, providerFilter]);
 
   const handleEdit = (accountId: string) => {
     router.push(`/cloud-accounts/${accountId}/edit`);
@@ -88,9 +56,9 @@ export default function CloudAccountsPage() {
     if (!accountToDelete) return;
 
     try {
-      // In production, call API to delete account
-      setAccounts((prev) => prev.filter((a) => a.id !== accountToDelete));
-      addToast('Cloud account deleted successfully', 'success');
+      // Note: Delete API endpoint not yet implemented
+      // TODO: Call API to delete account when backend endpoint is ready
+      addToast('Delete functionality will be available soon', 'info');
     } catch (error) {
       addToast('Failed to delete cloud account', 'error');
     } finally {
@@ -124,32 +92,28 @@ export default function CloudAccountsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
       <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-        {/* Header Section - Enhanced */}
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-              Cloud Accounts
-            </h1>
-            <p className="text-base text-muted-foreground">
-              Manage your connected cloud providers across AWS, Azure, and GCP
-            </p>
-          </div>
-          <Button
-            onClick={() => router.push('/cloud-accounts/new')}
-            size="lg"
-            className="bg-brand-orange hover:bg-brand-orange-dark text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-          >
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Account
-          </Button>
-        </div>
+        {/* Premium Header */}
+        <PremiumSectionHeader
+          title="Cloud Accounts"
+          subtitle="Manage your connected cloud providers and accounts"
+          actions={
+            <Button
+              onClick={() => router.push('/cloud-accounts/new')}
+              size="lg"
+              className="bg-brand-orange hover:bg-brand-orange-dark text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Account
+            </Button>
+          }
+        />
 
-        {/* Stats Bar - NEW */}
-        {!isLoading && accounts.length > 0 && (
+        {/* Stats Bar */}
+        {!isLoading && cloudAccounts.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl border-2 border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
@@ -159,7 +123,7 @@ export default function CloudAccountsPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{accounts.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{cloudAccounts.length}</p>
                   <p className="text-sm text-muted-foreground">Total Accounts</p>
                 </div>
               </div>
@@ -174,7 +138,7 @@ export default function CloudAccountsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
-                    {accounts.filter(a => a.status === 'connected').length}
+                    {cloudAccounts.filter(a => a.status === 'connected').length}
                   </p>
                   <p className="text-sm text-muted-foreground">Connected</p>
                 </div>
@@ -190,7 +154,7 @@ export default function CloudAccountsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
-                    {accounts.reduce((sum, a) => sum + (a.resourceCount || 0), 0).toLocaleString()}
+                    {cloudAccounts.reduce((sum, a) => sum + (a.resourceCount || 0), 0).toLocaleString()}
                   </p>
                   <p className="text-sm text-muted-foreground">Total Resources</p>
                 </div>

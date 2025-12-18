@@ -22,6 +22,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,8 @@ import { formatDistanceToNow } from 'date-fns';
 import {
   PremiumSectionHeader,
   PremiumStatsBar,
+  PremiumEmptyState,
+  EmptyStateVariants,
   PREMIUM_GRADIENTS,
   PREMIUM_ICON_COLORS,
   PREMIUM_TRANSITIONS,
@@ -80,6 +83,7 @@ const POLLING_INTERVAL_DURING_DISCOVERY = 30000; // 30 seconds
  * Enhanced Assets Page Component
  */
 export default function AssetsPage() {
+  const router = useRouter();
   const { addToast } = useToast();
 
   // View state
@@ -107,7 +111,7 @@ export default function AssetsPage() {
   const [isDiscoveryActive, setIsDiscoveryActive] = useState(false);
 
   // Get cloud accounts and selected account
-  const { selectedAccount, isLoading: isLoadingAccounts } = useCloudAccounts();
+  const { cloudAccounts, selectedAccount, isLoading: isLoadingAccounts } = useCloudAccounts();
   const accountId = selectedAccount?.id || '';
 
   // Fetch assets with filters
@@ -501,31 +505,36 @@ export default function AssetsPage() {
 
             {/* Empty State */}
             {!isLoadingAssets && !assetsError && filteredAssets.length === 0 && (
-              <Card className="p-12 text-center">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
-                    <Database className="h-12 w-12 text-gray-400" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold">No assets found</h3>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-md">
-                      {totalCount === 0
-                        ? 'Start discovering your cloud infrastructure assets by clicking the "Discover Assets" button above.'
-                        : 'Try adjusting your filters or search criteria.'}
-                    </p>
-                  </div>
-                  {totalCount === 0 && (
-                    <Button
-                      onClick={handleTriggerDiscovery}
-                      disabled={isTriggering}
-                      className="bg-brand-orange hover:bg-brand-orange-dark text-white mt-2"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                      Discover Assets
-                    </Button>
-                  )}
-                </div>
-              </Card>
+              <>
+                {/* No cloud accounts connected */}
+                {cloudAccounts?.length === 0 ? (
+                  <PremiumEmptyState
+                    {...EmptyStateVariants.noCloudAccounts(() => router.push('/cloud-accounts/new'))}
+                  />
+                ) : (
+                  /* No assets found - check if filtered or truly empty */
+                  totalCount === 0 ? (
+                    <PremiumEmptyState
+                      {...EmptyStateVariants.noResources()}
+                    />
+                  ) : (
+                    /* Filtered empty state - show custom message */
+                    <Card className="p-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-4">
+                        <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
+                          <Database className="h-12 w-12 text-gray-400" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold">No assets match your filters</h3>
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-md">
+                            Try adjusting your filters or search criteria.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  )
+                )}
+              </>
             )}
           </div>
         </div>

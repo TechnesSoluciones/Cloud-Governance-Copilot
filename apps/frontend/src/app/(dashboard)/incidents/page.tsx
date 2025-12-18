@@ -33,6 +33,8 @@ import { cn } from '@/lib/utils';
 import {
   PremiumSectionHeader,
   PremiumStatsBar,
+  PremiumEmptyState,
+  EmptyStateVariants,
   PREMIUM_GRADIENTS,
   PREMIUM_ICON_COLORS,
   PREMIUM_TRANSITIONS,
@@ -218,8 +220,14 @@ export default function IncidentsPage() {
         </Alert>
       )}
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+      {/* Empty State - No Incidents */}
+      {!isLoading && !error && incidentsData && incidentsData.data.length === 0 ? (
+        <PremiumEmptyState
+          {...EmptyStateVariants.noIncidents()}
+        />
+      ) : (
+        /* Main Content */
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         {/* Filters Sidebar */}
         {showFilters && (
           <div className="lg:col-span-1">
@@ -255,6 +263,7 @@ export default function IncidentsPage() {
           />
         </div>
       </div>
+      )}
       </div>
     </div>
   );
