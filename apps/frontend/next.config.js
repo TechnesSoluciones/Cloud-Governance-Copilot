@@ -8,7 +8,9 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010',
+    // Use relative path in production, localhost in development
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ||
+      (process.env.NODE_ENV === 'production' ? '/api/v1' : 'http://localhost:3010'),
   },
   images: {
     domains: ['localhost'],
