@@ -36,6 +36,10 @@ RUN npm install --legacy-peer-deps && \
 # ============================================================
 FROM node:20-alpine AS builder
 
+# Accept build arguments for versioning
+ARG GIT_COMMIT_SHA=unknown
+ARG BUILD_TIMESTAMP=unknown
+
 # Install build dependencies
 RUN apk add --no-cache \
     libc6-compat \
@@ -63,9 +67,17 @@ WORKDIR /app/apps/frontend
 # Create public directory if it doesn't exist (prevent COPY errors)
 RUN mkdir -p public
 
+# Set build ID environment variables (available during build and runtime)
+ENV NEXT_PUBLIC_BUILD_ID=$GIT_COMMIT_SHA \
+    NEXT_PUBLIC_BUILD_TIMESTAMP=$BUILD_TIMESTAMP
+
 # Build Next.js application
 # Creates .next/standalone with minimal dependencies
-RUN npm run build
+RUN npm run build && \
+    test -d .next/standalone && \
+    echo "✓ Build successful" && \
+    echo "Build ID: $GIT_COMMIT_SHA" && \
+    echo "Timestamp: $BUILD_TIMESTAMP"
 
 # ============================================================
 # Stage 3: Production Runtime

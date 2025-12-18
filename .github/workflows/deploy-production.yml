@@ -175,10 +175,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
           build-args: |
             NODE_ENV=production
             BUILDKIT_INLINE_CACHE=1
+            GIT_COMMIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ github.run_number }}
 
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master
@@ -262,10 +264,17 @@ jobs:
             docker pull ghcr.io/technessoluciones/copilot-frontend:latest
 
             # Stop and remove old containers
-            docker compose down || true
+            docker compose down
+            docker compose rm -f frontend api-gateway || true
 
-            # Start new containers
-            docker compose up -d
+            # Clean up orphaned volumes (optional)
+            docker volume prune -f || true
+
+            # Start new containers with forced recreation
+            docker compose up -d --force-recreate frontend api-gateway
+
+            # Start redis (can keep cache)
+            docker compose up -d redis
 
             # Wait for services to be healthy
             echo "Waiting for services to start..."
@@ -273,6 +282,10 @@ jobs:
 
             # Show container status
             docker compose ps
+
+            # Verify build IDs
+            echo "=== Build Verification ==="
+            docker exec copilot-frontend env | grep BUILD || echo "No build info available"
 
             # Cleanup old images
             docker image prune -af --filter "until=72h"
