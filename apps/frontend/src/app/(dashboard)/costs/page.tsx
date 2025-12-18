@@ -199,11 +199,11 @@ function CostsPageContent() {
   // Toast notifications
   const { addToast } = useToast();
 
-  // Convert date range to API format (ISO 8601 with time)
+  // Convert date range to API format (YYYY-MM-DD)
   const apiDateRange = useMemo(
     () => ({
-      startDate: dateRange.start.toISOString(),
-      endDate: dateRange.end.toISOString(),
+      startDate: format(dateRange.start, 'yyyy-MM-dd'),
+      endDate: format(dateRange.end, 'yyyy-MM-dd'),
     }),
     [dateRange]
   );
@@ -231,8 +231,8 @@ function CostsPageContent() {
   const previousMonthRange = useMemo(() => {
     const prevMonth = subMonths(dateRange.start, 1);
     return {
-      startDate: startOfMonth(prevMonth).toISOString(),
-      endDate: endOfMonth(prevMonth).toISOString(),
+      startDate: format(startOfMonth(prevMonth), 'yyyy-MM-dd'),
+      endDate: format(endOfMonth(prevMonth), 'yyyy-MM-dd'),
     };
   }, [dateRange.start]);
 

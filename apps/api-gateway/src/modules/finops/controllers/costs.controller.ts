@@ -58,8 +58,8 @@ const anomalyService = new AnomalyDetectionService(prisma, eventBus);
  * Schema for GET /api/finops/costs query parameters
  */
 const getCostsSchema = z.object({
-  startDate: z.string().datetime('Invalid start date format, expected ISO 8601'),
-  endDate: z.string().datetime('Invalid end date format, expected ISO 8601'),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid startDate format. Expected YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid endDate format. Expected YYYY-MM-DD'),
   provider: z.enum(['aws', 'azure', 'gcp']).optional(),
   service: z.string().min(1).optional(),
 });
@@ -68,8 +68,8 @@ const getCostsSchema = z.object({
  * Schema for GET /api/finops/costs/by-service query parameters
  */
 const getCostsByServiceSchema = z.object({
-  startDate: z.string().datetime('Invalid start date format, expected ISO 8601'),
-  endDate: z.string().datetime('Invalid end date format, expected ISO 8601'),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid startDate format. Expected YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid endDate format. Expected YYYY-MM-DD'),
   provider: z.enum(['aws', 'azure', 'gcp']).optional(),
 });
 
@@ -77,8 +77,8 @@ const getCostsByServiceSchema = z.object({
  * Schema for GET /api/finops/costs/trends query parameters
  */
 const getTrendsSchema = z.object({
-  startDate: z.string().datetime('Invalid start date format, expected ISO 8601'),
-  endDate: z.string().datetime('Invalid end date format, expected ISO 8601'),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid startDate format. Expected YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid endDate format. Expected YYYY-MM-DD'),
   granularity: z.enum(['daily', 'weekly', 'monthly']).optional().default('daily'),
 });
 
@@ -88,8 +88,8 @@ const getTrendsSchema = z.object({
 const getAnomaliesSchema = z.object({
   status: z.enum(['open', 'investigating', 'resolved', 'dismissed']).optional(),
   severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
-  startDate: z.string().datetime('Invalid start date format, expected ISO 8601').optional(),
-  endDate: z.string().datetime('Invalid end date format, expected ISO 8601').optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid startDate format. Expected YYYY-MM-DD').optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid endDate format. Expected YYYY-MM-DD').optional(),
   provider: z.enum(['aws', 'azure', 'gcp']).optional(),
   service: z.string().min(1).optional(),
 });
