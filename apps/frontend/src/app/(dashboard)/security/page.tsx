@@ -46,8 +46,11 @@ import {
   AlertTriangle,
   Activity,
   Calendar,
+  Server,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
+import { Icons } from '@/components/icons';
 
 // Premium Design System Components
 import {
@@ -58,6 +61,7 @@ import {
   PREMIUM_ICON_COLORS,
   PREMIUM_TRANSITIONS
 } from '@/components/shared/premium';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
 import {
   useFindings,
   useSummary,
@@ -122,13 +126,55 @@ const StatCard: React.FC<StatCardProps> = ({
  */
 export default function SecurityPage() {
   const { addToast } = useToast();
+  const router = useRouter();
+
+  // Get user's cloud accounts using centralized hook
+  const {
+    cloudAccounts,
+    selectedAccount,
+    isLoading: accountsLoading,
+  } = useCloudAccounts();
 
   // State
-  const [selectedAccount, setSelectedAccount] = useState<string | undefined>(undefined);
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isScanActive, setIsScanActive] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  // Show empty state when no cloud accounts are configured
+  if (!accountsLoading && cloudAccounts.length === 0) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+          <PremiumSectionHeader
+            title="Security Dashboard"
+            subtitle="Monitor and manage your cloud security posture"
+          />
+          <Card className="p-12 text-center">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="h-24 w-24 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
+                <Server className="h-12 w-12 text-orange-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold">No Cloud Accounts Connected</h3>
+                <p className="text-muted-foreground">
+                  Connect your first cloud account to start monitoring your security posture.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => router.push('/cloud-accounts/new')}
+                className="shadow-lg"
+              >
+                <Icons.plus className="h-5 w-5 mr-2" />
+                Add Cloud Account
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch data
   const {
@@ -146,7 +192,7 @@ export default function SecurityPage() {
     refetch: refetchFindings,
   } = useFindings(
     {
-      cloudAccountId: selectedAccount,
+      cloudAccountId: selectedAccount?.id,
       status: 'open',
       page: currentPage,
       limit: ITEMS_PER_PAGE,
@@ -295,7 +341,7 @@ export default function SecurityPage() {
   // Handlers
   const handleTriggerScan = () => {
     triggerScan(
-      { cloudAccountId: selectedAccount },
+      { cloudAccountId: selectedAccount?.id },
       {
         onSuccess: (data) => {
           if (data.success) {
