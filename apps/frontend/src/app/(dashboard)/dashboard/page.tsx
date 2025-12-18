@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
 import { Server, DollarSign, Shield, Bell, RefreshCw } from 'lucide-react';
 
 // Premium Design System Components
@@ -36,40 +37,12 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Get user's cloud accounts
-  const [cloudAccounts, setCloudAccounts] = React.useState<any[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = React.useState<string | null>(null);
-  const [accountsLoading, setAccountsLoading] = React.useState(true);
-
-  // Fetch cloud accounts on mount
-  React.useEffect(() => {
-    const fetchAccounts = async () => {
-      if (!session) return;
-
-      try {
-        const response = await fetch('/api/v1/cloud-accounts', {
-          headers: {
-            'Authorization': `Bearer ${(session as any).accessToken}`
-          }
-        });
-        const data = await response.json();
-
-        if (data.success && data.data) {
-          setCloudAccounts(data.data);
-          // Auto-select first account if available
-          if (data.data.length > 0) {
-            setSelectedAccountId(data.data[0].id);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch cloud accounts:', err);
-      } finally {
-        setAccountsLoading(false);
-      }
-    };
-
-    fetchAccounts();
-  }, [session]);
+  // Get user's cloud accounts using centralized hook
+  const {
+    cloudAccounts,
+    selectedAccount,
+    isLoading: accountsLoading,
+  } = useCloudAccounts();
 
   const {
     overview,
@@ -79,7 +52,7 @@ export default function DashboardPage() {
     refetch,
     isRefetching,
     lastUpdated,
-  } = useDashboard(selectedAccountId || '');
+  } = useDashboard(selectedAccount?.id || '');
 
   const user = session?.user as any;
   const userName = user?.fullName || user?.name || 'User';
