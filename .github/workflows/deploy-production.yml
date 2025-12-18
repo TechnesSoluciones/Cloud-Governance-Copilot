@@ -239,13 +239,14 @@ jobs:
           PORT=3010
           EOF
 
-      - name: Copy .env file to server
+      - name: Copy files to server
         run: |
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
+          scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
 
       - name: Deploy on server
         run: |
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'DEPLOY_EOF'
             set -e
             cd /opt/copilot-app
 
@@ -253,59 +254,8 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull latest images
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
-
-            # Create docker-compose.yml with proper indentation
-            cat > docker-compose.yml << 'COMPOSE_EOF'
-networks:
-  copilot-network:
-    driver: bridge
-
-services:
-  api-gateway:
-    image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-api-gateway:latest
-    container_name: copilot-api-gateway
-    restart: unless-stopped
-    ports:
-      - "3010:3010"
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - PORT=3010
-    networks:
-      - copilot-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3010/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  frontend:
-    image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/copilot-frontend:latest
-    container_name: copilot-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-    networks:
-      - copilot-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-COMPOSE_EOF
+            docker pull ghcr.io/technessoluciones/copilot-api-gateway:latest
+            docker pull ghcr.io/technessoluciones/copilot-frontend:latest
 
             # Stop and remove old containers
             docker compose down || true
@@ -322,7 +272,7 @@ COMPOSE_EOF
 
             # Cleanup old images
             docker image prune -af --filter "until=72h"
-          EOF
+          DEPLOY_EOF
 
       - name: Verify deployment
         run: |
