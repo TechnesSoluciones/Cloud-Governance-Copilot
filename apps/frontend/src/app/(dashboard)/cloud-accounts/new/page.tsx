@@ -322,6 +322,7 @@ function NewCloudAccountPageContent() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

@@ -277,6 +277,7 @@ export default function AuditLogsPage() {
         totalPages={totalPages}
         onPageChange={handlePageChange}
       />
+      </div>
     </div>
   );
 }

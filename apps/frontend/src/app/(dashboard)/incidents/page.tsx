@@ -255,6 +255,7 @@ export default function IncidentsPage() {
           />
         </div>
       </div>
+      </div>
     </div>
   );
 }

@@ -542,6 +542,7 @@ export default function IncidentDetailPage() {
         isOpen={!!selectedAlertId}
         onClose={() => setSelectedAlertId(null)}
       />
+      </div>
     </div>
   );
 }
