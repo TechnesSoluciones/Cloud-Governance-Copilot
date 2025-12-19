@@ -76,12 +76,16 @@ export function useResources(
   params: ResourceListParams = {},
   options?: UseResourcesOptions
 ): UseQueryResult<ApiResponse<ResourcesResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: resourcesKeys.list(params),
     queryFn: async () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       // Build query string from parameters
       const queryParams = new URLSearchParams();
 
@@ -120,11 +124,17 @@ export function useResources(
 
       return apiGet<ResourcesResponse>(endpoint, token);
     },
-    enabled: options?.enabled !== false,
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 2 * 60 * 1000, // 2 minutes - data is considered fresh
     gcTime: 10 * 60 * 1000, // 10 minutes - cache garbage collection time
     refetchInterval: 5 * 60 * 1000, // 5 minutes - auto-refresh interval
-    retry: 3, // Retry failed requests 3 times
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     ...options,
   });

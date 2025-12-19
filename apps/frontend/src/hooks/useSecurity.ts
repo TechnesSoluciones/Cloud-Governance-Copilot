@@ -94,16 +94,27 @@ export function useFindings(
   params: ListFindingsParams = {},
   options?: UseFindingsOptions
 ): UseQueryResult<ApiResponse<ListFindingsResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: securityKeys.findingsList(params),
-    queryFn: () => securityApi.listFindings(params, token),
-    enabled: options?.enabled !== false,
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return securityApi.listFindings(params, token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds (findings change during scans)
     gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     ...options,
   });
@@ -157,16 +168,27 @@ export function useScans(
   params: ListScansParams = {},
   options?: UseScansOptions
 ): UseQueryResult<ApiResponse<ListScansResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: securityKeys.scansList(params),
-    queryFn: () => securityApi.listScans(params, token),
-    enabled: options?.enabled !== false,
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return securityApi.listScans(params, token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     ...options,
   });
 }
@@ -213,16 +235,27 @@ export function useScan(
 export function useSummary(
   options?: UseSummaryOptions
 ): UseQueryResult<ApiResponse<SummaryResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: securityKeys.summary(),
-    queryFn: () => securityApi.getSummary(token),
-    enabled: options?.enabled !== false,
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return securityApi.getSummary(token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     ...options,
   });
 }

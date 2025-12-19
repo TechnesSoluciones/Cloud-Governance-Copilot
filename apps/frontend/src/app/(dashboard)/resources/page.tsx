@@ -291,6 +291,43 @@ function ResourcesPageContent() {
     refetch();
   };
 
+  // Check for authentication errors
+  const hasAuthError = error && error.message?.includes('authentication');
+
+  // Show authentication error state
+  if (hasAuthError) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <PremiumSectionHeader
+            title="Azure Resources"
+            subtitle="Browse and manage your Azure resource inventory"
+          />
+          <Card className="p-12 text-center border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="h-24 w-24 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
+                <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-red-900 dark:text-red-100">Authentication Required</h3>
+                <p className="text-red-700 dark:text-red-300">
+                  Your session may have expired. Please sign in again to access resources.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => router.push('/auth/signin')}
+                className="shadow-lg bg-red-600 hover:bg-red-700 text-white"
+              >
+                Sign In
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   /**
    * Show loading state while fetching cloud accounts or initial resources
    */

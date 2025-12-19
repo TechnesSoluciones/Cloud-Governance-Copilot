@@ -57,6 +57,15 @@ export async function apiRequest<T = any>(
       headers,
     });
 
+    // Handle 401 Unauthorized - user needs to re-authenticate
+    if (response.status === 401) {
+      throw new ApiError(
+        'Authentication required. Please sign in again.',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
     const data = await response.json();
 
     if (!response.ok) {

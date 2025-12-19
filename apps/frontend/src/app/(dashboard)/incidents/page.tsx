@@ -6,7 +6,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useIncidents, extractIncidentsData } from '@/hooks/useIncidents';
+import { useCloudAccounts } from '@/hooks/useCloudAccounts';
 import { IncidentsList } from '@/components/incidents/IncidentsList';
 import {
   IncidentFilters,
@@ -26,8 +28,11 @@ import {
   TrendingUp,
   Activity,
   AlertOctagon,
+  AlertCircle,
+  Server,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Icons } from '@/components/icons';
 
 // Premium Design System Components
 import {
@@ -41,6 +46,7 @@ import {
 } from '@/components/shared/premium';
 
 export default function IncidentsPage() {
+  const router = useRouter();
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<IncidentFiltersState>({
     severity: [],
@@ -53,8 +59,16 @@ export default function IncidentsPage() {
   const [sortBy, setSortBy] = useState<'severity' | 'createdAt' | 'updatedAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  // Get user's cloud accounts using centralized hook
+  const {
+    cloudAccounts,
+    selectedAccount,
+    isLoading: accountsLoading,
+  } = useCloudAccounts();
+
   // Build query params
   const queryParams = {
+    accountId: selectedAccount?.id,
     ...(filters.severity.length > 0 && { severity: filters.severity }),
     ...(filters.status.length > 0 && { status: filters.status }),
     ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
@@ -112,6 +126,78 @@ export default function IncidentsPage() {
     (filters.dateFrom ? 1 : 0) +
     (filters.dateTo ? 1 : 0) +
     (filters.resourceType ? 1 : 0);
+
+  // Check for authentication errors
+  const hasAuthError = error && error.message?.includes('authentication');
+
+  // Show authentication error state
+  if (hasAuthError) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <PremiumSectionHeader
+            title="Incident Management"
+            subtitle="Monitor and manage cloud infrastructure incidents"
+          />
+          <Card className="p-12 text-center border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="h-24 w-24 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
+                <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-red-900 dark:text-red-100">Authentication Required</h3>
+                <p className="text-red-700 dark:text-red-300">
+                  Your session may have expired. Please sign in again to access incidents.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => router.push('/auth/signin')}
+                className="shadow-lg bg-red-600 hover:bg-red-700 text-white"
+              >
+                Sign In
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state when no cloud accounts are configured
+  if (!accountsLoading && cloudAccounts.length === 0) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
+          <PremiumSectionHeader
+            title="Incident Management"
+            subtitle="Monitor and manage cloud infrastructure incidents"
+          />
+          <Card className="p-12 text-center">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="h-24 w-24 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
+                <Server className="h-12 w-12 text-orange-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold">No Cloud Accounts Connected</h3>
+                <p className="text-muted-foreground">
+                  Connect your first cloud account to start monitoring incidents.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => router.push('/cloud-accounts/new')}
+                className="shadow-lg"
+              >
+                <Icons.plus className="h-5 w-5 mr-2" />
+                Add Cloud Account
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>

@@ -20,6 +20,7 @@ import dependenciesRoutes from './routes/dependencies.routes';
 import incidentsRoutes from './modules/incidents/routes';
 import serviceHealthRoutes from './modules/service-health/controllers/service-health.controller';
 import advisorRoutes from './modules/advisor/routes/advisor.routes';
+import assetsRoutes from './modules/assets/routes/assets.routes';
 import { initRedis, closeRedis } from './config/redis';
 import {
   scheduleDailyCostCollection,
@@ -88,12 +89,14 @@ app.get('/api/v1', (req, res) => {
       dashboard: '/api/v1/dashboard',
       resources: '/api/v1/resources',
       finops: '/api/v1/finops',
+      costs: '/api/v1/costs', // Alias for finops costs endpoints
       security: '/api/v1/security',
       azureSecurity: '/api/v1/security/azure',
       dependencies: '/api/v1/dependencies',
       incidents: '/api/v1/incidents',
       serviceHealth: '/api/v1/service-health',
       advisor: '/api/v1/advisor',
+      assets: '/api/v1/assets',
     },
   });
 });
@@ -116,6 +119,11 @@ app.use('/api/v1/resources', resourcesRoutes);
 // FinOps routes
 app.use('/api/v1/finops', finopsRoutes);
 
+// Costs alias route - redirects /api/v1/costs to finops module
+// This allows frontend to call /api/v1/costs directly while maintaining
+// the organized finops module structure
+app.use('/api/v1/costs', finopsRoutes);
+
 // Security routes
 app.use('/api/v1/security', securityRoutes);
 
@@ -127,6 +135,9 @@ app.use('/api/v1/dependencies', dependenciesRoutes);
 
 // Incidents routes
 app.use('/api/v1/incidents', incidentsRoutes);
+
+// Assets routes
+app.use('/api/v1/assets', assetsRoutes);
 
 // Service Health routes
 app.use('/api/v1/service-health', serviceHealthRoutes);

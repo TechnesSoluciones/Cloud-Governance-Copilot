@@ -95,17 +95,28 @@ export function useIncidents(
   params: ListIncidentsParams = {},
   options?: UseIncidentsOptions
 ): UseQueryResult<ApiResponse<ListIncidentsResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: incidentsKeys.list(params),
-    queryFn: () => incidentsApi.listIncidents(params, token),
-    enabled: options?.enabled !== false,
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return incidentsApi.listIncidents(params, token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds (incidents change frequently)
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 60 * 1000, // Auto-refresh every 60 seconds
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     ...options,
   });
@@ -160,17 +171,28 @@ export function useAlerts(
   params: ListAlertsParams = {},
   options?: UseAlertsOptions
 ): UseQueryResult<ApiResponse<ListAlertsResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: incidentsKeys.alertsList(params),
-    queryFn: () => incidentsApi.listAlerts(params, token),
-    enabled: options?.enabled !== false,
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return incidentsApi.listAlerts(params, token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 60 * 1000, // Auto-refresh every 60 seconds
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     ...options,
   });
 }
@@ -222,17 +244,28 @@ export function useActivityLogs(
   params: ActivityLogsParams = {},
   options?: UseActivityLogsOptions
 ): UseQueryResult<ApiResponse<ActivityLogsResponse>> {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
 
   return useQuery({
     queryKey: incidentsKeys.activityLogsList(params),
-    queryFn: () => incidentsApi.getActivityLogs(params, token),
-    enabled: options?.enabled !== false,
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return incidentsApi.getActivityLogs(params, token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 60 * 1000, // Auto-refresh every 60 seconds
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     ...options,
   });
 }
