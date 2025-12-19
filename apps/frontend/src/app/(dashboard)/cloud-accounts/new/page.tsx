@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ProviderForm, ProviderFormData } from '@/components/cloud-accounts/ProviderForm';
@@ -10,6 +11,8 @@ import { useToast } from '@/components/ui/toast';
 import { Badge } from '@/components/ui/badge';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CardSkeleton } from '@/components/skeletons';
+import { createCloudAccount, testCloudAccountConnection, CloudAccountInput } from '@/lib/api/cloud-accounts';
+import { ApiError } from '@/lib/api/client';
 
 // Premium Design System Components
 import {
@@ -21,6 +24,7 @@ type WizardStep = 'provider' | 'credentials' | 'test' | 'complete';
 
 function NewCloudAccountPageContent() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { addToast } = useToast();
   const [currentStep, setCurrentStep] = React.useState<WizardStep>('provider');
   const [selectedProvider, setSelectedProvider] = React.useState<CloudProvider | null>(null);
@@ -31,6 +35,7 @@ function NewCloudAccountPageContent() {
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isTestingConnection, setIsTestingConnection] = React.useState(false);
   const [testResult, setTestResult] = React.useState<'success' | 'failure' | null>(null);
+  const [createdAccountId, setCreatedAccountId] = React.useState<string | null>(null);
 
   const providers: Array<{
     id: CloudProvider;
@@ -108,40 +113,86 @@ function NewCloudAccountPageContent() {
       return;
     }
 
+    if (!session) {
+      addToast('Session expired. Please login again.', 'error');
+      return;
+    }
+
     setIsTestingConnection(true);
     setTestResult(null);
 
     try {
-      // In production, call API to test connection
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Step 1: Create the account first
+      const accountInput: CloudAccountInput = {
+        provider: selectedProvider!,
+        name: formData.name,
+        accountIdentifier: formData.subscriptionId || formData.projectId,
+        credentials: {
+          // AWS
+          accessKeyId: formData.accessKeyId,
+          secretAccessKey: formData.secretAccessKey,
+          region: formData.region,
+          // Azure
+          tenantId: formData.tenantId,
+          clientId: formData.clientId,
+          clientSecret: formData.clientSecret,
+          subscriptionId: formData.subscriptionId,
+          // GCP
+          projectId: formData.projectId,
+          clientEmail: formData.clientEmail,
+          privateKey: formData.privateKey,
+        },
+      };
 
-      // Simulate random success/failure for demo
-      const success = Math.random() > 0.3;
-      setTestResult(success ? 'success' : 'failure');
+      const createResponse = await createCloudAccount(
+        accountInput,
+        (session as any).accessToken
+      );
 
-      if (success) {
+      if (!createResponse.success || !createResponse.data) {
+        throw new Error(createResponse.error?.message || 'Failed to create account');
+      }
+
+      const accountId = createResponse.data.id;
+      setCreatedAccountId(accountId);
+
+      // Step 2: Test the connection
+      const testResponse = await testCloudAccountConnection(
+        accountId,
+        (session as any).accessToken
+      );
+
+      if (testResponse.success && testResponse.data?.status === 'connected') {
+        setTestResult('success');
         addToast('Connection test successful', 'success');
         setCurrentStep('test');
       } else {
-        addToast('Connection test failed. Please check your credentials.', 'error');
+        setTestResult('failure');
+        addToast(
+          testResponse.error?.message || 'Connection test failed. Please check your credentials.',
+          'error'
+        );
       }
     } catch (error) {
       setTestResult('failure');
-      addToast('An error occurred while testing the connection', 'error');
+
+      if (error instanceof ApiError) {
+        addToast(error.message, 'error');
+      } else {
+        addToast('An error occurred while testing the connection', 'error');
+      }
+
+      console.error('Connection test error:', error);
     } finally {
       setIsTestingConnection(false);
     }
   };
 
-  const handleComplete = async () => {
-    try {
-      // In production, call API to save account
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      addToast('Cloud account added successfully', 'success');
-      router.push('/cloud-accounts');
-    } catch (error) {
-      addToast('Failed to add cloud account', 'error');
-    }
+  const handleComplete = () => {
+    // Account was already created and tested in handleTestConnection
+    // Just redirect to accounts list
+    addToast('Cloud account added successfully', 'success');
+    router.push('/cloud-accounts');
   };
 
   const steps = [
