@@ -26,7 +26,10 @@ export const ProviderLogo: React.FC<ProviderLogoProps> = ({
     'aria-hidden': 'true' as const,
   };
 
-  switch (provider) {
+  // Normalize provider to lowercase for switch statement
+  const normalizedProvider = provider.toLowerCase() as 'aws' | 'azure' | 'gcp';
+
+  switch (normalizedProvider) {
     case 'aws':
       return (
         <svg {...svgProps} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -127,28 +130,28 @@ export const ProviderLogo: React.FC<ProviderLogoProps> = ({
  * Provider gradient backgrounds for cards
  */
 export const providerGradients = {
-  aws: 'bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50',
-  azure: 'bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50',
-  gcp: 'bg-gradient-to-br from-emerald-50 via-blue-50 to-yellow-50',
+  AWS: 'bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50',
+  AZURE: 'bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50',
+  GCP: 'bg-gradient-to-br from-emerald-50 via-blue-50 to-yellow-50',
 } as const;
 
 /**
  * Provider accent colors for UI elements
  */
 export const providerColors = {
-  aws: {
+  AWS: {
     text: 'text-orange-600',
     bg: 'bg-orange-50',
     border: 'border-orange-200',
     gradient: 'from-orange-500 to-orange-600',
   },
-  azure: {
+  AZURE: {
     text: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-blue-200',
     gradient: 'from-blue-500 to-blue-600',
   },
-  gcp: {
+  GCP: {
     text: 'text-emerald-600',
     bg: 'bg-emerald-50',
     border: 'border-emerald-200',
@@ -157,7 +160,7 @@ export const providerColors = {
 } as const;
 
 export const providerNames = {
-  aws: 'Amazon Web Services',
-  azure: 'Microsoft Azure',
-  gcp: 'Google Cloud Platform',
+  AWS: 'Amazon Web Services',
+  AZURE: 'Microsoft Azure',
+  GCP: 'Google Cloud Platform',
 } as const;

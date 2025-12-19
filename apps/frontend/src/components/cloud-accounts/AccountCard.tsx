@@ -14,16 +14,17 @@ import { ProviderLogo, providerGradients, providerNames } from './ProviderLogo';
 import { StatusBadge } from './StatusBadge';
 import { cn } from '@/lib/utils';
 
-export type CloudProvider = 'aws' | 'azure' | 'gcp';
+export type CloudProvider = 'AWS' | 'AZURE' | 'GCP';
 
 export interface CloudAccount {
   id: string;
   name: string;
   provider: CloudProvider;
-  status: 'connected' | 'disconnected' | 'error';
-  lastSync?: string;
-  resourceCount?: number;
+  status: 'active' | 'inactive' | 'error';
+  region?: string;
+  tenantId: string;
   createdAt: string;
+  lastSyncAt?: string;
 }
 
 export interface AccountCardProps {
@@ -253,34 +254,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           value={<StatusBadge status={account.status} />}
         />
 
-        {account.resourceCount !== undefined && (
-          <MetricItem
-            icon={
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
-                />
-              </svg>
-            }
-            label="Resources"
-            value={
-              <span className="text-brand-orange font-bold">
-                {account.resourceCount.toLocaleString()}
-              </span>
-            }
-          />
-        )}
-
-        {account.lastSync && (
+        {account.lastSyncAt && (
           <MetricItem
             icon={
               <svg
@@ -300,8 +274,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             }
             label="Last Sync"
             value={
-              <time dateTime={account.lastSync} className="text-gray-700">
-                {formatRelativeTime(account.lastSync)}
+              <time dateTime={account.lastSyncAt} className="text-gray-700">
+                {formatRelativeTime(account.lastSyncAt)}
               </time>
             }
           />

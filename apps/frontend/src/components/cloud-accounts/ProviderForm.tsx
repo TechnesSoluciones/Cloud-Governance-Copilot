@@ -80,7 +80,7 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
       </div>
 
       {/* AWS-specific fields */}
-      {provider === 'aws' && (
+      {provider === 'AWS' && (
         <>
           <div className="space-y-2">
             <Label htmlFor="accessKeyId">
@@ -136,7 +136,7 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
       )}
 
       {/* Azure-specific fields */}
-      {provider === 'azure' && (
+      {provider === 'AZURE' && (
         <>
           <div className="space-y-2">
             <Label htmlFor="tenantId">
@@ -226,7 +226,7 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
       )}
 
       {/* GCP-specific fields */}
-      {provider === 'gcp' && (
+      {provider === 'GCP' && (
         <>
           <div className="space-y-2">
             <Label htmlFor="projectId">

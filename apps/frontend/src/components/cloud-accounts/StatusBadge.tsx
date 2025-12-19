@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-export type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'syncing';
+export type ConnectionStatus = 'active' | 'inactive' | 'error' | 'syncing';
 
 export interface StatusBadgeProps {
   status: ConnectionStatus;
@@ -23,7 +23,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 }) => {
   const config = React.useMemo(() => {
     switch (status) {
-      case 'connected':
+      case 'active':
         return {
           label: 'Connected',
           variant: 'default' as const,
@@ -46,9 +46,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           ),
         };
 
-      case 'disconnected':
+      case 'inactive':
         return {
-          label: 'Disconnected',
+          label: 'Inactive',
           variant: 'secondary' as const,
           className: 'bg-gray-100 text-gray-700 hover:bg-gray-100 border-gray-200',
           icon: (

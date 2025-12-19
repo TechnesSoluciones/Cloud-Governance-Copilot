@@ -114,7 +114,7 @@ export default function CloudAccountsPage() {
 
         {/* Stats Bar */}
         {!isLoading && cloudAccounts.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border-2 border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-brand-orange/10">
@@ -138,25 +138,9 @@ export default function CloudAccountsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
-                    {cloudAccounts.filter(a => a.status === 'connected').length}
+                    {cloudAccounts.filter(a => a.status === 'active').length}
                   </p>
-                  <p className="text-sm text-muted-foreground">Connected</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border-2 border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-50">
-                  <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {cloudAccounts.reduce((sum, a) => sum + (a.resourceCount || 0), 0).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Total Resources</p>
+                  <p className="text-sm text-muted-foreground">Active</p>
                 </div>
               </div>
             </div>

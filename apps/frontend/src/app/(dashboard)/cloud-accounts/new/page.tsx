@@ -25,7 +25,7 @@ function NewCloudAccountPageContent() {
   const [currentStep, setCurrentStep] = React.useState<WizardStep>('provider');
   const [selectedProvider, setSelectedProvider] = React.useState<CloudProvider | null>(null);
   const [formData, setFormData] = React.useState<ProviderFormData>({
-    provider: 'aws',
+    provider: 'AWS',
     name: '',
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -39,7 +39,7 @@ function NewCloudAccountPageContent() {
     icon: React.ReactNode;
   }> = [
     {
-      id: 'aws',
+      id: 'AWS',
       name: 'Amazon Web Services',
       description: 'Connect your AWS account for comprehensive governance',
       icon: (
@@ -49,7 +49,7 @@ function NewCloudAccountPageContent() {
       ),
     },
     {
-      id: 'azure',
+      id: 'AZURE',
       name: 'Microsoft Azure',
       description: 'Manage your Azure subscriptions and resources',
       icon: (
@@ -59,7 +59,7 @@ function NewCloudAccountPageContent() {
       ),
     },
     {
-      id: 'gcp',
+      id: 'GCP',
       name: 'Google Cloud Platform',
       description: 'Connect your GCP projects and services',
       icon: (
@@ -77,16 +77,16 @@ function NewCloudAccountPageContent() {
       newErrors.name = 'Account name is required';
     }
 
-    if (selectedProvider === 'aws') {
+    if (selectedProvider === 'AWS') {
       if (!formData.accessKeyId) newErrors.accessKeyId = 'Access Key ID is required';
       if (!formData.secretAccessKey) newErrors.secretAccessKey = 'Secret Access Key is required';
       if (!formData.region) newErrors.region = 'Region is required';
-    } else if (selectedProvider === 'azure') {
+    } else if (selectedProvider === 'AZURE') {
       if (!formData.tenantId) newErrors.tenantId = 'Tenant ID is required';
       if (!formData.clientId) newErrors.clientId = 'Client ID is required';
       if (!formData.clientSecret) newErrors.clientSecret = 'Client Secret is required';
       if (!formData.subscriptionId) newErrors.subscriptionId = 'Subscription ID is required';
-    } else if (selectedProvider === 'gcp') {
+    } else if (selectedProvider === 'GCP') {
       if (!formData.projectId) newErrors.projectId = 'Project ID is required';
       if (!formData.clientEmail) newErrors.clientEmail = 'Service Account Email is required';
       if (!formData.privateKey) newErrors.privateKey = 'Private Key is required';
