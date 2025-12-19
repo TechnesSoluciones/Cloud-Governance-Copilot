@@ -13,14 +13,17 @@ on:
     branches:
       - main
       - production
+    tags:
+      - 'v*.*.*'
     paths-ignore:
       - '**.md'
       - 'docs/**'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (optional)'
+        description: 'Version tag (e.g., v1.0.0, or latest)'
         required: false
+        default: 'latest'
         type: string
 
 env:
@@ -250,18 +253,35 @@ jobs:
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
 
+      - name: Determine version tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Deploying version: ${VERSION}"
+          elif [[ "${{ github.event.inputs.version }}" != "" ]]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "Deploying version: ${{ github.event.inputs.version }}"
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "Deploying version: latest"
+          fi
+
       - name: Deploy on server
         run: |
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'DEPLOY_EOF'
+          VERSION_TAG="${{ steps.version.outputs.tag }}"
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << DEPLOY_EOF
             set -e
             cd /opt/copilot-app
 
             # Login to GitHub Container Registry
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Pull latest images
-            docker pull ghcr.io/technessoluciones/copilot-api-gateway:latest
-            docker pull ghcr.io/technessoluciones/copilot-frontend:latest
+            # Pull images with specific version
+            echo "Pulling version: ${VERSION_TAG}"
+            docker pull ghcr.io/technessoluciones/copilot-api-gateway:${VERSION_TAG}
+            docker pull ghcr.io/technessoluciones/copilot-frontend:${VERSION_TAG}
 
             # Stop and remove old containers
             docker compose down
@@ -269,6 +289,9 @@ jobs:
 
             # Clean up orphaned volumes (optional)
             docker volume prune -f || true
+
+            # Set IMAGE_TAG for docker-compose
+            export IMAGE_TAG=${VERSION_TAG}
 
             # Start new containers with forced recreation
             docker compose up -d --force-recreate frontend api-gateway

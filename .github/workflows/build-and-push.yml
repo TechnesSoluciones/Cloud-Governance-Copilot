@@ -5,9 +5,8 @@ on:
     branches:
       - main
       - develop
-    paths:
-      - 'apps/**'
-      - '.github/workflows/build-and-push.yml'
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches:
       - main
