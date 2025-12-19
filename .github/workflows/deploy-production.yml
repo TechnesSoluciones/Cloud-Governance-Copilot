@@ -257,7 +257,7 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
+            VERSION="${GITHUB_REF#refs/tags/v}"
             echo "tag=${VERSION}" >> $GITHUB_OUTPUT
             echo "Deploying version: ${VERSION}"
           elif [[ "${{ github.event.inputs.version }}" != "" ]]; then
