@@ -252,9 +252,11 @@ function CostsPageContent() {
   const trend = calculateTrend(currentMonthCost, previousMonthCost);
   const percentageChange = calculatePercentageChange(currentMonthCost, previousMonthCost);
 
-  // Calculate forecast
+  // Calculate forecast with proper validation
   const forecast = useMemo(() => {
-    if (!trendsData?.trends || trendsData.trends.length === 0) return currentMonthCost * 1.1;
+    if (!trendsData?.trends || !Array.isArray(trendsData.trends) || trendsData.trends.length === 0) {
+      return currentMonthCost * 1.1;
+    }
 
     const daysInMonth = new Date(
       dateRange.start.getFullYear(),
@@ -262,33 +264,57 @@ function CostsPageContent() {
       0
     ).getDate();
 
-    return forecastCost(
-      trendsData.trends.map(t => ({ date: t.date, cost: t.total })),
-      daysInMonth
-    );
+    // Filter and validate trend data before passing to forecastCost
+    const validTrends = trendsData.trends
+      .filter(t => t && t.date && typeof t.total === 'number')
+      .map(t => ({ date: t.date, cost: t.total }));
+
+    if (validTrends.length === 0) {
+      return currentMonthCost * 1.1;
+    }
+
+    return forecastCost(validTrends, daysInMonth);
   }, [trendsData, currentMonthCost, dateRange.start]);
 
-  // Get top service
-  const topService = serviceData?.services[0]?.service || 'N/A';
-  const topServiceCost = serviceData?.services[0]?.totalCost || 0;
+  // Get top service with proper null/undefined/empty checks
+  const topService = serviceData?.services && serviceData.services.length > 0
+    ? serviceData.services[0].service
+    : 'N/A';
+  const topServiceCost = serviceData?.services && serviceData.services.length > 0
+    ? serviceData.services[0].totalCost
+    : 0;
 
-  // Convert service data for component
+  // Convert service data for component with proper validation
   const serviceBreakdownData: ServiceData[] = useMemo(
-    () =>
-      serviceData?.services.map((s) => ({
-        service: s.service,
-        cost: s.totalCost,
-        percentage: s.percentage,
-        provider: s.provider as 'AWS' | 'Azure',
-        currency: s.currency,
-      })) || [],
+    () => {
+      if (!serviceData?.services || !Array.isArray(serviceData.services) || serviceData.services.length === 0) {
+        return [];
+      }
+
+      return serviceData.services.map((s) => ({
+        service: s.service || 'Unknown',
+        cost: s.totalCost || 0,
+        percentage: s.percentage || 0,
+        provider: (s.provider || 'AWS') as 'AWS' | 'Azure',
+        currency: s.currency || 'USD',
+      }));
+    },
     [serviceData]
   );
 
-  // Generate forecast data for chart
+  // Generate forecast data for chart with proper validation
   const forecastData = useMemo(() => {
-    if (!trendsData?.trends || trendsData.trends.length === 0) return [];
-    return generateForecast(trendsData.trends, 7);
+    if (!trendsData?.trends || !Array.isArray(trendsData.trends) || trendsData.trends.length < 2) {
+      return [];
+    }
+
+    // Validate that trends have required fields
+    const validTrends = trendsData.trends.filter(t => t && t.date && typeof t.total === 'number');
+    if (validTrends.length < 2) {
+      return [];
+    }
+
+    return generateForecast(validTrends, 7);
   }, [trendsData]);
 
   // Handle refresh
@@ -301,17 +327,28 @@ function CostsPageContent() {
 
   // Handle export to CSV
   const handleExportCosts = () => {
-    if (!trendsData?.trends) return;
+    if (!trendsData?.trends || !Array.isArray(trendsData.trends) || trendsData.trends.length === 0) {
+      addToast('No cost data available to export', 'warning');
+      return;
+    }
 
-    const exportData = trendsData.trends.map((t) => ({
-      Date: t.date,
-      AWS: t.aws,
-      Azure: t.azure,
-      Total: t.total,
-      Currency: t.currency,
-    }));
+    const exportData = trendsData.trends
+      .filter(t => t && t.date)
+      .map((t) => ({
+        Date: t.date,
+        AWS: t.aws || 0,
+        Azure: t.azure || 0,
+        Total: t.total || 0,
+        Currency: t.currency || currency,
+      }));
+
+    if (exportData.length === 0) {
+      addToast('No valid cost data to export', 'warning');
+      return;
+    }
 
     exportToCSV(exportData, `cost-analysis-${apiDateRange.startDate}-to-${apiDateRange.endDate}`);
+    addToast('Cost data exported successfully', 'success');
   };
 
   // Handle generate report (placeholder for PDF generation)
@@ -526,13 +563,17 @@ function CostsPageContent() {
       {/* Cost Trend Chart */}
       <CostTrendChart
         dailyCosts={
-          trendsData?.trends.map((t) => ({
-            date: t.date,
-            cost: t.total,
-            aws: t.aws,
-            azure: t.azure,
-            total: t.total,
-          })) || []
+          trendsData?.trends && Array.isArray(trendsData.trends)
+            ? trendsData.trends
+                .filter(t => t && t.date && typeof t.total === 'number')
+                .map((t) => ({
+                  date: t.date,
+                  cost: t.total || 0,
+                  aws: t.aws || 0,
+                  azure: t.azure || 0,
+                  total: t.total || 0,
+                }))
+            : []
         }
         forecast={forecastData}
         currency={currency}
@@ -576,7 +617,10 @@ function CostsPageContent() {
               </div>
             )}
 
-            {serviceBreakdownData.length > 0 && serviceBreakdownData[0].percentage > 50 && (
+            {serviceBreakdownData.length > 0 &&
+             serviceBreakdownData[0] &&
+             typeof serviceBreakdownData[0].percentage === 'number' &&
+             serviceBreakdownData[0].percentage > 50 && (
               <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                 <div>
@@ -584,7 +628,7 @@ function CostsPageContent() {
                     Concentrated Spending
                   </p>
                   <p className="text-sm text-blue-800 mt-1">
-                    {serviceBreakdownData[0].service} accounts for{' '}
+                    {serviceBreakdownData[0].service || 'Unknown service'} accounts for{' '}
                     {serviceBreakdownData[0].percentage.toFixed(1)}% of your total costs.
                     Consider implementing cost controls or reserved instances for this service.
                   </p>
