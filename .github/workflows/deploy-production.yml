@@ -268,50 +268,166 @@ jobs:
             echo "Deploying version: latest"
           fi
 
-      - name: Deploy on server
+      - name: Deploy on server with cache clearing
         run: |
           VERSION_TAG="${{ steps.version.outputs.tag }}"
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << DEPLOY_EOF
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'DEPLOY_EOF'
             set -e
             cd /opt/copilot-app
 
-            # Login to GitHub Container Registry
+            VERSION_TAG="${{ steps.version.outputs.tag }}"
+
+            echo "=========================================="
+            echo "🚀 DEPLOYMENT v${VERSION_TAG} STARTED"
+            echo "=========================================="
+
+            # ============================================
+            # STEP 1: Login to GitHub Container Registry
+            # ============================================
+            echo ""
+            echo "🔐 Step 1/7: Authenticating with registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Pull images with specific version
-            echo "Pulling version: ${VERSION_TAG}"
+            # ============================================
+            # STEP 2: Pull new images
+            # ============================================
+            echo ""
+            echo "📥 Step 2/7: Pulling version ${VERSION_TAG}..."
             docker pull ghcr.io/technessoluciones/copilot-api-gateway:${VERSION_TAG}
             docker pull ghcr.io/technessoluciones/copilot-frontend:${VERSION_TAG}
+            echo "✓ Images pulled successfully"
 
-            # Stop and remove old containers
-            docker compose down
-            docker compose rm -f frontend api-gateway || true
+            # ============================================
+            # STEP 3: Clear cache BEFORE stopping services
+            # ============================================
+            echo ""
+            echo "🧹 Step 3/7: Clearing application cache..."
 
-            # Clean up orphaned volumes (optional)
-            docker volume prune -f || true
+            # Get Redis password from .env
+            REDIS_PASS=$(grep REDIS_PASSWORD .env | cut -d'=' -f2 | tr -d '\r')
 
-            # Set IMAGE_TAG for docker-compose
+            # Clear Redis cache if container is running
+            if docker ps --format '{{.Names}}' | grep -q copilot-redis; then
+              echo "  → Flushing Redis cache..."
+              docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning FLUSHALL
+              REDIS_KEYS=$(docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
+              echo "  ✓ Redis cache cleared (keys remaining: $REDIS_KEYS)"
+            else
+              echo "  ⚠ Redis container not running, skipping cache clear"
+            fi
+
+            # ============================================
+            # STEP 4: Stop and clean old containers
+            # ============================================
+            echo ""
+            echo "🛑 Step 4/7: Stopping old containers..."
+
+            # Stop containers gracefully
+            docker compose down --remove-orphans
+            echo "  ✓ Containers stopped"
+
+            # Clean up orphaned volumes and networks
+            docker volume prune -f > /dev/null 2>&1 || true
+            docker network prune -f > /dev/null 2>&1 || true
+            echo "  ✓ Orphaned resources cleaned"
+
+            # ============================================
+            # STEP 5: Start services in correct order
+            # ============================================
+            echo ""
+            echo "▶️  Step 5/7: Starting services (ordered)..."
+
+            # Set version for docker-compose
             export IMAGE_TAG=${VERSION_TAG}
 
-            # Start new containers with forced recreation
-            docker compose up -d --force-recreate frontend api-gateway
-
-            # Start redis (can keep cache)
+            # Start Redis first (cache layer)
+            echo "  → Starting Redis..."
             docker compose up -d redis
+            sleep 5
 
-            # Wait for services to be healthy
-            echo "Waiting for services to start..."
-            sleep 30
+            # Wait for Redis to be healthy
+            echo "  → Waiting for Redis health check..."
+            for i in {1..12}; do
+              if docker compose ps redis | grep -q "(healthy)"; then
+                echo "  ✓ Redis is healthy"
+                break
+              fi
+              if [ $i -eq 12 ]; then
+                echo "  ⚠ Redis health check timeout (continuing anyway)"
+              fi
+              sleep 5
+            done
+
+            # Start API Gateway (backend)
+            echo "  → Starting API Gateway..."
+            docker compose up -d api-gateway
+            sleep 10
+
+            # Wait for API Gateway to be healthy
+            echo "  → Waiting for API Gateway health check..."
+            for i in {1..24}; do
+              if docker compose ps api-gateway | grep -q "(healthy)"; then
+                echo "  ✓ API Gateway is healthy"
+                break
+              fi
+              if [ $i -eq 24 ]; then
+                echo "  ⚠ API Gateway health check timeout (continuing anyway)"
+              fi
+              sleep 5
+            done
+
+            # Start Frontend (depends on API)
+            echo "  → Starting Frontend..."
+            docker compose up -d frontend
+            sleep 10
+
+            echo "  ✓ All services started"
+
+            # ============================================
+            # STEP 6: Verify deployment
+            # ============================================
+            echo ""
+            echo "✅ Step 6/7: Verifying deployment..."
 
             # Show container status
+            echo ""
+            echo "Container Status:"
             docker compose ps
 
-            # Verify build IDs
-            echo "=== Build Verification ==="
-            docker exec copilot-frontend env | grep BUILD || echo "No build info available"
+            # Verify Redis is empty (cache cleared)
+            echo ""
+            echo "Cache Status:"
+            REDIS_KEYS=$(docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
+            echo "  Redis keys: $REDIS_KEYS"
 
-            # Cleanup old images
-            docker image prune -af --filter "until=72h"
+            # Verify build IDs
+            echo ""
+            echo "Build Information:"
+            docker exec copilot-frontend env | grep BUILD || echo "  No build info available"
+
+            # Test health endpoints
+            echo ""
+            echo "Health Checks:"
+            API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
+            FRONTEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
+            echo "  API Gateway: $API_HEALTH"
+            echo "  Frontend: $FRONTEND_HEALTH"
+
+            # ============================================
+            # STEP 7: Cleanup old images
+            # ============================================
+            echo ""
+            echo "🗑️  Step 7/7: Cleaning up old images..."
+            docker image prune -af --filter "until=72h" > /dev/null 2>&1 || true
+            echo "  ✓ Old images cleaned"
+
+            echo ""
+            echo "=========================================="
+            echo "✨ DEPLOYMENT v${VERSION_TAG} COMPLETED"
+            echo "=========================================="
+            echo ""
+            echo "Recent logs (last 10 lines):"
+            docker compose logs --tail=10
           DEPLOY_EOF
 
       - name: Verify deployment
