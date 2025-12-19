@@ -115,8 +115,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/standalone ./
 
 # Copy static assets to correct location for standalone build
-# Next.js standalone expects static files at ./.next/static (root of workdir)
-COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./.next/static
+# Next.js standalone expects static files at ./apps/frontend/.next/static (relative to server.js)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/frontend/.next/static ./apps/frontend/.next/static
 
 # Create logs directory
 RUN mkdir -p /app/logs && chown -R nextjs:nodejs /app/logs
