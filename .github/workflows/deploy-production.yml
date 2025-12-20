@@ -254,48 +254,49 @@ jobs:
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
 
-      - name: Deploy Phase 3 Nginx Configuration
-        run: |
-          # Copy optimized Nginx config to server
-          scp nginx/nginx.phase3.conf ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/tmp/nginx.phase3.conf
-
-          # Deploy Nginx config (if needed - comment out if not using Nginx reverse proxy)
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'NGINX_EOF'
-            # Check if Nginx is installed
-            if command -v nginx &> /dev/null; then
-              echo "📦 Nginx detected - deploying Phase 3 configuration..."
-
-              # Backup current config
-              sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
-
-              # Copy new config
-              sudo cp /tmp/nginx.phase3.conf /etc/nginx/nginx.conf
-
-              # Create cache directories
-              sudo mkdir -p /var/cache/nginx/nextjs_static
-              sudo mkdir -p /var/cache/nginx/api_cache
-              sudo chown -R nginx:nginx /var/cache/nginx 2>/dev/null || sudo chown -R www-data:www-data /var/cache/nginx
-
-              # Test configuration
-              if sudo nginx -t; then
-                echo "✓ Nginx configuration test passed"
-
-                # Reload Nginx gracefully
-                sudo nginx -s reload || sudo systemctl reload nginx
-                echo "✓ Nginx reloaded with Phase 3 configuration"
-              else
-                echo "❌ Nginx configuration test failed - keeping old config"
-                sudo cp /etc/nginx/nginx.conf.backup.* /etc/nginx/nginx.conf 2>/dev/null || true
-                exit 1
-              fi
-
-              # Clean up
-              rm /tmp/nginx.phase3.conf
-            else
-              echo "ℹ️  Nginx not detected - skipping configuration deployment"
-              echo "   (Using docker-compose port mapping instead)"
-            fi
-          NGINX_EOF
+      # DISABLED: Nginx deployment not needed with Docker Compose port mapping
+      # - name: Deploy Phase 3 Nginx Configuration
+      #   run: |
+      #     # Copy optimized Nginx config to server
+      #     scp nginx/nginx.phase3.conf ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/tmp/nginx.phase3.conf
+      #
+      #     # Deploy Nginx config (if needed - comment out if not using Nginx reverse proxy)
+      #     ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'NGINX_EOF'
+      #       # Check if Nginx is installed
+      #       if command -v nginx &> /dev/null; then
+      #         echo "📦 Nginx detected - deploying Phase 3 configuration..."
+      #
+      #         # Backup current config
+      #         sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+      #
+      #         # Copy new config
+      #         sudo cp /tmp/nginx.phase3.conf /etc/nginx/nginx.conf
+      #
+      #         # Create cache directories
+      #         sudo mkdir -p /var/cache/nginx/nextjs_static
+      #         sudo mkdir -p /var/cache/nginx/api_cache
+      #         sudo chown -R nginx:nginx /var/cache/nginx 2>/dev/null || sudo chown -R www-data:www-data /var/cache/nginx
+      #
+      #         # Test configuration
+      #         if sudo nginx -t; then
+      #           echo "✓ Nginx configuration test passed"
+      #
+      #           # Reload Nginx gracefully
+      #           sudo nginx -s reload || sudo systemctl reload nginx
+      #           echo "✓ Nginx reloaded with Phase 3 configuration"
+      #         else
+      #           echo "❌ Nginx configuration test failed - keeping old config"
+      #           sudo cp /etc/nginx/nginx.conf.backup.* /etc/nginx/nginx.conf 2>/dev/null || true
+      #           exit 1
+      #         fi
+      #
+      #         # Clean up
+      #         rm /tmp/nginx.phase3.conf
+      #       else
+      #         echo "ℹ️  Nginx not detected - skipping configuration deployment"
+      #         echo "   (Using docker-compose port mapping instead)"
+      #       fi
+      #     NGINX_EOF
 
       - name: Determine version tag (Enhanced Semantic Versioning)
         id: version
