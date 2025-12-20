@@ -383,10 +383,10 @@ jobs:
             REDIS_PASS=$(grep REDIS_PASSWORD .env | cut -d'=' -f2 | tr -d '\r')
 
             # Clear Redis cache if container is running
-            if docker ps --format '{{.Names}}' | grep -q copilot-redis; then
+            if docker compose ps redis | grep -q "running"; then
               echo "  → Flushing Redis cache..."
-              docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning FLUSHALL
-              REDIS_KEYS=$(docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
+              docker compose exec -T redis redis-cli -a "$REDIS_PASS" --no-auth-warning FLUSHALL
+              REDIS_KEYS=$(docker compose exec -T redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
               echo "  ✓ Redis cache cleared (keys remaining: $REDIS_KEYS)"
             else
               echo "  ⚠ Redis container not running, skipping cache clear"
@@ -583,7 +583,7 @@ jobs:
             # Verify Redis cache status
             echo ""
             echo "Cache Status:"
-            REDIS_KEYS=$(docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
+            REDIS_KEYS=$(docker compose exec -T redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
             echo "  Redis keys: $REDIS_KEYS (should be low after cache clear)"
 
             # Verify build version using /api/version endpoint
@@ -790,8 +790,8 @@ jobs:
             # ==========================================
             echo ""
             echo "Test 6/10: Phase 2 - Verify Single Container Instances..."
-            api_count=$(docker compose ps api-gateway | grep -c "copilot-api-gateway" || echo "0")
-            frontend_count=$(docker compose ps frontend | grep -c "copilot-frontend" || echo "0")
+            api_count=$(docker compose ps api-gateway | grep -c "running" || echo "0")
+            frontend_count=$(docker compose ps frontend | grep -c "running" || echo "0")
 
             if [ "$api_count" = "1" ] && [ "$frontend_count" = "1" ]; then
               echo "  ✓ PASS: Exactly 1 instance of each service running"
@@ -825,8 +825,8 @@ jobs:
             # ==========================================
             echo ""
             echo "Test 8/10: Redis Connectivity..."
-            if docker exec copilot-redis redis-cli ping &> /dev/null; then
-              redis_keys=$(docker exec copilot-redis redis-cli DBSIZE 2>/dev/null | grep -oP '\d+' || echo "unknown")
+            if docker compose exec -T redis redis-cli ping &> /dev/null; then
+              redis_keys=$(docker compose exec -T redis redis-cli DBSIZE 2>/dev/null | grep -oP '\d+' || echo "unknown")
               echo "  ✓ PASS: Redis is accessible"
               echo "  🔑 Current keys: $redis_keys"
               ((TESTS_PASSED++))
@@ -855,7 +855,7 @@ jobs:
             # ==========================================
             echo ""
             echo "Test 10/10: Database Connectivity..."
-            db_logs=$(docker logs copilot-api-gateway --tail=20 2>&1 | grep -i "database\|prisma\|connect" || echo "")
+            db_logs=$(docker compose logs api-gateway --tail=20 2>&1 | grep -i "database\|prisma\|connect" || echo "")
             if [[ "$db_logs" != *"error"* ]] || [[ "$db_logs" == "" ]]; then
               echo "  ✓ PASS: No database connection errors in recent logs"
               ((TESTS_PASSED++))
