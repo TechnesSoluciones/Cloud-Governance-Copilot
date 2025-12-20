@@ -393,152 +393,54 @@ jobs:
             fi
 
             # ============================================
-            # STEP 4: Rolling Update - API Gateway (Enhanced with Rollback)
+            # STEP 4: Deploy Services (Recreate Strategy)
             # ============================================
             echo ""
-            echo "🔄 Step 4/7: Rolling update for API Gateway..."
+            echo "🔄 Step 4/7: Deploying services..."
 
             # Set version for docker-compose
             export IMAGE_TAG=${VERSION_TAG}
 
-            # Phase 2: Store old container ID for rollback capability
-            OLD_API_CONTAINER=$(docker compose ps -q api-gateway | head -n 1)
-            echo "  📝 Stored old container ID: ${OLD_API_CONTAINER:0:12}"
+            # Deploy all services with recreate strategy
+            echo "  → Recreating services with new images..."
+            docker compose up -d --force-recreate api-gateway frontend
 
-            # Update API Gateway with zero downtime
-            echo "  → Scaling API Gateway to 2 instances (old + new)..."
-            docker compose up -d --no-deps --scale api-gateway=2 api-gateway
-            sleep 15
-
-            # Wait for new instance to be healthy
-            echo "  → Waiting for new API Gateway instance..."
-            API_HEALTHY=false
-            for i in {1..24}; do
-              HEALTHY_COUNT=$(docker compose ps api-gateway | grep -c "(healthy)" || echo "0")
-              if [ "$HEALTHY_COUNT" -ge "1" ]; then
-                echo "  ✓ New API Gateway is healthy"
-                API_HEALTHY=true
-                break
-              fi
-              if [ $i -eq 24 ]; then
-                echo "  ❌ API Gateway health check timeout - ROLLBACK REQUIRED"
-                API_HEALTHY=false
-              fi
-              sleep 5
-            done
-
-            # Phase 2: Build verification BEFORE scaling down
-            if [ "$API_HEALTHY" = true ]; then
-              echo "  → Verifying API Gateway health endpoint..."
-              API_STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
-
-              if [ "$API_STATUS" = "200" ]; then
-                echo "  ✓ API Gateway health check passed (HTTP $API_STATUS)"
-
-                # Safe to scale down old container
-                echo "  → Scaling down to 1 instance (removing old)..."
-                docker compose up -d --no-deps --scale api-gateway=1 api-gateway
-                sleep 5
-                echo "  ✓ API Gateway rolling update completed"
-              else
-                echo "  ❌ API Gateway health check failed (HTTP $API_STATUS)"
-                echo "  🔄 ROLLBACK: Removing new container, keeping old one..."
-
-                # Rollback: scale down to 1 (removes new, keeps old)
-                docker stop $(docker compose ps -q api-gateway | grep -v "$OLD_API_CONTAINER") 2>/dev/null || true
-                docker compose up -d --no-deps --scale api-gateway=1 api-gateway
-
-                echo "  ⚠️  API Gateway rollback completed - deployment FAILED"
-                exit 1
-              fi
-            else
-              echo "  🔄 ROLLBACK: New instance never became healthy..."
-              docker stop $(docker compose ps -q api-gateway | grep -v "$OLD_API_CONTAINER") 2>/dev/null || true
-              docker compose up -d --no-deps --scale api-gateway=1 api-gateway
-              echo "  ⚠️  API Gateway rollback completed - deployment FAILED"
-              exit 1
-            fi
+            echo "  → Waiting for services to start..."
+            sleep 20
 
             # ============================================
-            # STEP 5: Rolling Update - Frontend (Enhanced with Build Verification)
+            # STEP 5: Verify Services Health
             # ============================================
             echo ""
-            echo "🔄 Step 5/7: Rolling update for Frontend..."
+            echo "🔄 Step 5/7: Verifying services health..."
 
-            # Phase 2: Store old container ID for rollback capability
-            OLD_FRONTEND_CONTAINER=$(docker compose ps -q frontend | head -n 1)
-            echo "  📝 Stored old container ID: ${OLD_FRONTEND_CONTAINER:0:12}"
-
-            # Update Frontend with zero downtime
-            echo "  → Scaling Frontend to 2 instances (old + new)..."
-            docker compose up -d --no-deps --scale frontend=2 frontend
-            sleep 15
-
-            # Wait for new instance to be healthy
-            echo "  → Waiting for new Frontend instance..."
-            FRONTEND_HEALTHY=false
-            for i in {1..24}; do
-              # Check if frontend is responding
-              if curl -sf http://localhost:3000/api/version > /dev/null 2>&1; then
-                echo "  ✓ New Frontend is responding"
-                FRONTEND_HEALTHY=true
+            # Wait for API Gateway
+            echo "  → Waiting for API Gateway to be healthy..."
+            for i in {1..30}; do
+              if curl -sf http://localhost:3010/health > /dev/null 2>&1; then
+                echo "  ✓ API Gateway is healthy"
                 break
               fi
-              if [ $i -eq 24 ]; then
-                echo "  ❌ Frontend health check timeout - ROLLBACK REQUIRED"
-                FRONTEND_HEALTHY=false
-              fi
-              sleep 5
-            done
-
-            # Phase 2: Build verification BEFORE scaling down
-            if [ "$FRONTEND_HEALTHY" = true ]; then
-              echo "  → Verifying Frontend /api/version endpoint..."
-              VERSION_RESPONSE=$(curl -sf http://localhost:3000/api/version || echo "{}")
-
-              if [ "$VERSION_RESPONSE" != "{}" ]; then
-                # Extract buildId from JSON response
-                BUILD_ID=$(echo "$VERSION_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('buildId', 'unknown'))" 2>/dev/null || echo "unknown")
-
-                echo "  ✓ Frontend /api/version endpoint responding"
-                echo "  📦 Deployed Build ID: $BUILD_ID"
-
-                # Verify build ID is not 'development' (would indicate env vars not passed)
-                if [ "$BUILD_ID" != "development" ] && [ "$BUILD_ID" != "unknown" ]; then
-                  echo "  ✓ Build verification passed"
-
-                  # Safe to scale down old container
-                  echo "  → Scaling down to 1 instance (removing old)..."
-                  docker compose up -d --no-deps --scale frontend=1 frontend
-                  sleep 5
-                  echo "  ✓ Frontend rolling update completed"
-                else
-                  echo "  ⚠️  WARNING: Build ID is '$BUILD_ID' - may indicate build issue"
-                  echo "  ℹ️  Continuing deployment, but verify build configuration"
-
-                  # Continue but log warning
-                  docker compose up -d --no-deps --scale frontend=1 frontend
-                  sleep 5
-                  echo "  ⚠️  Frontend updated with warnings"
-                fi
-              else
-                echo "  ❌ Frontend /api/version endpoint failed"
-                echo "  🔄 ROLLBACK: Removing new container, keeping old one..."
-
-                # Rollback: scale down to 1 (removes new, keeps old)
-                docker stop $(docker compose ps -q frontend | grep -v "$OLD_FRONTEND_CONTAINER") 2>/dev/null || true
-                docker compose up -d --no-deps --scale frontend=1 frontend
-
-                echo "  ⚠️  Frontend rollback completed - deployment FAILED"
+              if [ $i -eq 30 ]; then
+                echo "  ❌ API Gateway health check failed"
                 exit 1
               fi
-            else
-              echo "  🔄 ROLLBACK: New instance never became healthy..."
-              docker stop $(docker compose ps -q frontend | grep -v "$OLD_FRONTEND_CONTAINER") 2>/dev/null || true
-              docker compose up -d --no-deps --scale frontend=1 frontend
-              echo "  ⚠️  Frontend rollback completed - deployment FAILED"
-              exit 1
-            fi
+              sleep 3
+            done
+
+            # Wait for Frontend
+            echo "  → Waiting for Frontend to be healthy..."
+            for i in {1..30}; do
+              if curl -sf http://localhost:3000/api/version > /dev/null 2>&1; then
+                echo "  ✓ Frontend is healthy"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "  ❌ Frontend health check failed"
+                exit 1
+              fi
+              sleep 3
+            done
 
             # ============================================
             # STEP 5.5: Ensure Redis is running
