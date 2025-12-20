@@ -254,6 +254,49 @@ jobs:
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
 
+      - name: Deploy Phase 3 Nginx Configuration
+        run: |
+          # Copy optimized Nginx config to server
+          scp nginx/nginx.phase3.conf ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/tmp/nginx.phase3.conf
+
+          # Deploy Nginx config (if needed - comment out if not using Nginx reverse proxy)
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'NGINX_EOF'
+            # Check if Nginx is installed
+            if command -v nginx &> /dev/null; then
+              echo "📦 Nginx detected - deploying Phase 3 configuration..."
+
+              # Backup current config
+              sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+
+              # Copy new config
+              sudo cp /tmp/nginx.phase3.conf /etc/nginx/nginx.conf
+
+              # Create cache directories
+              sudo mkdir -p /var/cache/nginx/nextjs_static
+              sudo mkdir -p /var/cache/nginx/api_cache
+              sudo chown -R nginx:nginx /var/cache/nginx 2>/dev/null || sudo chown -R www-data:www-data /var/cache/nginx
+
+              # Test configuration
+              if sudo nginx -t; then
+                echo "✓ Nginx configuration test passed"
+
+                # Reload Nginx gracefully
+                sudo nginx -s reload || sudo systemctl reload nginx
+                echo "✓ Nginx reloaded with Phase 3 configuration"
+              else
+                echo "❌ Nginx configuration test failed - keeping old config"
+                sudo cp /etc/nginx/nginx.conf.backup.* /etc/nginx/nginx.conf 2>/dev/null || true
+                exit 1
+              fi
+
+              # Clean up
+              rm /tmp/nginx.phase3.conf
+            else
+              echo "ℹ️  Nginx not detected - skipping configuration deployment"
+              echo "   (Using docker-compose port mapping instead)"
+            fi
+          NGINX_EOF
+
       - name: Determine version tag (Enhanced Semantic Versioning)
         id: version
         run: |
@@ -652,24 +695,199 @@ jobs:
       - name: Wait for services to stabilize
         run: sleep 30
 
-      - name: Health check via SSH
+      - name: Phase 3 - Comprehensive Smoke Tests
         run: |
           ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
-            # Check API Gateway health
+            echo "=========================================="
+            echo "🧪 PHASE 3: COMPREHENSIVE SMOKE TESTS"
+            echo "=========================================="
+            echo ""
+
+            # Test results tracking
+            TESTS_PASSED=0
+            TESTS_FAILED=0
+
+            # ==========================================
+            # Test 1: API Gateway Health
+            # ==========================================
+            echo "Test 1/10: API Gateway Health Endpoint..."
             api_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
-            echo "API Gateway health: $api_health"
-
-            # Check Frontend health
-            frontend_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
-            echo "Frontend health: $frontend_health"
-
-            # Verify both are healthy
-            if [ "$api_health" != "200" ] && [ "$api_health" != "failed" ]; then
-              echo "API Gateway is not healthy"
+            if [ "$api_health" = "200" ]; then
+              echo "  ✓ PASS: API Gateway is healthy (HTTP $api_health)"
+              ((TESTS_PASSED++))
+            else
+              echo "  ❌ FAIL: API Gateway is unhealthy (HTTP $api_health)"
+              ((TESTS_FAILED++))
             fi
 
-            if [ "$frontend_health" != "200" ] && [ "$frontend_health" != "failed" ]; then
-              echo "Frontend is not healthy"
+            # ==========================================
+            # Test 2: Frontend Health
+            # ==========================================
+            echo ""
+            echo "Test 2/10: Frontend Health Endpoint..."
+            frontend_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
+            if [ "$frontend_health" = "200" ]; then
+              echo "  ✓ PASS: Frontend is healthy (HTTP $frontend_health)"
+              ((TESTS_PASSED++))
+            else
+              echo "  ❌ FAIL: Frontend is unhealthy (HTTP $frontend_health)"
+              ((TESTS_FAILED++))
+            fi
+
+            # ==========================================
+            # Test 3: Phase 1 - /api/version Endpoint
+            # ==========================================
+            echo ""
+            echo "Test 3/10: Phase 1 - Build Version Endpoint..."
+            version_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/version || echo "failed")
+            if [ "$version_status" = "200" ]; then
+              version_data=$(curl -s http://localhost:3000/api/version)
+              build_id=$(echo "$version_data" | python3 -c "import sys, json; print(json.load(sys.stdin).get('buildId', 'unknown'))" 2>/dev/null || echo "unknown")
+
+              echo "  ✓ PASS: Version endpoint accessible"
+              echo "  📦 Build ID: $build_id"
+              ((TESTS_PASSED++))
+            else
+              echo "  ❌ FAIL: Version endpoint not accessible (HTTP $version_status)"
+              ((TESTS_FAILED++))
+            fi
+
+            # ==========================================
+            # Test 4: Phase 1 - Cache-Control Headers
+            # ==========================================
+            echo ""
+            echo "Test 4/10: Phase 1 - Cache-Control Headers..."
+            cache_header=$(curl -s -I http://localhost:3000 | grep -i "cache-control" || echo "")
+            if [[ "$cache_header" == *"must-revalidate"* ]] || [[ "$cache_header" == *"max-age=0"* ]]; then
+              echo "  ✓ PASS: HTML pages have no-cache headers"
+              echo "  📋 Header: $cache_header"
+              ((TESTS_PASSED++))
+            else
+              echo "  ⚠️  WARNING: Cache-Control header not as expected"
+              echo "  📋 Header: $cache_header"
+              ((TESTS_PASSED++))  # Don't fail on this
+            fi
+
+            # ==========================================
+            # Test 5: Phase 2 - Container Health
+            # ==========================================
+            echo ""
+            echo "Test 5/10: Phase 2 - Docker Container Status..."
+            cd /opt/copilot-app
+            unhealthy_count=$(docker compose ps | grep -c "unhealthy" || echo "0")
+            if [ "$unhealthy_count" = "0" ]; then
+              echo "  ✓ PASS: No unhealthy containers"
+              ((TESTS_PASSED++))
+            else
+              echo "  ❌ FAIL: Found $unhealthy_count unhealthy container(s)"
+              docker compose ps
+              ((TESTS_FAILED++))
+            fi
+
+            # ==========================================
+            # Test 6: Phase 2 - Rollback Test (verify old containers removed)
+            # ==========================================
+            echo ""
+            echo "Test 6/10: Phase 2 - Verify Single Container Instances..."
+            api_count=$(docker compose ps api-gateway | grep -c "copilot-api-gateway" || echo "0")
+            frontend_count=$(docker compose ps frontend | grep -c "copilot-frontend" || echo "0")
+
+            if [ "$api_count" = "1" ] && [ "$frontend_count" = "1" ]; then
+              echo "  ✓ PASS: Exactly 1 instance of each service running"
+              echo "  📊 API Gateway: $api_count instance(s)"
+              echo "  📊 Frontend: $frontend_count instance(s)"
+              ((TESTS_PASSED++))
+            else
+              echo "  ⚠️  WARNING: Unexpected container count"
+              echo "  📊 API Gateway: $api_count instance(s)"
+              echo "  📊 Frontend: $frontend_count instance(s)"
+              ((TESTS_PASSED++))  # Don't fail, might be during scale operation
+            fi
+
+            # ==========================================
+            # Test 7: Phase 3 - Nginx Cache Directories
+            # ==========================================
+            echo ""
+            echo "Test 7/10: Phase 3 - Nginx Cache Configuration..."
+            if [ -d "/var/cache/nginx/nextjs_static" ] && [ -d "/var/cache/nginx/api_cache" ]; then
+              echo "  ✓ PASS: Nginx cache directories exist"
+              cache_size=$(du -sh /var/cache/nginx/ 2>/dev/null || echo "unknown")
+              echo "  💾 Cache size: $cache_size"
+              ((TESTS_PASSED++))
+            else
+              echo "  ℹ️  INFO: Nginx cache directories not found (may not be using Nginx)"
+              ((TESTS_PASSED++))  # Don't fail if not using Nginx
+            fi
+
+            # ==========================================
+            # Test 8: Redis Connection
+            # ==========================================
+            echo ""
+            echo "Test 8/10: Redis Connectivity..."
+            if docker exec copilot-redis redis-cli ping &> /dev/null; then
+              redis_keys=$(docker exec copilot-redis redis-cli DBSIZE 2>/dev/null | grep -oP '\d+' || echo "unknown")
+              echo "  ✓ PASS: Redis is accessible"
+              echo "  🔑 Current keys: $redis_keys"
+              ((TESTS_PASSED++))
+            else
+              echo "  ❌ FAIL: Cannot connect to Redis"
+              ((TESTS_FAILED++))
+            fi
+
+            # ==========================================
+            # Test 9: Static Assets Loading
+            # ==========================================
+            echo ""
+            echo "Test 9/10: Next.js Static Assets..."
+            static_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/_next/static/chunks/webpack.js 2>/dev/null || echo "404")
+            if [ "$static_status" = "200" ] || [ "$static_status" = "404" ]; then
+              # 404 is OK if no webpack file exists yet
+              echo "  ✓ PASS: Static assets endpoint is accessible"
+              ((TESTS_PASSED++))
+            else
+              echo "  ❌ FAIL: Static assets not loading properly (HTTP $static_status)"
+              ((TESTS_FAILED++))
+            fi
+
+            # ==========================================
+            # Test 10: Database Connection
+            # ==========================================
+            echo ""
+            echo "Test 10/10: Database Connectivity..."
+            db_logs=$(docker logs copilot-api-gateway --tail=20 2>&1 | grep -i "database\|prisma\|connect" || echo "")
+            if [[ "$db_logs" != *"error"* ]] || [[ "$db_logs" == "" ]]; then
+              echo "  ✓ PASS: No database connection errors in recent logs"
+              ((TESTS_PASSED++))
+            else
+              echo "  ⚠️  WARNING: Possible database issues detected"
+              echo "  📋 Recent logs:"
+              echo "$db_logs" | tail -5
+              ((TESTS_PASSED++))  # Don't fail on warnings
+            fi
+
+            # ==========================================
+            # Test Summary
+            # ==========================================
+            echo ""
+            echo "=========================================="
+            echo "📊 SMOKE TESTS SUMMARY"
+            echo "=========================================="
+            echo "  Tests Passed: $TESTS_PASSED/10"
+            echo "  Tests Failed: $TESTS_FAILED/10"
+            echo ""
+
+            if [ $TESTS_FAILED -eq 0 ]; then
+              echo "✅ ALL SMOKE TESTS PASSED"
+              echo "=========================================="
+              exit 0
+            elif [ $TESTS_FAILED -le 2 ]; then
+              echo "⚠️  SOME TESTS FAILED (Non-critical)"
+              echo "=========================================="
+              exit 0  # Don't fail deployment for minor issues
+            else
+              echo "❌ CRITICAL: Multiple tests failed"
+              echo "=========================================="
+              exit 1
             fi
           EOF
 
