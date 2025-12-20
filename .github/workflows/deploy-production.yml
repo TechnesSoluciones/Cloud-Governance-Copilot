@@ -184,6 +184,7 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
             GIT_COMMIT_SHA=${{ github.sha }}
             BUILD_TIMESTAMP=${{ github.run_number }}
+            VERSION_TAG=${{ steps.version.outputs.tag }}
 
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master
@@ -317,33 +318,78 @@ jobs:
             fi
 
             # ============================================
-            # STEP 4: Stop and clean old containers
+            # STEP 4: Rolling Update - API Gateway
             # ============================================
             echo ""
-            echo "🛑 Step 4/7: Stopping old containers..."
-
-            # Stop containers gracefully
-            docker compose down --remove-orphans
-            echo "  ✓ Containers stopped"
-
-            # Clean up orphaned volumes and networks
-            docker volume prune -f > /dev/null 2>&1 || true
-            docker network prune -f > /dev/null 2>&1 || true
-            echo "  ✓ Orphaned resources cleaned"
-
-            # ============================================
-            # STEP 5: Start services in correct order
-            # ============================================
-            echo ""
-            echo "▶️  Step 5/7: Starting services (ordered)..."
+            echo "🔄 Step 4/7: Rolling update for API Gateway..."
 
             # Set version for docker-compose
             export IMAGE_TAG=${VERSION_TAG}
 
-            # Start Redis first (cache layer)
-            echo "  → Starting Redis..."
-            docker compose up -d redis
+            # Update API Gateway with zero downtime
+            echo "  → Scaling API Gateway to 2 instances (old + new)..."
+            docker compose up -d --no-deps --scale api-gateway=2 api-gateway
+            sleep 15
+
+            # Wait for new instance to be healthy
+            echo "  → Waiting for new API Gateway instance..."
+            for i in {1..24}; do
+              HEALTHY_COUNT=$(docker compose ps api-gateway | grep -c "(healthy)" || echo "0")
+              if [ "$HEALTHY_COUNT" -ge "1" ]; then
+                echo "  ✓ New API Gateway is healthy"
+                break
+              fi
+              if [ $i -eq 24 ]; then
+                echo "  ⚠ API Gateway health check timeout (continuing anyway)"
+              fi
+              sleep 5
+            done
+
+            # Scale down to 1 instance (removes old container)
+            echo "  → Scaling down to 1 instance (removing old)..."
+            docker compose up -d --no-deps --scale api-gateway=1 api-gateway
             sleep 5
+            echo "  ✓ API Gateway rolling update completed"
+
+            # ============================================
+            # STEP 5: Rolling Update - Frontend
+            # ============================================
+            echo ""
+            echo "🔄 Step 5/7: Rolling update for Frontend..."
+
+            # Update Frontend with zero downtime
+            echo "  → Scaling Frontend to 2 instances (old + new)..."
+            docker compose up -d --no-deps --scale frontend=2 frontend
+            sleep 15
+
+            # Wait for new instance to be healthy
+            echo "  → Waiting for new Frontend instance..."
+            for i in {1..24}; do
+              # Check if frontend is responding
+              if curl -sf http://localhost:3000/api/version > /dev/null 2>&1; then
+                echo "  ✓ New Frontend is responding"
+                break
+              fi
+              if [ $i -eq 24 ]; then
+                echo "  ⚠ Frontend health check timeout (continuing anyway)"
+              fi
+              sleep 5
+            done
+
+            # Scale down to 1 instance (removes old container)
+            echo "  → Scaling down to 1 instance (removing old)..."
+            docker compose up -d --no-deps --scale frontend=1 frontend
+            sleep 5
+            echo "  ✓ Frontend rolling update completed"
+
+            # ============================================
+            # STEP 5.5: Ensure Redis is running
+            # ============================================
+            echo ""
+            echo "🔍 Step 5.5/7: Verifying Redis..."
+
+            # Ensure Redis is up (should already be running from cache clear)
+            docker compose up -d redis
 
             # Wait for Redis to be healthy
             echo "  → Waiting for Redis health check..."
@@ -358,30 +404,12 @@ jobs:
               sleep 5
             done
 
-            # Start API Gateway (backend)
-            echo "  → Starting API Gateway..."
-            docker compose up -d api-gateway
-            sleep 10
-
-            # Wait for API Gateway to be healthy
-            echo "  → Waiting for API Gateway health check..."
-            for i in {1..24}; do
-              if docker compose ps api-gateway | grep -q "(healthy)"; then
-                echo "  ✓ API Gateway is healthy"
-                break
-              fi
-              if [ $i -eq 24 ]; then
-                echo "  ⚠ API Gateway health check timeout (continuing anyway)"
-              fi
-              sleep 5
-            done
-
-            # Start Frontend (depends on API)
-            echo "  → Starting Frontend..."
-            docker compose up -d frontend
-            sleep 10
-
-            echo "  ✓ All services started"
+            # Clean up orphaned volumes and networks
+            echo ""
+            echo "🧹 Cleaning up orphaned resources..."
+            docker volume prune -f > /dev/null 2>&1 || true
+            docker network prune -f > /dev/null 2>&1 || true
+            echo "  ✓ Orphaned resources cleaned"
 
             # ============================================
             # STEP 6: Verify deployment
@@ -394,24 +422,44 @@ jobs:
             echo "Container Status:"
             docker compose ps
 
-            # Verify Redis is empty (cache cleared)
+            # Verify Redis cache status
             echo ""
             echo "Cache Status:"
             REDIS_KEYS=$(docker exec copilot-redis redis-cli -a "$REDIS_PASS" --no-auth-warning DBSIZE)
-            echo "  Redis keys: $REDIS_KEYS"
+            echo "  Redis keys: $REDIS_KEYS (should be low after cache clear)"
 
-            # Verify build IDs
+            # Verify build version using /api/version endpoint
             echo ""
-            echo "Build Information:"
-            docker exec copilot-frontend env | grep BUILD || echo "  No build info available"
+            echo "Build Version Verification:"
+            VERSION_RESPONSE=$(curl -sf http://localhost:3000/api/version || echo "{}")
+            if [ "$VERSION_RESPONSE" != "{}" ]; then
+              echo "  Frontend /api/version response:"
+              echo "$VERSION_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$VERSION_RESPONSE"
+
+              # Extract buildId and verify it matches expected version
+              BUILD_ID=$(echo "$VERSION_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('buildId', 'unknown'))" 2>/dev/null || echo "unknown")
+              echo ""
+              echo "  Deployed Build ID: $BUILD_ID"
+              echo "  Expected Version Tag: ${VERSION_TAG}"
+
+              # Warn if build ID doesn't contain version (may be timestamp in local dev)
+              if [[ "$BUILD_ID" != *"${VERSION_TAG}"* ]] && [[ "$BUILD_ID" != "build-"* ]]; then
+                echo "  ⚠ WARNING: Build ID does not match expected version tag"
+              else
+                echo "  ✓ Build version verified"
+              fi
+            else
+              echo "  ⚠ Could not fetch /api/version (may not be available yet)"
+            fi
 
             # Test health endpoints
             echo ""
             echo "Health Checks:"
             API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
             FRONTEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
-            echo "  API Gateway: $API_HEALTH"
-            echo "  Frontend: $FRONTEND_HEALTH"
+            echo "  API Gateway (/health): $API_HEALTH"
+            echo "  Frontend (/api/health): $FRONTEND_HEALTH"
+            echo "  Frontend (/api/version): $(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/version || echo "failed")"
 
             # ============================================
             # STEP 7: Cleanup old images

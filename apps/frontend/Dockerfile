@@ -40,8 +40,17 @@ RUN npm install --only=dev
 # Copy application source
 COPY . .
 
-# Disable Next.js telemetry
-ENV NEXT_TELEMETRY_DISABLED=1
+# Build arguments for version tracking
+ARG GIT_COMMIT_SHA=unknown
+ARG BUILD_TIMESTAMP
+ARG VERSION_TAG
+
+# Set build-time environment variables for Next.js build
+# These will be embedded in the build and available at runtime
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    GIT_COMMIT_SHA=${GIT_COMMIT_SHA} \
+    BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
+    NEXT_PUBLIC_BUILD_ID=${GIT_COMMIT_SHA}
 
 # Build Next.js application
 # Next.js will create .next/standalone directory with minimal dependencies
@@ -62,11 +71,20 @@ RUN apk update && \
 
 WORKDIR /app
 
+# Build arguments to pass to runtime
+ARG GIT_COMMIT_SHA=unknown
+ARG BUILD_TIMESTAMP
+ARG VERSION_TAG
+
 # Set production environment variables
+# Include build information for version tracking
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    HOSTNAME="0.0.0.0"
+    HOSTNAME="0.0.0.0" \
+    GIT_COMMIT_SHA=${GIT_COMMIT_SHA} \
+    BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
+    NEXT_PUBLIC_BUILD_ID=${GIT_COMMIT_SHA}
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
