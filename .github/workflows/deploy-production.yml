@@ -254,19 +254,50 @@ jobs:
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
 
-      - name: Determine version tag
+      - name: Determine version tag (Enhanced Semantic Versioning)
         id: version
         run: |
+          # Phase 2: Enhanced semantic versioning with git describe
+
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tagged release (e.g., v1.0.6)
             VERSION="${GITHUB_REF#refs/tags/v}"
             echo "tag=${VERSION}" >> $GITHUB_OUTPUT
-            echo "Deploying version: ${VERSION}"
+            echo "semantic_version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "deployment_type=release" >> $GITHUB_OUTPUT
+            echo "🏷️  Deploying RELEASE version: ${VERSION}"
+
           elif [[ "${{ github.event.inputs.version }}" != "" ]]; then
+            # Manual workflow dispatch with specific version
             echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "Deploying version: ${{ github.event.inputs.version }}"
+            echo "semantic_version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "deployment_type=manual" >> $GITHUB_OUTPUT
+            echo "🔧 Deploying MANUAL version: ${{ github.event.inputs.version }}"
+
           else
+            # Auto-deployment from main branch: use git describe for semantic versioning
+            # Format: v1.0.5-3-g1a2b3c4 (last tag + commits since + short sha)
+            GIT_DESCRIBE=$(git describe --tags --always --dirty 2>/dev/null || echo "v0.0.0-${GITHUB_SHA:0:7}")
+            COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo "0")
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+
+            # Extract base version from last tag
+            BASE_VERSION=$(echo "$GIT_DESCRIBE" | grep -oP 'v?\K[0-9]+\.[0-9]+\.[0-9]+' || echo "0.0.0")
+
+            # Create semantic version: base.commits-sha (e.g., 1.0.5-3-g1a2b3c4)
+            SEMANTIC_VERSION="${BASE_VERSION}+${COMMIT_COUNT}.${SHORT_SHA}"
+
             echo "tag=latest" >> $GITHUB_OUTPUT
-            echo "Deploying version: latest"
+            echo "semantic_version=${SEMANTIC_VERSION}" >> $GITHUB_OUTPUT
+            echo "deployment_type=auto" >> $GITHUB_OUTPUT
+            echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "commit_count=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
+
+            echo "🚀 Deploying AUTO version:"
+            echo "   Docker tag: latest"
+            echo "   Semantic version: ${SEMANTIC_VERSION}"
+            echo "   Commits since last tag: ${COMMIT_COUNT}"
+            echo "   Short SHA: ${SHORT_SHA}"
           fi
 
       - name: Deploy on server with cache clearing
@@ -318,13 +349,17 @@ jobs:
             fi
 
             # ============================================
-            # STEP 4: Rolling Update - API Gateway
+            # STEP 4: Rolling Update - API Gateway (Enhanced with Rollback)
             # ============================================
             echo ""
             echo "🔄 Step 4/7: Rolling update for API Gateway..."
 
             # Set version for docker-compose
             export IMAGE_TAG=${VERSION_TAG}
+
+            # Phase 2: Store old container ID for rollback capability
+            OLD_API_CONTAINER=$(docker compose ps -q api-gateway | head -n 1)
+            echo "  📝 Stored old container ID: ${OLD_API_CONTAINER:0:12}"
 
             # Update API Gateway with zero downtime
             echo "  → Scaling API Gateway to 2 instances (old + new)..."
@@ -333,29 +368,62 @@ jobs:
 
             # Wait for new instance to be healthy
             echo "  → Waiting for new API Gateway instance..."
+            API_HEALTHY=false
             for i in {1..24}; do
               HEALTHY_COUNT=$(docker compose ps api-gateway | grep -c "(healthy)" || echo "0")
               if [ "$HEALTHY_COUNT" -ge "1" ]; then
                 echo "  ✓ New API Gateway is healthy"
+                API_HEALTHY=true
                 break
               fi
               if [ $i -eq 24 ]; then
-                echo "  ⚠ API Gateway health check timeout (continuing anyway)"
+                echo "  ❌ API Gateway health check timeout - ROLLBACK REQUIRED"
+                API_HEALTHY=false
               fi
               sleep 5
             done
 
-            # Scale down to 1 instance (removes old container)
-            echo "  → Scaling down to 1 instance (removing old)..."
-            docker compose up -d --no-deps --scale api-gateway=1 api-gateway
-            sleep 5
-            echo "  ✓ API Gateway rolling update completed"
+            # Phase 2: Build verification BEFORE scaling down
+            if [ "$API_HEALTHY" = true ]; then
+              echo "  → Verifying API Gateway health endpoint..."
+              API_STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
+
+              if [ "$API_STATUS" = "200" ]; then
+                echo "  ✓ API Gateway health check passed (HTTP $API_STATUS)"
+
+                # Safe to scale down old container
+                echo "  → Scaling down to 1 instance (removing old)..."
+                docker compose up -d --no-deps --scale api-gateway=1 api-gateway
+                sleep 5
+                echo "  ✓ API Gateway rolling update completed"
+              else
+                echo "  ❌ API Gateway health check failed (HTTP $API_STATUS)"
+                echo "  🔄 ROLLBACK: Removing new container, keeping old one..."
+
+                # Rollback: scale down to 1 (removes new, keeps old)
+                docker stop $(docker compose ps -q api-gateway | grep -v "$OLD_API_CONTAINER") 2>/dev/null || true
+                docker compose up -d --no-deps --scale api-gateway=1 api-gateway
+
+                echo "  ⚠️  API Gateway rollback completed - deployment FAILED"
+                exit 1
+              fi
+            else
+              echo "  🔄 ROLLBACK: New instance never became healthy..."
+              docker stop $(docker compose ps -q api-gateway | grep -v "$OLD_API_CONTAINER") 2>/dev/null || true
+              docker compose up -d --no-deps --scale api-gateway=1 api-gateway
+              echo "  ⚠️  API Gateway rollback completed - deployment FAILED"
+              exit 1
+            fi
 
             # ============================================
-            # STEP 5: Rolling Update - Frontend
+            # STEP 5: Rolling Update - Frontend (Enhanced with Build Verification)
             # ============================================
             echo ""
             echo "🔄 Step 5/7: Rolling update for Frontend..."
+
+            # Phase 2: Store old container ID for rollback capability
+            OLD_FRONTEND_CONTAINER=$(docker compose ps -q frontend | head -n 1)
+            echo "  📝 Stored old container ID: ${OLD_FRONTEND_CONTAINER:0:12}"
 
             # Update Frontend with zero downtime
             echo "  → Scaling Frontend to 2 instances (old + new)..."
@@ -364,23 +432,69 @@ jobs:
 
             # Wait for new instance to be healthy
             echo "  → Waiting for new Frontend instance..."
+            FRONTEND_HEALTHY=false
             for i in {1..24}; do
               # Check if frontend is responding
               if curl -sf http://localhost:3000/api/version > /dev/null 2>&1; then
                 echo "  ✓ New Frontend is responding"
+                FRONTEND_HEALTHY=true
                 break
               fi
               if [ $i -eq 24 ]; then
-                echo "  ⚠ Frontend health check timeout (continuing anyway)"
+                echo "  ❌ Frontend health check timeout - ROLLBACK REQUIRED"
+                FRONTEND_HEALTHY=false
               fi
               sleep 5
             done
 
-            # Scale down to 1 instance (removes old container)
-            echo "  → Scaling down to 1 instance (removing old)..."
-            docker compose up -d --no-deps --scale frontend=1 frontend
-            sleep 5
-            echo "  ✓ Frontend rolling update completed"
+            # Phase 2: Build verification BEFORE scaling down
+            if [ "$FRONTEND_HEALTHY" = true ]; then
+              echo "  → Verifying Frontend /api/version endpoint..."
+              VERSION_RESPONSE=$(curl -sf http://localhost:3000/api/version || echo "{}")
+
+              if [ "$VERSION_RESPONSE" != "{}" ]; then
+                # Extract buildId from JSON response
+                BUILD_ID=$(echo "$VERSION_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('buildId', 'unknown'))" 2>/dev/null || echo "unknown")
+
+                echo "  ✓ Frontend /api/version endpoint responding"
+                echo "  📦 Deployed Build ID: $BUILD_ID"
+
+                # Verify build ID is not 'development' (would indicate env vars not passed)
+                if [ "$BUILD_ID" != "development" ] && [ "$BUILD_ID" != "unknown" ]; then
+                  echo "  ✓ Build verification passed"
+
+                  # Safe to scale down old container
+                  echo "  → Scaling down to 1 instance (removing old)..."
+                  docker compose up -d --no-deps --scale frontend=1 frontend
+                  sleep 5
+                  echo "  ✓ Frontend rolling update completed"
+                else
+                  echo "  ⚠️  WARNING: Build ID is '$BUILD_ID' - may indicate build issue"
+                  echo "  ℹ️  Continuing deployment, but verify build configuration"
+
+                  # Continue but log warning
+                  docker compose up -d --no-deps --scale frontend=1 frontend
+                  sleep 5
+                  echo "  ⚠️  Frontend updated with warnings"
+                fi
+              else
+                echo "  ❌ Frontend /api/version endpoint failed"
+                echo "  🔄 ROLLBACK: Removing new container, keeping old one..."
+
+                # Rollback: scale down to 1 (removes new, keeps old)
+                docker stop $(docker compose ps -q frontend | grep -v "$OLD_FRONTEND_CONTAINER") 2>/dev/null || true
+                docker compose up -d --no-deps --scale frontend=1 frontend
+
+                echo "  ⚠️  Frontend rollback completed - deployment FAILED"
+                exit 1
+              fi
+            else
+              echo "  🔄 ROLLBACK: New instance never became healthy..."
+              docker stop $(docker compose ps -q frontend | grep -v "$OLD_FRONTEND_CONTAINER") 2>/dev/null || true
+              docker compose up -d --no-deps --scale frontend=1 frontend
+              echo "  ⚠️  Frontend rollback completed - deployment FAILED"
+              exit 1
+            fi
 
             # ============================================
             # STEP 5.5: Ensure Redis is running
@@ -471,11 +585,31 @@ jobs:
 
             echo ""
             echo "=========================================="
-            echo "✨ DEPLOYMENT v${VERSION_TAG} COMPLETED"
+            echo "✨ DEPLOYMENT COMPLETED SUCCESSFULLY"
             echo "=========================================="
             echo ""
-            echo "Recent logs (last 10 lines):"
+            echo "📦 Deployment Details:"
+            echo "   Docker Tag: ${VERSION_TAG}"
+            echo "   Semantic Version: ${{ steps.version.outputs.semantic_version }}"
+            echo "   Deployment Type: ${{ steps.version.outputs.deployment_type }}"
+            echo "   Commit SHA: ${{ github.sha }}"
+            echo ""
+            echo "🎯 Deployment Features:"
+            echo "   ✓ Rolling updates (zero downtime)"
+            echo "   ✓ Automatic health checks"
+            echo "   ✓ Build verification before scale-down"
+            echo "   ✓ Automatic rollback on failure"
+            echo "   ✓ Cache cleared before deployment"
+            echo ""
+            echo "🔗 Quick Links:"
+            echo "   Frontend: http://91.98.42.19:3000"
+            echo "   API Health: http://91.98.42.19:3010/health"
+            echo "   API Version: http://91.98.42.19:3000/api/version"
+            echo ""
+            echo "📋 Recent logs (last 10 lines):"
             docker compose logs --tail=10
+            echo ""
+            echo "=========================================="
           DEPLOY_EOF
 
       - name: Verify deployment
