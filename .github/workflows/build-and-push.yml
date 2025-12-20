@@ -65,6 +65,9 @@ jobs:
           build-args: |
             NODE_ENV=production
             BUILDKIT_INLINE_CACHE=1
+            GIT_COMMIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ github.run_number }}
+            VERSION_TAG=latest
 
   build-frontend:
     name: Build Frontend
@@ -114,3 +117,6 @@ jobs:
             NODE_ENV=production
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             BUILDKIT_INLINE_CACHE=1
+            GIT_COMMIT_SHA=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ github.run_number }}
+            VERSION_TAG=latest
