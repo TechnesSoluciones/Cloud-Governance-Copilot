@@ -66,7 +66,18 @@ git commit -m "feat!: cambiar estructura de API"
 git commit -m "feat: nuevo auth
 
 BREAKING CHANGE: removed old auth endpoints"
+
+# Skip CI - Para cambios de docs/workflow que no requieren deployment
+git commit -m "docs: actualizar README [skip ci]"
+git commit -m "chore(workflow): fix typo [ci skip]"
+git commit -m "style: format code [no ci]"
 ```
+
+**Nota**: Usa `[skip ci]`, `[ci skip]`, o `[no ci]` en el mensaje del commit cuando:
+- Cambies solo documentación (README, VERSIONING, etc.)
+- Modifiques archivos de workflow (.github/workflows/)
+- Actualices scripts que no afectan la aplicación
+- Hagas cambios de formato o estilo sin lógica
 
 ---
 
