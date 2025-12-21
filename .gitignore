@@ -92,3 +92,17 @@ grafana_data/
 # Documentation (local only)
 Context_Docs/
 docs/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Test results and artifacts
+test-results/
+.playwright-artifacts-*/
+*.webm
+
+# Backup files
+*.bak
+
+# Test metadata
+.last-run.json

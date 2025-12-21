@@ -100,6 +100,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Copy static files (JS, CSS, images)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# CRITICAL FIX: Copy BUILD_ID and manifest files for proper chunk loading
+# This prevents "Failed to find Server Action" errors by ensuring build version consistency
+COPY --from=builder --chown=nextjs:nodejs /app/.next/BUILD_ID ./.next/BUILD_ID
+COPY --from=builder --chown=nextjs:nodejs /app/.next/build-manifest.json ./.next/build-manifest.json
+COPY --from=builder --chown=nextjs:nodejs /app/.next/routes-manifest.json ./.next/routes-manifest.json
+
 # Switch to non-root user
 USER nextjs
 
