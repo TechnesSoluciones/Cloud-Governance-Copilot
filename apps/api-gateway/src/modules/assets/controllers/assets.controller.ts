@@ -26,7 +26,6 @@ import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { AssetDiscoveryService } from '../services/asset-discovery.service';
 import { EventEmitter } from 'events';
-import { cacheResponse, CachePresets } from '../../../lib/cache';
 
 // ============================================================
 // Type Extensions
@@ -226,105 +225,93 @@ export class AssetsController {
         `[AssetsController] list - Tenant: ${tenantId}, Page: ${params.page}, Limit: ${params.limit}`
       );
 
-      // Step 3: Build cache key from query parameters
-      const cacheKey = `assets-list:${params.page}:${params.limit}:${params.provider || 'all'}:${params.resourceType || 'all'}:${params.region || 'all'}:${params.status || 'all'}:${params.tags || 'all'}:${params.sortBy}:${params.sortOrder}`;
+      // Step 3: Build Prisma where clause with filters
+      const where: any = {
+        tenantId,
+        deletedAt: null, // Exclude soft-deleted assets
+      };
 
-      // Step 4: Execute with caching
-      const result = await cacheResponse(
-        cacheKey,
-        async () => {
-          // Build Prisma where clause with filters
-          const where: any = {
-            tenantId,
-            deletedAt: null, // Exclude soft-deleted assets
+      // Apply filters
+      if (params.provider) {
+        where.provider = params.provider.toLowerCase();
+      }
+
+      if (params.resourceType) {
+        where.resourceType = params.resourceType;
+      }
+
+      if (params.region) {
+        where.region = params.region;
+      }
+
+      if (params.status) {
+        where.status = params.status;
+      }
+
+      // Tags filter using JSON path query
+      if (params.tags) {
+        const [key, value] = params.tags.split(':');
+        if (key && value) {
+          where.tags = {
+            path: [key],
+            equals: value,
           };
+        }
+      }
 
-          // Apply filters
-          if (params.provider) {
-            where.provider = params.provider.toLowerCase();
-          }
+      // Step 4: Calculate pagination
+      const skip = (params.page - 1) * params.limit;
+      const take = params.limit;
 
-          if (params.resourceType) {
-            where.resourceType = params.resourceType;
-          }
+      // Step 5: Build orderBy clause
+      const orderBy: any = {
+        [params.sortBy]: params.sortOrder,
+      };
 
-          if (params.region) {
-            where.region = params.region;
-          }
+      // Step 6: Execute queries (count and data)
+      const [total, assets] = await Promise.all([
+        this.prisma.asset.count({ where }),
+        this.prisma.asset.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+        }),
+      ]);
 
-          if (params.status) {
-            where.status = params.status;
-          }
+      console.log(`[AssetsController] list - Retrieved ${assets.length} assets, Total: ${total}`);
 
-          // Tags filter using JSON path query
-          if (params.tags) {
-            const [key, value] = params.tags.split(':');
-            if (key && value) {
-              where.tags = {
-                path: [key],
-                equals: value,
-              };
-            }
-          }
+      // Step 7: Transform assets to response format
+      const data: AssetResponse[] = assets.map((asset) => ({
+        id: asset.id,
+        tenantId: asset.tenantId,
+        cloudAccountId: asset.cloudAccountId,
+        provider: asset.provider,
+        resourceType: asset.resourceType,
+        resourceId: asset.resourceId,
+        name: asset.name,
+        region: asset.region,
+        zone: asset.zone,
+        status: asset.status,
+        tags: asset.tags,
+        metadata: asset.metadata,
+        lastSeenAt: asset.lastSeenAt.toISOString(),
+      }));
 
-          // Calculate pagination
-          const skip = (params.page - 1) * params.limit;
-          const take = params.limit;
+      // Step 8: Calculate pagination metadata
+      const totalPages = Math.ceil(total / params.limit);
 
-          // Build orderBy clause
-          const orderBy: any = {
-            [params.sortBy]: params.sortOrder,
-          };
-
-          // Execute queries (count and data)
-          const [total, assets] = await Promise.all([
-            this.prisma.asset.count({ where }),
-            this.prisma.asset.findMany({
-              where,
-              orderBy,
-              skip,
-              take,
-            }),
-          ]);
-
-          console.log(`[AssetsController] list - Retrieved ${assets.length} assets, Total: ${total}`);
-
-          // Transform assets to response format
-          const data: AssetResponse[] = assets.map((asset) => ({
-            id: asset.id,
-            tenantId: asset.tenantId,
-            cloudAccountId: asset.cloudAccountId,
-            provider: asset.provider,
-            resourceType: asset.resourceType,
-            resourceId: asset.resourceId,
-            name: asset.name,
-            region: asset.region,
-            zone: asset.zone,
-            status: asset.status,
-            tags: asset.tags,
-            metadata: asset.metadata,
-            lastSeenAt: asset.lastSeenAt.toISOString(),
-          }));
-
-          // Calculate pagination metadata
-          const totalPages = Math.ceil(total / params.limit);
-
-          // Return paginated response
-          return {
-            success: true,
-            data,
-            meta: {
-              page: params.page,
-              limit: params.limit,
-              total,
-              totalPages,
-            },
-          };
+      // Step 9: Return paginated response
+      res.json({
+        success: true,
+        data,
+        meta: {
+          page: params.page,
+          limit: params.limit,
+          total,
+          totalPages,
         },
-        CachePresets.ASSETS
-      );
-
-      res.json(result);
+      });
     } catch (error) {
       this.handleError(error, res, 'list');
     }
