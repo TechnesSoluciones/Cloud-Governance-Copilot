@@ -7,6 +7,7 @@ import { AzureResourceGraphService } from '../../../services/azure/resourceGraph
 import { AzureCostManagementService } from '../../../services/azure/costManagement.service';
 import { PrismaClient } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
+import { cacheResponse, CachePresets } from '../../../lib/cache';
 export interface DashboardOverview {
   resources: {
     total: number;
@@ -66,70 +67,82 @@ export class DashboardService {
    * Aggregates resources, costs, security, and alerts
    */
   static async getOverview(accountId: string): Promise<DashboardOverview> {
-    try {
-      // Parallel fetch for performance
-      const [resourceSummary, costData, securityData] = await Promise.all([
-        this.getResourceSummary(accountId),
-        this.getCostSummary(accountId),
-        this.getSecuritySummary(accountId),
-      ]);
+    return cacheResponse(
+      `overview:${accountId}`,
+      async () => {
+        try {
+          // Parallel fetch for performance
+          const [resourceSummary, costData, securityData] = await Promise.all([
+            this.getResourceSummary(accountId),
+            this.getCostSummary(accountId),
+            this.getSecuritySummary(accountId),
+          ]);
 
-      // Get recent alerts (last 7 days)
-      const alerts = await this.getRecentAlerts(accountId, 7);
+          // Get recent alerts (last 7 days)
+          const alerts = await this.getRecentAlerts(accountId, 7);
 
-      return {
-        resources: resourceSummary,
-        costs: costData,
-        security: securityData,
-        alerts: {
-          active: alerts.length,
-          recent: alerts.slice(0, 5), // Top 5 most recent
-        },
-      };
-    } catch (error: any) {
-      console.error(`Failed to get dashboard overview for account ${accountId}:`, error);
-      throw new Error(`Failed to load dashboard: ${error.message}`);
-    }
+          return {
+            resources: resourceSummary,
+            costs: costData,
+            security: securityData,
+            alerts: {
+              active: alerts.length,
+              recent: alerts.slice(0, 5), // Top 5 most recent
+            },
+          };
+        } catch (error: any) {
+          console.error(`Failed to get dashboard overview for account ${accountId}:`, error);
+          throw new Error(`Failed to load dashboard: ${error.message}`);
+        }
+      },
+      CachePresets.DASHBOARD
+    );
   }
 
   /**
    * Get health status for the account
    */
   static async getHealthStatus(accountId: string): Promise<HealthStatus> {
-    try {
-      const resourceSummary = await AzureResourceGraphService.getResourceSummary(accountId);
-      const recentChanges = await AzureResourceGraphService.getRecentChanges(accountId);
+    return cacheResponse(
+      `health:${accountId}`,
+      async () => {
+        try {
+          const resourceSummary = await AzureResourceGraphService.getResourceSummary(accountId);
+          const recentChanges = await AzureResourceGraphService.getRecentChanges(accountId);
 
-      // Calculate percentages for locations
-      const totalResources = resourceSummary.totalResources;
-      const resourcesByLocation = resourceSummary.byLocation.map((loc) => ({
-        location: loc.location,
-        count: loc.count,
-        percentage: totalResources > 0 ? (loc.count / totalResources) * 100 : 0,
-      }));
+          // Calculate percentages for locations
+          const totalResources = resourceSummary.totalResources;
+          const resourcesByLocation = resourceSummary.byLocation.map((loc) => ({
+            location: loc.location,
+            count: loc.count,
+            percentage: totalResources > 0 ? (loc.count / totalResources) * 100 : 0,
+          }));
 
-      // Format recent activity
-      const recentActivity = recentChanges.slice(0, 10).map((change: any) => ({
-        timestamp: new Date(change.timestamp),
-        resourceId: change.resourceId,
-        changeType: change.changeType || 'Update',
-        description: `${change.changeType || 'Update'} on ${change.resourceId.split('/').pop() || 'resource'}`,
-      }));
+          // Format recent activity
+          const recentActivity = recentChanges.slice(0, 10).map((change: any) => ({
+            timestamp: new Date(change.timestamp),
+            resourceId: change.resourceId,
+            changeType: change.changeType || 'Update',
+            description: `${change.changeType || 'Update'} on ${change.resourceId.split('/').pop() || 'resource'}`,
+          }));
 
-      return {
-        virtualMachines: {
-          total: resourceSummary.virtualMachines.total,
-          running: resourceSummary.virtualMachines.running,
-          stopped: resourceSummary.virtualMachines.stopped,
-          deallocated: resourceSummary.virtualMachines.total - resourceSummary.virtualMachines.running,
-        },
-        resourcesByLocation: resourcesByLocation.slice(0, 5), // Top 5 locations
-        recentActivity,
-      };
-    } catch (error: any) {
-      console.error(`Failed to get health status for account ${accountId}:`, error);
-      throw new Error(`Failed to load health status: ${error.message}`);
-    }
+          return {
+            virtualMachines: {
+              total: resourceSummary.virtualMachines.total,
+              running: resourceSummary.virtualMachines.running,
+              stopped: resourceSummary.virtualMachines.stopped,
+              deallocated: resourceSummary.virtualMachines.total - resourceSummary.virtualMachines.running,
+            },
+            resourcesByLocation: resourcesByLocation.slice(0, 5), // Top 5 locations
+            recentActivity,
+          };
+        } catch (error: any) {
+          console.error(`Failed to get health status for account ${accountId}:`, error);
+          throw new Error(`Failed to load health status: ${error.message}`);
+        }
+      },
+      CachePresets.DASHBOARD
+    );
   }
 
   /**

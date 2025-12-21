@@ -26,6 +26,7 @@ import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { AssetDiscoveryService } from '../services/asset-discovery.service';
 import { EventEmitter } from 'events';
+import { cacheResponse, CachePresets } from '../../../lib/cache';
 
 // ============================================================
 // Type Extensions
@@ -259,59 +260,71 @@ export class AssetsController {
         }
       }
 
-      // Step 4: Calculate pagination
-      const skip = (params.page - 1) * params.limit;
-      const take = params.limit;
+      // Step 4: Build cache key with all query parameters
+      const cacheKey = `list:${params.page}:${params.limit}${params.provider ? `:${params.provider}` : ''}${params.resourceType ? `:${params.resourceType}` : ''}${params.region ? `:${params.region}` : ''}${params.status ? `:${params.status}` : ''}${params.tags ? `:${params.tags}` : ''}:${params.sortBy}:${params.sortOrder}`;
 
-      // Step 5: Build orderBy clause
-      const orderBy: any = {
-        [params.sortBy]: params.sortOrder,
-      };
+      // Step 5: Execute with caching
+      const result = await cacheResponse(
+        cacheKey,
+        async () => {
+          // Calculate pagination
+          const skip = (params.page - 1) * params.limit;
+          const take = params.limit;
 
-      // Step 6: Execute queries (count and data)
-      const [total, assets] = await Promise.all([
-        this.prisma.asset.count({ where }),
-        this.prisma.asset.findMany({
-          where,
-          orderBy,
-          skip,
-          take,
-        }),
-      ]);
+          // Build orderBy clause
+          const orderBy: any = {
+            [params.sortBy]: params.sortOrder,
+          };
 
-      console.log(`[AssetsController] list - Retrieved ${assets.length} assets, Total: ${total}`);
+          // Execute queries (count and data)
+          const [total, assets] = await Promise.all([
+            this.prisma.asset.count({ where }),
+            this.prisma.asset.findMany({
+              where,
+              orderBy,
+              skip,
+              take,
+            }),
+          ]);
 
-      // Step 7: Transform assets to response format
-      const data: AssetResponse[] = assets.map((asset) => ({
-        id: asset.id,
-        tenantId: asset.tenantId,
-        cloudAccountId: asset.cloudAccountId,
-        provider: asset.provider,
-        resourceType: asset.resourceType,
-        resourceId: asset.resourceId,
-        name: asset.name,
-        region: asset.region,
-        zone: asset.zone,
-        status: asset.status,
-        tags: asset.tags,
-        metadata: asset.metadata,
-        lastSeenAt: asset.lastSeenAt.toISOString(),
-      }));
+          console.log(`[AssetsController] list - Retrieved ${assets.length} assets, Total: ${total}`);
 
-      // Step 8: Calculate pagination metadata
-      const totalPages = Math.ceil(total / params.limit);
+          // Transform assets to response format
+          const data: AssetResponse[] = assets.map((asset) => ({
+            id: asset.id,
+            tenantId: asset.tenantId,
+            cloudAccountId: asset.cloudAccountId,
+            provider: asset.provider,
+            resourceType: asset.resourceType,
+            resourceId: asset.resourceId,
+            name: asset.name,
+            region: asset.region,
+            zone: asset.zone,
+            status: asset.status,
+            tags: asset.tags,
+            metadata: asset.metadata,
+            lastSeenAt: asset.lastSeenAt.toISOString(),
+          }));
 
-      // Step 9: Return paginated response
-      res.json({
-        success: true,
-        data,
-        meta: {
-          page: params.page,
-          limit: params.limit,
-          total,
-          totalPages,
+          // Calculate pagination metadata
+          const totalPages = Math.ceil(total / params.limit);
+
+          // Return paginated response
+          return {
+            success: true,
+            data,
+            meta: {
+              page: params.page,
+              limit: params.limit,
+              total,
+              totalPages,
+            },
+          };
         },
-      });
+        CachePresets.ASSETS
+      );
+
+      res.json(result);
     } catch (error) {
       this.handleError(error, res, 'list');
     }
