@@ -26,6 +26,7 @@ import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { AnomalyDetectionService } from '../services';
 import { EventEmitter } from 'events';
+import { cacheResponse, CachePresets } from '../../../lib/cache';
 
 // ============================================================
 // Type Extensions
@@ -188,47 +189,59 @@ export class CostsController {
       const tenantId = req.user.tenantId;
       console.log(`[CostsController] getCosts - Tenant: ${tenantId}, DateRange: ${query.startDate} to ${query.endDate}`);
 
-      // Step 3: Build Prisma where clause with filters
-      const where: any = {
-        tenantId,
-        date: {
-          gte: new Date(query.startDate),
-          lte: new Date(query.endDate),
+      // Step 3: Cache key includes date range and filters
+      const cacheKey = `costs:${query.startDate}:${query.endDate}${query.provider ? `:${query.provider}` : ''}${query.service ? `:${query.service}` : ''}`;
+
+      // Step 4: Execute with caching
+      const result = await cacheResponse(
+        cacheKey,
+        async () => {
+          // Build Prisma where clause with filters
+          const where: any = {
+            tenantId,
+            date: {
+              gte: new Date(query.startDate),
+              lte: new Date(query.endDate),
+            },
+          };
+
+          if (query.provider) {
+            where.provider = query.provider;
+          }
+
+          if (query.service) {
+            where.service = query.service;
+          }
+
+          // Query cost data from database
+          const costs = await prisma.costData.findMany({
+            where,
+            orderBy: { date: 'asc' },
+          });
+
+          console.log(`[CostsController] getCosts - Retrieved ${costs.length} cost records`);
+
+          // Calculate total cost
+          const total = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
+
+          // Return formatted response
+          return {
+            success: true,
+            data: costs.map((cost) => ({
+              date: cost.date.toISOString().split('T')[0],
+              service: cost.service,
+              provider: cost.provider,
+              amount: Number(cost.amount),
+              currency: cost.currency,
+            })),
+            total: Math.round(total * 100) / 100,
+            currency: 'USD',
+          };
         },
-      };
+        CachePresets.COSTS
+      );
 
-      if (query.provider) {
-        where.provider = query.provider;
-      }
-
-      if (query.service) {
-        where.service = query.service;
-      }
-
-      // Step 4: Query cost data from database
-      const costs = await prisma.costData.findMany({
-        where,
-        orderBy: { date: 'asc' },
-      });
-
-      console.log(`[CostsController] getCosts - Retrieved ${costs.length} cost records`);
-
-      // Step 5: Calculate total cost
-      const total = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
-
-      // Step 6: Return formatted response
-      res.json({
-        success: true,
-        data: costs.map((cost) => ({
-          date: cost.date.toISOString().split('T')[0],
-          service: cost.service,
-          provider: cost.provider,
-          amount: Number(cost.amount),
-          currency: cost.currency,
-        })),
-        total: Math.round(total * 100) / 100,
-        currency: 'USD',
-      });
+      res.json(result);
     } catch (error) {
       this.handleError(error, res, 'getCosts');
     }
@@ -280,56 +293,68 @@ export class CostsController {
       const tenantId = req.user.tenantId;
       console.log(`[CostsController] getCostsByService - Tenant: ${tenantId}`);
 
-      // Step 3: Build Prisma where clause
-      const where: any = {
-        tenantId,
-        date: {
-          gte: new Date(query.startDate),
-          lte: new Date(query.endDate),
+      // Step 3: Cache key includes date range and provider filter
+      const cacheKey = `costs-by-service:${query.startDate}:${query.endDate}${query.provider ? `:${query.provider}` : ''}`;
+
+      // Step 4: Execute with caching
+      const result = await cacheResponse(
+        cacheKey,
+        async () => {
+          // Build Prisma where clause
+          const where: any = {
+            tenantId,
+            date: {
+              gte: new Date(query.startDate),
+              lte: new Date(query.endDate),
+            },
+          };
+
+          if (query.provider) {
+            where.provider = query.provider;
+          }
+
+          // Aggregate costs by service and provider
+          const aggregatedCosts = await prisma.costData.groupBy({
+            by: ['service', 'provider'],
+            where,
+            _sum: {
+              amount: true,
+            },
+          });
+
+          console.log(`[CostsController] getCostsByService - Aggregated ${aggregatedCosts.length} services`);
+
+          // Calculate total for percentage calculation
+          const grandTotal = aggregatedCosts.reduce(
+            (sum, item) => sum + Number(item._sum.amount || 0),
+            0
+          );
+
+          // Transform and calculate percentages
+          const serviceCosts: ServiceCostSummary[] = aggregatedCosts.map((item) => {
+            const totalCost = Number(item._sum.amount || 0);
+            const percentage = grandTotal > 0 ? (totalCost / grandTotal) * 100 : 0;
+
+            return {
+              service: item.service,
+              provider: item.provider,
+              totalCost: Math.round(totalCost * 100) / 100,
+              percentage: Math.round(percentage * 10) / 10, // Round to 1 decimal
+            };
+          });
+
+          // Sort by totalCost descending
+          serviceCosts.sort((a, b) => b.totalCost - a.totalCost);
+
+          return {
+            success: true,
+            data: serviceCosts,
+          };
         },
-      };
-
-      if (query.provider) {
-        where.provider = query.provider;
-      }
-
-      // Step 4: Aggregate costs by service and provider
-      const aggregatedCosts = await prisma.costData.groupBy({
-        by: ['service', 'provider'],
-        where,
-        _sum: {
-          amount: true,
-        },
-      });
-
-      console.log(`[CostsController] getCostsByService - Aggregated ${aggregatedCosts.length} services`);
-
-      // Step 5: Calculate total for percentage calculation
-      const grandTotal = aggregatedCosts.reduce(
-        (sum, item) => sum + Number(item._sum.amount || 0),
-        0
+        CachePresets.COSTS
       );
 
-      // Step 6: Transform and calculate percentages
-      const serviceCosts: ServiceCostSummary[] = aggregatedCosts.map((item) => {
-        const totalCost = Number(item._sum.amount || 0);
-        const percentage = grandTotal > 0 ? (totalCost / grandTotal) * 100 : 0;
-
-        return {
-          service: item.service,
-          provider: item.provider,
-          totalCost: Math.round(totalCost * 100) / 100,
-          percentage: Math.round(percentage * 10) / 10, // Round to 1 decimal
-        };
-      });
-
-      // Step 7: Sort by totalCost descending
-      serviceCosts.sort((a, b) => b.totalCost - a.totalCost);
-
-      res.json({
-        success: true,
-        data: serviceCosts,
-      });
+      res.json(result);
     } catch (error) {
       this.handleError(error, res, 'getCostsByService');
     }
@@ -380,27 +405,39 @@ export class CostsController {
       const tenantId = req.user.tenantId;
       console.log(`[CostsController] getCostTrends - Tenant: ${tenantId}, Granularity: ${query.granularity}`);
 
-      // Step 3: Query all costs in date range
-      const costs = await prisma.costData.findMany({
-        where: {
-          tenantId,
-          date: {
-            gte: new Date(query.startDate),
-            lte: new Date(query.endDate),
-          },
+      // Step 3: Cache key includes date range and granularity
+      const cacheKey = `costs-trends:${query.startDate}:${query.endDate}:${query.granularity}`;
+
+      // Step 4: Execute with caching
+      const result = await cacheResponse(
+        cacheKey,
+        async () => {
+          // Query all costs in date range
+          const costs = await prisma.costData.findMany({
+            where: {
+              tenantId,
+              date: {
+                gte: new Date(query.startDate),
+                lte: new Date(query.endDate),
+              },
+            },
+            orderBy: { date: 'asc' },
+          });
+
+          console.log(`[CostsController] getCostTrends - Retrieved ${costs.length} cost records`);
+
+          // Aggregate by granularity
+          const trends = this.aggregateTrends(costs, query.granularity);
+
+          return {
+            success: true,
+            data: trends,
+          };
         },
-        orderBy: { date: 'asc' },
-      });
+        CachePresets.COSTS
+      );
 
-      console.log(`[CostsController] getCostTrends - Retrieved ${costs.length} cost records`);
-
-      // Step 4: Aggregate by granularity
-      const trends = this.aggregateTrends(costs, query.granularity);
-
-      res.json({
-        success: true,
-        data: trends,
-      });
+      res.json(result);
     } catch (error) {
       this.handleError(error, res, 'getCostTrends');
     }
@@ -462,47 +499,67 @@ export class CostsController {
       const tenantId = req.user.tenantId;
       console.log(`[CostsController] getAnomalies - Tenant: ${tenantId}`);
 
-      // Step 3: Build filters for anomaly service
-      const filters: any = {};
+      // Step 3: Build cache key from filters
+      const filterKey = [
+        query.status || 'all',
+        query.severity || 'all',
+        query.provider || 'all',
+        query.service || 'all',
+        query.startDate || 'all',
+        query.endDate || 'all',
+      ].join(':');
+      const cacheKey = `anomalies:${filterKey}`;
 
-      if (query.status) filters.status = query.status;
-      if (query.severity) filters.severity = query.severity;
-      if (query.provider) filters.provider = query.provider;
-      if (query.service) filters.service = query.service;
+      // Step 4: Execute with caching
+      const result = await cacheResponse(
+        cacheKey,
+        async () => {
+          // Build filters for anomaly service
+          const filters: any = {};
 
-      if (query.startDate) {
-        filters.startDate = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        filters.endDate = new Date(query.endDate);
-      }
+          if (query.status) filters.status = query.status;
+          if (query.severity) filters.severity = query.severity;
+          if (query.provider) filters.provider = query.provider;
+          if (query.service) filters.service = query.service;
 
-      // Step 4: Query anomalies using AnomalyDetectionService
-      const anomalies = await anomalyService.getAnomaliesForTenant(tenantId, filters);
+          if (query.startDate) {
+            filters.startDate = new Date(query.startDate);
+          }
+          if (query.endDate) {
+            filters.endDate = new Date(query.endDate);
+          }
 
-      console.log(`[CostsController] getAnomalies - Retrieved ${anomalies.length} anomalies`);
+          // Query anomalies using AnomalyDetectionService
+          const anomalies = await anomalyService.getAnomaliesForTenant(tenantId, filters);
 
-      // Step 5: Format response
-      res.json({
-        success: true,
-        data: anomalies.map((anomaly) => ({
-          id: anomaly.id,
-          date: anomaly.date.toISOString().split('T')[0],
-          service: anomaly.service,
-          provider: anomaly.provider,
-          severity: anomaly.severity,
-          status: anomaly.status,
-          expectedCost: Number(anomaly.expectedCost),
-          actualCost: Number(anomaly.actualCost),
-          deviation: Number(anomaly.deviation),
-          detectedAt: anomaly.detectedAt.toISOString(),
-          resourceId: anomaly.resourceId,
-          rootCause: anomaly.rootCause,
-          resolvedAt: anomaly.resolvedAt?.toISOString(),
-          resolvedBy: anomaly.resolvedBy,
-        })),
-        count: anomalies.length,
-      });
+          console.log(`[CostsController] getAnomalies - Retrieved ${anomalies.length} anomalies`);
+
+          // Format response
+          return {
+            success: true,
+            data: anomalies.map((anomaly) => ({
+              id: anomaly.id,
+              date: anomaly.date.toISOString().split('T')[0],
+              service: anomaly.service,
+              provider: anomaly.provider,
+              severity: anomaly.severity,
+              status: anomaly.status,
+              expectedCost: Number(anomaly.expectedCost),
+              actualCost: Number(anomaly.actualCost),
+              deviation: Number(anomaly.deviation),
+              detectedAt: anomaly.detectedAt.toISOString(),
+              resourceId: anomaly.resourceId,
+              rootCause: anomaly.rootCause,
+              resolvedAt: anomaly.resolvedAt?.toISOString(),
+              resolvedBy: anomaly.resolvedBy,
+            })),
+            count: anomalies.length,
+          };
+        },
+        CachePresets.COSTS
+      );
+
+      res.json(result);
     } catch (error) {
       this.handleError(error, res, 'getAnomalies');
     }
