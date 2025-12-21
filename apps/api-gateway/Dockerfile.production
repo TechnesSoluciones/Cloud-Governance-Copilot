@@ -92,7 +92,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Set production environment
 ENV NODE_ENV=production \
-    PORT=4000 \
+    PORT=3010 \
     NODE_OPTIONS="--max-old-space-size=2048"
 
 # Copy from builder stage
@@ -111,11 +111,11 @@ RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
 USER nodejs
 
 # Expose port
-EXPOSE 4000
+EXPOSE 3010
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
-    CMD curl -f http://localhost:4000/health || exit 1
+    CMD curl -f http://localhost:3010/health || exit 1
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
