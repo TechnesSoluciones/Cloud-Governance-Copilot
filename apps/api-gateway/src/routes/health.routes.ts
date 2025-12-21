@@ -36,8 +36,15 @@ router.get('/health', (req: Request, res: Response) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    version: process.env.npm_package_version || '1.0.0',
+    version: process.env.npm_package_version || '1.1.1',
   };
+
+  // Log health check for monitoring
+  logger.debug('[Health] Service is healthy', {
+    uptime: process.uptime(),
+    version: health.version,
+    memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
+  });
 
   res.status(200).json(health);
 });
