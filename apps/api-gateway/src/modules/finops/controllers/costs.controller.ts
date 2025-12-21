@@ -22,6 +22,7 @@
 
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { AnomalyDetectionService } from '../services';
 import { EventEmitter } from 'events';
@@ -45,8 +46,6 @@ interface AuthenticatedRequest extends Request {
 // ============================================================
 // Prisma Client & Services Initialization
 // ============================================================
-
-const prisma = new PrismaClient();
 const eventBus = new EventEmitter();
 const anomalyService = new AnomalyDetectionService(prisma, eventBus);
 

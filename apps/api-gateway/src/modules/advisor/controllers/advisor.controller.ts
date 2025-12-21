@@ -22,6 +22,7 @@
 
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { AdvisorEnhancedService } from '../services/advisor-enhanced.service';
 import { logger } from '../../../utils/logger';

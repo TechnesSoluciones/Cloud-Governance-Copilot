@@ -18,13 +18,12 @@
  */
 
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { AdvisorController } from '../controllers/advisor.controller';
 import { authenticate } from '../../../middleware/auth';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
-const prisma = new PrismaClient();
 const advisorController = new AdvisorController(prisma);
 
 // ============================================================

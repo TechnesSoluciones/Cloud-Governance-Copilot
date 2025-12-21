@@ -1,11 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { generateSecureToken, isValidTokenFormat } from '../utils/token';
 import { setRedisValue, getRedisValue, deleteRedisValue } from '../config/redis';
 import { emailService } from './email.service';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
-
 /**
  * Email Verification Service
  * Handles email verification flow with Redis-backed tokens

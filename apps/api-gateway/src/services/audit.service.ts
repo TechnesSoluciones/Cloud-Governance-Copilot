@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuditLogEntry, AuditLogFilter, AuditLogResult, AuditEventType, AuditSeverity } from '../types/audit.types';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
-
 /**
  * Audit Service
  * Handles all audit logging operations

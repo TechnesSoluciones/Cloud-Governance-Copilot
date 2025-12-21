@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 import { hashPassword, comparePassword } from '../utils/password';
 import { encrypt, decrypt } from '../utils/encryption';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
-
 /**
  * MFA Service
  * Handles Multi-Factor Authentication using TOTP (Time-based One-Time Password)

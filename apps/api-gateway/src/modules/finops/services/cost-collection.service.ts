@@ -30,6 +30,7 @@
  */
 
 import { PrismaClient, CloudAccount } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { createDecipheriv } from 'crypto';
 import { EventEmitter } from 'events';
 import { AWSCostExplorerService } from '../../../integrations/aws';

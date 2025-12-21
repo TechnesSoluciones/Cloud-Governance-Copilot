@@ -15,6 +15,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 // Temporarily disabled - Azure SDK dependencies missing
 // import { AzureMonitorService } from '../../../integrations/azure/monitor.service';
 import type { CloudProviderCredentials } from '../../../integrations/cloud-provider.interface';
@@ -58,8 +59,8 @@ export class IncidentsService {
   private prisma: PrismaClient;
   private cache: Map<string, CachedData<any>>;
 
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+  constructor(prisma: PrismaClient) {
+    this.prisma = prisma;
     this.cache = new Map();
   }
 

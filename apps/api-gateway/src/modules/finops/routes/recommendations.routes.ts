@@ -25,6 +25,7 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { RecommendationsController } from '../controllers/recommendations.controller';
 import { authenticate, authorize } from '../../../middleware/auth';
 import rateLimit from 'express-rate-limit';
@@ -177,7 +178,6 @@ const recommendationsWriteLimiter = rateLimit({
 const router = Router();
 
 // Initialize Prisma client and controller
-const prisma = new PrismaClient();
 const recommendationsController = new RecommendationsController(prisma, eventBus);
 
 // ============================================================

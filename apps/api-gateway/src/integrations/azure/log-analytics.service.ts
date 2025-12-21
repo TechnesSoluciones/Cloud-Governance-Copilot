@@ -19,6 +19,7 @@
 import { LogsQueryClient, QueryTimeInterval, LogsQueryResult } from '@azure/monitor-query';
 import { ClientSecretCredential } from '@azure/identity';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import type { CloudProviderCredentials } from '../cloud-provider.interface';
 
 /**
@@ -219,7 +220,7 @@ export class AzureLogAnalyticsService {
     this.logsClient = new LogsQueryClient(this.credential);
 
     // Initialize Prisma client
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
 
     console.log(
       '[AzureLogAnalyticsService] Initialized for subscription:',

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { JwtPayload } from '../types/auth.types';
+import { setTenantContext } from '../lib/prisma';
 
 // Extend Express Request type to include user
 declare global {
@@ -31,7 +32,23 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     try {
       const decoded = verifyToken(token);
       req.user = decoded;
-      next();
+
+      // CRITICAL SECURITY: Inject tenant context for automatic tenant isolation
+      // All database queries within this request will be automatically filtered by tenantId
+      if (decoded.tenantId) {
+        setTenantContext(decoded.tenantId, () => {
+          next();
+        });
+      } else {
+        // If no tenantId in token, something is wrong with the token
+        return res.status(500).json({
+          success: false,
+          error: {
+            message: 'Invalid token: missing tenant ID',
+            code: 'INVALID_TOKEN',
+          },
+        });
+      }
     } catch (error) {
       return res.status(401).json({
         success: false,

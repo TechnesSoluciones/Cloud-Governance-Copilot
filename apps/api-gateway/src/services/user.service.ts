@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { hashPassword, validatePassword } from '../utils/password';
 import {
   CreateUserDto,
@@ -13,7 +13,6 @@ import {
 import { logger } from '../utils/logger';
 import { emailService } from './email.service';
 
-const prisma = new PrismaClient();
 
 export class UserService {
   /**

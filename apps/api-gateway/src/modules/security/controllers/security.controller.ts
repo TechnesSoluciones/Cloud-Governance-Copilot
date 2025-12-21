@@ -29,6 +29,7 @@
 
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { EventEmitter } from 'events';
 
@@ -243,7 +244,7 @@ export class SecurityController {
   private readonly eventBus: EventEmitter;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
     this.eventBus = new EventEmitter();
   }
 

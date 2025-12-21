@@ -5,10 +5,8 @@
 
 import { ClientSecretCredential, TokenCredential } from '@azure/identity';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import { AzureCredentials } from '../../config/azure.config';
-
-const prisma = new PrismaClient();
-
 /**
  * Service for managing Azure credentials
  */

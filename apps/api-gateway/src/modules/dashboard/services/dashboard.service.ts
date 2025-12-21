@@ -6,9 +6,7 @@
 import { AzureResourceGraphService } from '../../../services/azure/resourceGraph.service';
 import { AzureCostManagementService } from '../../../services/azure/costManagement.service';
 import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
+import { prisma } from '../../../lib/prisma';
 export interface DashboardOverview {
   resources: {
     total: number;

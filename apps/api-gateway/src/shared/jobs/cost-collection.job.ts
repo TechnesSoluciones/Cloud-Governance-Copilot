@@ -32,8 +32,8 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import IORedis from 'ioredis';
+import { prisma } from '../../lib/prisma';
 import { CostCollectionService } from '../../modules/finops/services';
 import { AnomalyDetectionService } from '../../modules/finops/services';
 import { eventBus } from '../events/event-bus';
@@ -183,12 +183,8 @@ export const costCollectionQueue = new Queue('cost-collection', {
 // ============================================================
 
 /**
- * Prisma client instance for database operations
- */
-const prisma = new PrismaClient();
-
-/**
  * Cost collection service instance
+ * Uses global Prisma singleton for optimized connection pooling
  */
 const costCollectionService = new CostCollectionService(prisma, eventBus);
 

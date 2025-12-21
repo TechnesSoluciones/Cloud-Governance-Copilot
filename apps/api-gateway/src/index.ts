@@ -36,6 +36,7 @@ import {
   startServiceHealthMonitor,
   stopServiceHealthMonitor,
 } from './jobs/service-health-monitor.job';
+import { disconnectPrisma } from './lib/prisma';
 
 // Load environment variables (only in non-Docker development)
 if (process.env.NODE_ENV !== 'production' && !process.env.DOCKER_ENV) {
@@ -238,6 +239,7 @@ process.on('SIGTERM', async () => {
   await shutdownAssetDiscoveryWorker();
   await shutdownSecurityScanWorker();
   await closeRedis();
+  await disconnectPrisma();
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
@@ -252,6 +254,7 @@ process.on('SIGINT', async () => {
   await shutdownAssetDiscoveryWorker();
   await shutdownSecurityScanWorker();
   await closeRedis();
+  await disconnectPrisma();
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);

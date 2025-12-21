@@ -34,6 +34,7 @@
  */
 
 import { PrismaClient, CostAnomaly } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { EventEmitter } from 'events';
 import type { CostAnomalyDetectedEvent } from '../../../shared/events/event-bus';
 

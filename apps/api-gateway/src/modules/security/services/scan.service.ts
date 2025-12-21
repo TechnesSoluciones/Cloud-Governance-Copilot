@@ -23,6 +23,7 @@
  */
 
 import { PrismaClient, CloudAccount, Prisma } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { EventEmitter } from 'events';
 import { AWSSecurityScannerService } from '../../../integrations/aws/security-scanner.service';
 import { AzureSecurityScannerService } from '../../../integrations/azure/security-scanner.service';
@@ -151,7 +152,7 @@ export class SecurityScanService extends EventEmitter {
 
   constructor() {
     super();
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   /**

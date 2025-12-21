@@ -31,6 +31,7 @@
  */
 
 import { PrismaClient, CloudAccount, CostRecommendation } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { EventEmitter } from 'events';
 

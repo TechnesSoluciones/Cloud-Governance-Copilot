@@ -22,6 +22,7 @@
 
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { AssetDiscoveryService } from '../services/asset-discovery.service';
 import { EventEmitter } from 'events';
@@ -150,7 +151,7 @@ export class AssetsController {
   private readonly assetDiscoveryService: AssetDiscoveryService;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
     const eventBus = new EventEmitter();
     this.assetDiscoveryService = new AssetDiscoveryService(this.prisma, eventBus);
   }

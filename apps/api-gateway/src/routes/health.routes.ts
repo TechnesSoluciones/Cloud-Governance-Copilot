@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getRedis, isRedisAvailable, getRedisHealthStatus } from '../config/redis';
 import { metricsService } from '../services/metrics.service';
 import { logger } from '../services/logger.service';
@@ -64,7 +65,6 @@ router.get('/health/ready', async (req: Request, res: Response) => {
   // Check Database (Prisma)
   try {
     const dbStart = Date.now();
-    const prisma = new PrismaClient();
     await prisma.$queryRaw`SELECT 1`;
 
     checks.database = {
@@ -267,7 +267,6 @@ router.get('/health/dependencies', async (req: Request, res: Response) => {
 
   // Check Database
   try {
-    const prisma = new PrismaClient();
     const dbStart = Date.now();
     await prisma.$queryRaw`SELECT 1`;
 

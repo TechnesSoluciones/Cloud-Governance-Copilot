@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { hashPassword, comparePassword, validatePassword } from '../utils/password';
 import { generateTokens } from '../utils/jwt';
 import { RegisterDto, LoginDto, AuthResponse } from '../types/auth.types';
@@ -7,7 +7,6 @@ import { generateSecureToken, isValidTokenFormat } from '../utils/token';
 import { setRedisValue, getRedisValue, deleteRedisValue } from '../config/redis';
 import { emailService } from './email.service';
 
-const prisma = new PrismaClient();
 
 export class AuthService {
   async register(data: RegisterDto): Promise<AuthResponse> {

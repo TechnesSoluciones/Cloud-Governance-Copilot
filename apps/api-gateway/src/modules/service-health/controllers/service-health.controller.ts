@@ -8,6 +8,7 @@
 
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { ServiceHealthModuleService } from '../services/service-health.service';
 import type {
   ServiceHealthQueryParams,
@@ -16,7 +17,6 @@ import type {
 } from '../types';
 
 const router = Router();
-const prisma = new PrismaClient();
 const serviceHealthService = new ServiceHealthModuleService(prisma);
 
 /**

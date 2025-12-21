@@ -269,6 +269,7 @@ model Asset {
   @@index([lastSeenAt]) // For orphan detection
   // Performance indexes for Azure resource queries
   @@index([tenantId, resourceType]) // Resource type filtering
+  @@index([tenantId, resourceType, status]) // ARCHITECT RECOMMENDATION: Optimized asset queries
   @@index([tenantId, region]) // Location-based queries
   @@index([tenantId, provider, status]) // Provider-specific active resources
   // Enhanced asset management indexes
@@ -475,6 +476,7 @@ model SecurityFinding {
   @@index([provider])
   // Performance indexes for Azure security queries
   @@index([tenantId, provider, status, severity]) // Multi-filter security dashboards
+  @@index([tenantId, severity, status]) // ARCHITECT RECOMMENDATION: Optimized security dashboard queries
   @@map("security_findings")
 }
 

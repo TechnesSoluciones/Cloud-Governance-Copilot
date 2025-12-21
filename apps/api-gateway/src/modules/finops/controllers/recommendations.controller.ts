@@ -24,6 +24,7 @@
 
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { EventEmitter } from 'events';
 import { z } from 'zod';
 import { RecommendationGeneratorService } from '../services/recommendation-generator.service';

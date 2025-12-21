@@ -9,6 +9,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import {
   AzureLogAnalyticsService,
   QueryResult,
@@ -39,7 +40,7 @@ export class LogAnalyticsManagementService {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   /**

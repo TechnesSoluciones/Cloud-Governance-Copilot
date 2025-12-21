@@ -8,6 +8,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { eventBus } from '../../../shared/events/event-bus';
 import { AnomalyDetectionService } from './anomaly-detection.service';
 
@@ -16,7 +17,6 @@ import { AnomalyDetectionService } from './anomaly-detection.service';
 // ============================================================
 
 async function example1_analyzeYesterday() {
-  const prisma = new PrismaClient();
   const service = new AnomalyDetectionService(prisma, eventBus);
 
   try {
@@ -62,7 +62,6 @@ async function example1_analyzeYesterday() {
 // ============================================================
 
 async function example2_analyzeSpecificDate() {
-  const prisma = new PrismaClient();
   const service = new AnomalyDetectionService(prisma, eventBus);
 
   try {
@@ -87,7 +86,6 @@ async function example2_analyzeSpecificDate() {
 // ============================================================
 
 async function example3_queryAnomalies() {
-  const prisma = new PrismaClient();
   const service = new AnomalyDetectionService(prisma, eventBus);
 
   try {
@@ -126,7 +124,6 @@ async function example3_queryAnomalies() {
 // ============================================================
 
 async function example4_subscribeToEvents() {
-  const prisma = new PrismaClient();
   const service = new AnomalyDetectionService(prisma, eventBus);
 
   // Subscribe to anomaly detection events
@@ -159,7 +156,6 @@ async function example4_subscribeToEvents() {
 // ============================================================
 
 async function example5_scheduledAnalysis() {
-  const prisma = new PrismaClient();
   const service = new AnomalyDetectionService(prisma, eventBus);
 
   try {

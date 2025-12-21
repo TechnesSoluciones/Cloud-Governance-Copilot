@@ -35,8 +35,8 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import IORedis from 'ioredis';
+import { prisma } from '../../lib/prisma';
 import { AssetDiscoveryService, DiscoveryResult } from '../../modules/assets/services/asset-discovery.service';
 import { eventBus } from '../events/event-bus';
 
@@ -193,7 +193,6 @@ export const assetDiscoveryQueue = new Queue('asset-discovery', {
  */
 export async function processAssetDiscovery(job: Job<AssetDiscoveryJobData>): Promise<JobExecutionResult> {
   const startTime = Date.now();
-  const prisma = new PrismaClient();
 
   try {
     const { tenantId, cloudAccountId } = job.data || {};

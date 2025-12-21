@@ -9,6 +9,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { AzureAlertRulesService, AlertRule, AlertRuleConfig, AlertRuleTemplate } from '../../../integrations/azure/alert-rules.service';
 import type { CloudProviderCredentials } from '../../../integrations/cloud-provider.interface';
 
@@ -32,7 +33,7 @@ export class AlertRulesManagementService {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   /**

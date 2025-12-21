@@ -21,6 +21,7 @@
 
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { EventEmitter } from 'events';
 import { AssetDiscoveryService } from '../modules/assets/services/asset-discovery.service';
 
@@ -83,7 +84,6 @@ async function runAssetDiscovery(): Promise<void> {
   console.log('[AssetDiscoveryJob] Starting scheduled asset discovery');
 
   try {
-    const prisma = new PrismaClient();
     const eventBus = new EventEmitter();
     const assetDiscoveryService = new AssetDiscoveryService(prisma, eventBus);
 

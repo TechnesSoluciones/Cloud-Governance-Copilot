@@ -8,6 +8,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { RecommendationGeneratorService } from './recommendation-generator.service';
 import { eventBus } from '../../../shared/events/event-bus';
 
@@ -19,7 +20,6 @@ import { eventBus } from '../../../shared/events/event-bus';
  * Generate recommendations for all cloud accounts of a tenant
  */
 async function example1_generateForAllAccounts() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   try {
@@ -59,7 +59,6 @@ async function example1_generateForAllAccounts() {
  * Generate recommendations for a specific cloud account
  */
 async function example2_generateForSpecificAccount() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   try {
@@ -88,7 +87,6 @@ async function example2_generateForSpecificAccount() {
  * Query recommendations with various filters
  */
 async function example3_queryRecommendations() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   try {
@@ -145,7 +143,6 @@ async function example3_queryRecommendations() {
  * Update recommendation status (apply or dismiss)
  */
 async function example4_updateRecommendationStatus() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   try {
@@ -184,7 +181,6 @@ async function example4_updateRecommendationStatus() {
  * Subscribe to recommendation generated events
  */
 async function example5_subscribeToEvents() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   // Set up event listener before generating recommendations
@@ -226,7 +222,6 @@ async function example5_subscribeToEvents() {
  * Run recommendation generation on a schedule (e.g., daily)
  */
 async function example6_scheduledGeneration() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   try {
@@ -271,7 +266,6 @@ async function example6_scheduledGeneration() {
  * Generate a summary report of all recommendations
  */
 async function example7_generateSummaryReport() {
-  const prisma = new PrismaClient();
   const service = new RecommendationGeneratorService(prisma, eventBus);
 
   try {

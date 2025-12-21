@@ -15,13 +15,12 @@
 
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { IncidentsService } from '../services/incidents.service';
 import type { CloudProviderCredentials } from '../../../integrations/cloud-provider.interface';
 import { AlertFilters, TimeRange } from '../dto/alert.dto';
 import { ActivityLogFilters } from '../dto/activity-log.dto';
 import { IncidentFilters, UpdateIncidentStatusDto, AddCommentDto } from '../dto/incident.dto';
-
-const prisma = new PrismaClient();
 const incidentsService = new IncidentsService(prisma);
 
 /**

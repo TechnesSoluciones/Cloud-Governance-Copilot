@@ -38,8 +38,8 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import IORedis from 'ioredis';
+import { prisma } from '../../lib/prisma';
 import { SecurityScanService } from '../../modules/security/services/scan.service';
 
 // ============================================================
@@ -226,7 +226,6 @@ export async function processSecurityScan(
   job: Job<SecurityScanJobData>
 ): Promise<SecurityScanJobResult> {
   const startTime = Date.now();
-  const prisma = new PrismaClient();
 
   try {
     const { tenantId, cloudAccountId, triggeredBy } = job.data || {};

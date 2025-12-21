@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { encrypt, decrypt, EncryptedData } from '../utils/encryption';
 
-const prisma = new PrismaClient();
 
 /**
  * Cloud Account credentials structure

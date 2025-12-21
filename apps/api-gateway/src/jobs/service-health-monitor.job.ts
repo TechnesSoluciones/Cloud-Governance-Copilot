@@ -24,6 +24,7 @@
 
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AzureServiceHealthService } from '../integrations/azure/service-health.service';
 import type { ServiceIssue, MaintenanceEvent } from '../integrations/azure/service-health.service';
 import type { CloudProviderCredentials } from '../integrations/cloud-provider.interface';
@@ -94,8 +95,6 @@ async function runServiceHealthCheck(): Promise<void> {
   console.log('[ServiceHealthMonitor] Starting scheduled service health check');
 
   try {
-    const prisma = new PrismaClient();
-
     // Get all active tenants with Azure cloud accounts
     const tenants = await prisma.tenant.findMany({
       where: {

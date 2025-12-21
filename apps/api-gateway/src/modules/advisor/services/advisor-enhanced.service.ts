@@ -12,6 +12,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { AzureAdvisorService } from '../../../integrations/azure/advisor.service';
 import { AzureRateLimiter, AZURE_RATE_LIMITS } from '../../../integrations/azure/rate-limiter';
 import { getRedisSafe, isRedisAvailable } from '../../../config/redis';
@@ -85,9 +86,9 @@ export class AdvisorEnhancedService {
   private rateLimiter: AzureRateLimiter;
   private config: AdvisorServiceConfig;
 
-  constructor(config: AdvisorServiceConfig, prisma?: PrismaClient) {
+  constructor(config: AdvisorServiceConfig, prisma: PrismaClient) {
     this.config = config;
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma;
     this.rateLimiter = getTenantRateLimiter(config.tenantId);
 
     // Initialize base Azure Advisor Service

@@ -9,6 +9,7 @@ import { AzureCredentialsService } from '../../../services/azure/azureCredential
 import { AzureCacheService } from '../../../services/azure/azureCache.service';
 import { AzureRateLimiterService } from '../../../services/azure/azureRateLimiter.service';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { logger } from '../../../utils/logger';
 import type {
   SecurityScoreDto,
@@ -30,9 +31,6 @@ import type {
   SecurityRecommendationDto,
   RecommendationsQueryDto,
 } from '../dto/compliance.dto';
-
-const prisma = new PrismaClient();
-
 /**
  * Security Service
  *

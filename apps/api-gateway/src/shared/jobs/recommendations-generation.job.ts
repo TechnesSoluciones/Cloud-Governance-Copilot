@@ -33,8 +33,8 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import IORedis from 'ioredis';
+import { prisma } from '../../lib/prisma';
 import { RecommendationGeneratorService } from '../../modules/finops/services/recommendation-generator.service';
 import { eventBus } from '../events/event-bus';
 
@@ -172,7 +172,6 @@ if (redisUrl) {
 /**
  * Prisma client instance for database operations
  */
-const prisma = new PrismaClient();
 
 // ============================================================
 // BullMQ Queue Configuration
