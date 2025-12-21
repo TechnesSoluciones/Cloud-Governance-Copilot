@@ -72,7 +72,8 @@ router.get('/health/ready', async (req: Request, res: Response) => {
       responseTime: Date.now() - dbStart,
     };
 
-    await prisma.$disconnect();
+    // DO NOT disconnect - we're using a singleton instance
+    // await prisma.$disconnect();
   } catch (error) {
     checks.database = {
       status: 'down',
@@ -275,7 +276,8 @@ router.get('/health/dependencies', async (req: Request, res: Response) => {
       responseTime: Date.now() - dbStart,
     };
 
-    await prisma.$disconnect();
+    // DO NOT disconnect - we're using a singleton instance
+    // await prisma.$disconnect();
   } catch (error) {
     dependencies.database = {
       status: 'disconnected',
