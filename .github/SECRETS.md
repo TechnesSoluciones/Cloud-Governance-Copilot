@@ -13,17 +13,17 @@ Para que el workflow de release automático funcione, necesitas configurar los s
 
 ### 🔐 Deployment Secrets
 
-#### `DEPLOY_HOST`
+#### `APP_SERVER_HOST`
 **Descripción**: IP o hostname del servidor de producción
 **Ejemplo**: `104.248.123.45` o `copilot.yourdomain.com`
 **Requerido**: ✅ Sí
 
-#### `DEPLOY_USER`
+#### `APP_SERVER_USER`
 **Descripción**: Usuario SSH para conectarse al servidor
 **Ejemplo**: `deploy` o `ubuntu` o `root`
 **Requerido**: ✅ Sí
 
-#### `DEPLOY_SSH_KEY`
+#### `SSH_PRIVATE_KEY`
 **Descripción**: Llave SSH privada para autenticación
 **Cómo obtenerla**:
 ```bash
