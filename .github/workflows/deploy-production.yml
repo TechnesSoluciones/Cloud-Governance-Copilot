@@ -185,6 +185,7 @@ jobs:
             GIT_COMMIT_SHA=${{ github.sha }}
             BUILD_TIMESTAMP=${{ github.run_number }}
             VERSION_TAG=${{ steps.version.outputs.tag }}
+            NEXT_PUBLIC_API_URL=/api/v1
 
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master
@@ -241,9 +242,13 @@ jobs:
           ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
 
           # Application URLs
-          INTERNAL_API_URL=${{ secrets.INTERNAL_API_URL }}
-          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          INTERNAL_API_URL=http://api-gateway:3010/api/v1
+          NEXT_PUBLIC_API_URL=/api/v1
           NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+
+          # Caddy Configuration
+          DOMAIN=${{ secrets.DOMAIN }}
+          CADDY_EMAIL=${{ secrets.CADDY_EMAIL }}
 
           # Application Configuration
           NODE_ENV=production
@@ -253,8 +258,13 @@ jobs:
 
       - name: Copy files to server
         run: |
+          # Create caddy directory on server
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} "mkdir -p /opt/copilot-app/caddy"
+
+          # Copy configuration files
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
+          scp caddy/Caddyfile ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/caddy/Caddyfile
 
       # DISABLED: Nginx deployment not needed with Docker Compose port mapping
       # - name: Deploy Phase 3 Nginx Configuration

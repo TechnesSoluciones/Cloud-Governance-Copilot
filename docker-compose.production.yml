@@ -3,6 +3,39 @@ networks:
     driver: bridge
 
 services:
+  # ========================================
+  # Caddy - Reverse Proxy & SSL Termination
+  # ========================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: copilot-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"      # HTTP (auto-redirects to HTTPS)
+      - "443:443"    # HTTPS
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
+    networks:
+      - copilot-network
+    depends_on:
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ========================================
+  # Services (Internal Network Only)
+  # ========================================
   redis:
     image: redis:7-alpine
     # container_name removed to allow scaling
@@ -31,14 +64,14 @@ services:
     image: ghcr.io/technessoluciones/copilot-api-gateway:${IMAGE_TAG:-latest}
     # container_name removed to allow scaling
     restart: unless-stopped
-    ports:
-      - "3010:3010"
+    expose:
+      - "3010"  # Internal network only, not exposed to host
     env_file:
       - .env
     environment:
       - NODE_ENV=production
       - PORT=3010
-      - INTERNAL_API_URL=http://copilot-api-gateway:3010
+      - INTERNAL_API_URL=http://api-gateway:3010
     depends_on:
       redis:
         condition: service_healthy
@@ -55,13 +88,16 @@ services:
     image: ghcr.io/technessoluciones/copilot-frontend:${IMAGE_TAG:-latest}
     # container_name removed to allow scaling
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"  # Internal network only, accessed via Caddy reverse proxy
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-      - INTERNAL_API_URL=${INTERNAL_API_URL:-http://copilot-api-gateway:3010/api/v1}
+      # Server-side API calls use internal Docker network
+      - INTERNAL_API_URL=http://api-gateway:3010/api/v1
+      # Client-side API calls use relative path (proxied by Caddy)
+      - NEXT_PUBLIC_API_URL=/api/v1
       - PORT=3000
     depends_on:
       api-gateway:
@@ -77,4 +113,8 @@ services:
 
 volumes:
   redis-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
     driver: local
