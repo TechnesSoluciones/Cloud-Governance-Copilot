@@ -426,29 +426,33 @@ jobs:
             echo ""
             echo "🔄 Step 5/7: Verifying services health..."
 
-            # Wait for API Gateway
+            # Wait for API Gateway (check via docker exec since port is not exposed)
             echo "  → Waiting for API Gateway to be healthy..."
             for i in {1..30}; do
-              if curl -sf http://localhost:3010/health > /dev/null 2>&1; then
+              if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/health > /dev/null 2>&1; then
                 echo "  ✓ API Gateway is healthy"
                 break
               fi
               if [ $i -eq 30 ]; then
                 echo "  ❌ API Gateway health check failed"
+                echo "  → Checking API Gateway logs:"
+                docker compose logs --tail=50 api-gateway
                 exit 1
               fi
               sleep 3
             done
 
-            # Wait for Frontend
+            # Wait for Frontend (check via docker exec since port is not exposed)
             echo "  → Waiting for Frontend to be healthy..."
             for i in {1..30}; do
-              if curl -sf http://localhost:3000/api/version > /dev/null 2>&1; then
+              if docker compose exec -T frontend wget -q -O- http://localhost:3000/api/health > /dev/null 2>&1; then
                 echo "  ✓ Frontend is healthy"
                 break
               fi
               if [ $i -eq 30 ]; then
                 echo "  ❌ Frontend health check failed"
+                echo "  → Checking Frontend logs:"
+                docker compose logs --tail=50 frontend
                 exit 1
               fi
               sleep 3
@@ -524,14 +528,13 @@ jobs:
               echo "  ⚠ Could not fetch /api/version (may not be available yet)"
             fi
 
-            # Test health endpoints
+            # Test health endpoints (via Caddy reverse proxy)
             echo ""
-            echo "Health Checks:"
-            API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
-            FRONTEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
-            echo "  API Gateway (/health): $API_HEALTH"
-            echo "  Frontend (/api/health): $FRONTEND_HEALTH"
-            echo "  Frontend (/api/version): $(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/version || echo "failed")"
+            echo "Health Checks (via Caddy):"
+            CADDY_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health || echo "failed")
+            API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/api/health || echo "failed")
+            echo "  Caddy (/health): $CADDY_HEALTH"
+            echo "  API Gateway (via /api/health): $API_HEALTH"
 
             # ============================================
             # STEP 7: Cleanup old images
@@ -623,15 +626,15 @@ jobs:
             TESTS_FAILED=0
 
             # ==========================================
-            # Test 1: API Gateway Health
+            # Test 1: API Gateway Health (via Caddy)
             # ==========================================
-            echo "Test 1/10: API Gateway Health Endpoint..."
-            api_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/health || echo "failed")
+            echo "Test 1/10: API Gateway Health Endpoint (via Caddy)..."
+            api_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/api/health || echo "failed")
             if [ "$api_health" = "200" ]; then
-              echo "  ✓ PASS: API Gateway is healthy (HTTP $api_health)"
+              echo "  ✓ PASS: API Gateway is healthy via Caddy (HTTP $api_health)"
               ((TESTS_PASSED++))
             else
-              echo "  ❌ FAIL: API Gateway is unhealthy (HTTP $api_health)"
+              echo "  ❌ FAIL: API Gateway is unhealthy via Caddy (HTTP $api_health)"
               ((TESTS_FAILED++))
             fi
 
