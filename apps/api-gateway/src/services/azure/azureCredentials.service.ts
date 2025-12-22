@@ -7,6 +7,7 @@ import { ClientSecretCredential, TokenCredential } from '@azure/identity';
 import { PrismaClient } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AzureCredentials } from '../../config/azure.config';
+import { decrypt, EncryptedData } from '../../utils/encryption';
 /**
  * Service for managing Azure credentials
  */
@@ -35,24 +36,35 @@ export class AzureCredentialsService {
       throw new Error(`Account ${accountId} is not an Azure account`);
     }
 
-    // Credentials are stored in metadata field as JSON
-    const metadata = account.metadata as any;
-    if (!metadata || !metadata.credentials) {
-      throw new Error(`No credentials found for account ${accountId}`);
+    if (account.status !== 'active') {
+      throw new Error(`Cloud account is not active: ${account.status}`);
     }
 
-    const credentials = metadata.credentials;
-
-    if (!credentials.tenant_id || !credentials.client_id || !credentials.client_secret || !credentials.subscription_id) {
-      throw new Error(`Invalid Azure credentials for account ${accountId}`);
-    }
-
-    return {
-      tenantId: credentials.tenant_id,
-      clientId: credentials.client_id,
-      clientSecret: credentials.client_secret,
-      subscriptionId: credentials.subscription_id,
+    // Decrypt credentials from encrypted fields
+    const encrypted: EncryptedData = {
+      ciphertext: account.credentialsCiphertext,
+      iv: account.credentialsIv,
+      authTag: account.credentialsAuthTag,
     };
+
+    try {
+      const decryptedJson = decrypt(encrypted);
+      const credentials = JSON.parse(decryptedJson);
+
+      // Validate required Azure fields
+      if (!credentials.tenantId || !credentials.clientId || !credentials.clientSecret || !credentials.subscriptionId) {
+        throw new Error(`Invalid Azure credentials for account ${accountId}: missing required fields`);
+      }
+
+      return {
+        tenantId: credentials.tenantId,
+        clientId: credentials.clientId,
+        clientSecret: credentials.clientSecret,
+        subscriptionId: credentials.subscriptionId,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to decrypt credentials for account ${accountId}: ${error.message}`);
+    }
   }
 
   /**

@@ -1,0 +1,202 @@
+# ============================================================
+# Docker Compose - Hetzner Storage Box Backup Service
+# ============================================================
+# Servicio dedicado para backups automatizados de PostgreSQL
+# Usage: docker-compose -f docker-compose.backup.yml up -d
+# ============================================================
+
+version: '3.8'
+
+services:
+  # ============================================================
+  # Backup Service
+  # ============================================================
+  postgres-backup:
+    image: postgres:15-alpine
+    container_name: copilot-postgres-backup
+    restart: unless-stopped
+
+    # Environment variables
+    environment:
+      # PostgreSQL connection
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-copilot_main}
+      DB_USER: ${DB_USER:-copilot}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD not set}
+
+      # Hetzner Storage Box
+      STORAGEBOX_USER: ${STORAGEBOX_USER:?Error: STORAGEBOX_USER not set}
+      STORAGEBOX_HOST: ${STORAGEBOX_HOST:?Error: STORAGEBOX_HOST not set}
+      STORAGEBOX_PORT: ${STORAGEBOX_PORT:-23}
+      STORAGEBOX_SSH_KEY: /root/.ssh/hetzner_storagebox_rsa
+      STORAGEBOX_REMOTE_DIR: ${STORAGEBOX_REMOTE_DIR:-/backups/postgresql}
+
+      # Backup configuration
+      LOCAL_BACKUP_DIR: ${LOCAL_BACKUP_DIR:-/backups}
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      LOG_FILE: /var/log/hetzner-backup.log
+
+      # Optional: Slack notifications
+      ENABLE_SLACK_NOTIFICATIONS: ${ENABLE_SLACK_NOTIFICATIONS:-false}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+
+      # Timezone
+      TZ: ${TZ:-Europe/Berlin}
+
+    # Volumes
+    volumes:
+      # SSH key for Storage Box authentication (read-only)
+      - ${STORAGEBOX_SSH_KEY:-~/.ssh/hetzner_storagebox_rsa}:/root/.ssh/hetzner_storagebox_rsa:ro
+
+      # Backup scripts
+      - ./scripts/hetzner-storagebox-backup.sh:/usr/local/bin/backup.sh:ro
+
+      # Local backup directory (temporary)
+      - backup-temp:/backups
+
+      # Logs (persistent)
+      - backup-logs:/var/log
+
+    # Network
+    networks:
+      - copilot-net
+
+    # Dependencies
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Command: Setup cron for automated backups
+    command: >
+      sh -c "
+        apk add --no-cache bash openssh-client rsync postgresql-client coreutils &&
+        chmod 600 /root/.ssh/hetzner_storagebox_rsa &&
+        echo '0 2 * * * /usr/local/bin/backup.sh >> /var/log/hetzner-backup-cron.log 2>&1' > /etc/crontabs/root &&
+        echo 'Backup service started. Cron schedule: Daily at 2:00 AM' &&
+        crond -f -l 2
+      "
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /var/log/hetzner-backup.log || exit 1"]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================
+  # Backup Verification Service (Optional)
+  # ============================================================
+  # Runs weekly verification of backups
+  # Uncomment to enable
+
+  # backup-verify:
+  #   image: postgres:15-alpine
+  #   container_name: copilot-backup-verify
+  #   restart: unless-stopped
+  #
+  #   environment:
+  #     STORAGEBOX_USER: ${STORAGEBOX_USER}
+  #     STORAGEBOX_HOST: ${STORAGEBOX_HOST}
+  #     STORAGEBOX_PORT: ${STORAGEBOX_PORT:-23}
+  #     STORAGEBOX_SSH_KEY: /root/.ssh/hetzner_storagebox_rsa
+  #     STORAGEBOX_REMOTE_DIR: ${STORAGEBOX_REMOTE_DIR:-/backups/postgresql}
+  #     DB_NAME: ${DB_NAME:-copilot_main}
+  #     RETENTION_DAYS: ${RETENTION_DAYS:-30}
+  #     TZ: ${TZ:-Europe/Berlin}
+  #
+  #   volumes:
+  #     - ${STORAGEBOX_SSH_KEY:-~/.ssh/hetzner_storagebox_rsa}:/root/.ssh/hetzner_storagebox_rsa:ro
+  #     - ./scripts/verify-hetzner-backups.sh:/usr/local/bin/verify.sh:ro
+  #     - backup-logs:/var/log
+  #
+  #   networks:
+  #     - copilot-net
+  #
+  #   command: >
+  #     sh -c "
+  #       apk add --no-cache bash openssh-client bc coreutils &&
+  #       chmod 600 /root/.ssh/hetzner_storagebox_rsa &&
+  #       echo '0 3 * * 0 /usr/local/bin/verify.sh >> /var/log/backup-verify.log 2>&1' > /etc/crontabs/root &&
+  #       echo 'Verification service started. Cron schedule: Weekly on Sundays at 3:00 AM' &&
+  #       crond -f -l 2
+  #     "
+
+# ============================================================
+# Networks
+# ============================================================
+networks:
+  copilot-net:
+    external: true
+    name: copilot-network
+
+# ============================================================
+# Volumes
+# ============================================================
+volumes:
+  # Temporary local backups (before upload)
+  backup-temp:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOCAL_BACKUP_DIR:-./backups}
+
+  # Persistent logs
+  backup-logs:
+    driver: local
+
+# ============================================================
+# Usage Instructions
+# ============================================================
+#
+# 1. Setup environment variables:
+#    cp .env.storagebox.example .env.storagebox
+#    nano .env.storagebox
+#
+# 2. Ensure SSH key exists:
+#    ls -l ~/.ssh/hetzner_storagebox_rsa
+#
+# 3. Start backup service:
+#    docker-compose -f docker-compose.backup.yml up -d
+#
+# 4. Verify service is running:
+#    docker-compose -f docker-compose.backup.yml ps
+#
+# 5. Check logs:
+#    docker-compose -f docker-compose.backup.yml logs -f postgres-backup
+#
+# 6. Run manual backup:
+#    docker-compose -f docker-compose.backup.yml exec postgres-backup /usr/local/bin/backup.sh
+#
+# 7. View cron schedule:
+#    docker-compose -f docker-compose.backup.yml exec postgres-backup crontab -l
+#
+# 8. Stop service:
+#    docker-compose -f docker-compose.backup.yml down
+#
+# ============================================================
+# Troubleshooting
+# ============================================================
+#
+# View logs inside container:
+#   docker exec copilot-postgres-backup tail -f /var/log/hetzner-backup.log
+#
+# Test SSH connection:
+#   docker exec copilot-postgres-backup ssh -p 23 -i /root/.ssh/hetzner_storagebox_rsa u123456@u123456.your-storagebox.de
+#
+# Run backup manually:
+#   docker exec copilot-postgres-backup /usr/local/bin/backup.sh
+#
+# Check cron logs:
+#   docker exec copilot-postgres-backup tail -f /var/log/hetzner-backup-cron.log
+#
+# ============================================================

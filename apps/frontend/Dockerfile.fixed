@@ -1,0 +1,130 @@
+##############################################################################
+# Frontend Production Dockerfile - FIXED VERSION
+# Cloud Governance Copilot - Next.js 14 App Router
+##############################################################################
+# This version fixes the BUILD_ID mismatch issue that causes
+# "Failed to find Server Action" errors
+##############################################################################
+
+# ============================================================
+# Stage 1: Dependencies Installation
+# ============================================================
+FROM node:20-alpine AS deps
+
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev) for build
+RUN npm ci && npm cache clean --force
+
+# ============================================================
+# Stage 2: Builder - Next.js Build
+# ============================================================
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+
+# Copy application source
+COPY . .
+
+# Build arguments for version tracking
+ARG GIT_COMMIT_SHA
+ARG BUILD_TIMESTAMP
+ARG VERSION_TAG
+
+# CRITICAL: Set NEXT_PUBLIC_BUILD_ID before build
+# This ensures the BUILD_ID is embedded in the build
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=production \
+    GIT_COMMIT_SHA=${GIT_COMMIT_SHA:-unknown} \
+    BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
+    NEXT_PUBLIC_BUILD_ID=${GIT_COMMIT_SHA:-unknown}
+
+# Build Next.js application
+RUN echo "Building with BUILD_ID: ${GIT_COMMIT_SHA:-unknown}" && \
+    npm run build && \
+    echo "Build complete. BUILD_ID file:" && \
+    cat .next/BUILD_ID || echo "BUILD_ID not found"
+
+# ============================================================
+# Stage 3: Production Runtime
+# ============================================================
+FROM node:20-alpine AS runner
+
+# Install runtime dependencies
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache \
+    dumb-init \
+    curl \
+    wget \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Build arguments to pass to runtime
+ARG GIT_COMMIT_SHA
+ARG BUILD_TIMESTAMP
+ARG VERSION_TAG
+
+# Set production environment variables
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0" \
+    GIT_COMMIT_SHA=${GIT_COMMIT_SHA:-unknown} \
+    BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
+    NEXT_PUBLIC_BUILD_ID=${GIT_COMMIT_SHA:-unknown}
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Copy public assets
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Copy Next.js standalone build
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+
+# Copy static files (JS, CSS, images with content hash)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# CRITICAL FIX: Copy BUILD_ID and other metadata files
+# This ensures the runtime knows the exact build version
+COPY --from=builder --chown=nextjs:nodejs /app/.next/BUILD_ID ./.next/BUILD_ID
+COPY --from=builder --chown=nextjs:nodejs /app/.next/build-manifest.json ./.next/build-manifest.json
+COPY --from=builder --chown=nextjs:nodejs /app/.next/routes-manifest.json ./.next/routes-manifest.json
+
+# Create version file for debugging
+RUN echo "{\
+  \"buildId\": \"${GIT_COMMIT_SHA:-unknown}\",\
+  \"timestamp\": \"${BUILD_TIMESTAMP}\",\
+  \"version\": \"${VERSION_TAG}\",\
+  \"nodeVersion\": \"$(node --version)\"\
+}" > /app/version.json && \
+    chown nextjs:nodejs /app/version.json
+
+# Switch to non-root user
+USER nextjs
+
+# Expose application port
+EXPOSE 3000
+
+# Health check - Use wget instead of curl for consistency
+# Check the health endpoint instead of root to avoid SSR issues
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+    CMD wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start Next.js server
+CMD ["node", "server.js"]

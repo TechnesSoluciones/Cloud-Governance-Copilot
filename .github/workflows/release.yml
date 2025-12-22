@@ -182,32 +182,55 @@ jobs:
             set -e
 
             echo "🚀 Deploying version ${{ needs.version.outputs.new_version }}"
+            echo "⚠️  Using AGGRESSIVE deployment strategy (test environment)"
 
             # Navigate to project directory
             cd ${{ secrets.DEPLOY_PATH || '/opt/copilot' }}
 
             # Pull latest code
+            echo "📥 Pulling latest code..."
             git pull origin main
 
             # Set version in environment
             export IMAGE_TAG=v${{ needs.version.outputs.new_version }}
             echo "IMAGE_TAG=$IMAGE_TAG" > .env.version
+            echo "📦 Deploying version: $IMAGE_TAG"
 
-            # Pull new images
+            # STEP 1: STOP AND REMOVE EVERYTHING
+            echo "🛑 Stopping all containers..."
+            docker-compose -f docker-compose.production.yml down --remove-orphans || true
+
+            # STEP 2: CLEAN UP OLD CONTAINERS AND IMAGES
+            echo "🧹 Cleaning up old containers..."
+            docker container prune -f || true
+            docker image prune -af || true
+
+            # STEP 3: PULL NEW IMAGES
+            echo "📥 Pulling new images..."
             docker-compose -f docker-compose.production.yml pull
 
-            # Deploy with zero-downtime
-            docker-compose -f docker-compose.production.yml up -d --no-deps --build
+            # STEP 4: START FRESH
+            echo "🚀 Starting services from scratch..."
+            docker-compose -f docker-compose.production.yml up -d --force-recreate
 
-            # Wait for health checks
-            echo "⏳ Waiting for services to be healthy..."
-            sleep 30
+            # STEP 5: WAIT AND MONITOR
+            echo "⏳ Waiting for services to initialize (60 seconds)..."
+            sleep 60
 
-            # Check health
+            # STEP 6: CHECK STATUS
+            echo "📊 Checking container status..."
             docker-compose -f docker-compose.production.yml ps
 
-            # Cleanup old images
-            docker image prune -af --filter "until=48h"
+            # STEP 7: CHECK HEALTH ENDPOINT
+            echo "🏥 Testing health endpoint..."
+            curl -f http://localhost:3010/health || echo "⚠️  Health check failed!"
+
+            # STEP 8: SHOW LOGS IF UNHEALTHY
+            if ! docker-compose -f docker-compose.production.yml ps | grep -q "healthy"; then
+              echo "❌ Container is unhealthy! Showing logs..."
+              docker-compose -f docker-compose.production.yml logs --tail=50 api-gateway
+              exit 1
+            fi
 
             echo "✅ Deployment complete!"
             echo "📦 Version: ${{ needs.version.outputs.new_version }}"

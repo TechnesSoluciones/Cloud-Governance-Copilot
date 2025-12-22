@@ -1,0 +1,29 @@
+##############################################################################
+# Frontend Development Dockerfile
+# Optimized for hot-reload and rapid development
+##############################################################################
+
+FROM node:20-alpine AS development
+
+# Install development tools
+RUN apk add --no-cache \
+    git \
+    curl \
+    wget
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev)
+RUN npm install
+
+# Copy source code (will be overridden by volume mount)
+COPY . .
+
+# Expose ports
+EXPOSE 3000 9230
+
+# Development server with hot reload
+CMD ["npm", "run", "dev", "--", "--turbo"]

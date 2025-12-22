@@ -1,0 +1,295 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║         SISTEMA DE BACKUP POSTGRESQL - INSTALACIÓN COMPLETA         ║
+║                  Cloud Governance Copilot                            ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+UBICACIÓN DEL SISTEMA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scripts:     /Users/josegomez/Documents/Code/SaaS/Copilot/scripts/backup/
+Backups:     /Users/josegomez/Documents/Code/SaaS/Copilot/backups/postgres/
+Logs:        /Users/josegomez/Documents/Code/SaaS/Copilot/scripts/backup/logs/
+Config:      /Users/josegomez/Documents/Code/SaaS/Copilot/scripts/backup/configs/backup.conf
+
+
+SCRIPTS DISPONIBLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+INSTALACIÓN Y CONFIGURACIÓN:
+  ./install.sh              → Instalador automático todo-en-uno
+  ./validate-setup.sh       → Validar configuración del sistema
+  ./setup-hetzner.sh        → Configurar Hetzner Storage Box
+  ./setup-cron.sh           → Configurar automatización con cron
+
+OPERACIONES DE BACKUP:
+  ./backup.sh               → Ejecutar backup manual
+  ./restore.sh              → Restaurar desde backup
+  ./verify-backup.sh        → Verificar integridad de backups
+  ./monitor.sh              → Dashboard de monitoreo en tiempo real
+
+
+CONFIGURACIÓN DE BASE DE DATOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Host:        46.224.33.191
+Puerto:      5432
+Database:    copilot_dev
+Usuario:     copilot_dev
+Versión:     PostgreSQL 15
+
+
+INICIO RÁPIDO (3 PASOS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. INSTALACIÓN AUTOMÁTICA:
+   cd /Users/josegomez/Documents/Code/SaaS/Copilot/scripts/backup
+   ./install.sh
+
+2. PRIMER BACKUP:
+   ./backup.sh
+
+3. CONFIGURAR AUTOMATIZACIÓN:
+   ./setup-cron.sh --install
+
+
+COMANDOS ESENCIALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Hacer backup ahora
+./backup.sh
+
+# Ver backups disponibles
+./restore.sh --list
+
+# Restaurar último backup
+./restore.sh --from-hetzner
+
+# Verificar todos los backups
+./verify-backup.sh --all
+
+# Ver dashboard de monitoreo
+./monitor.sh
+
+# Validar sistema
+./validate-setup.sh
+
+
+CONFIGURAR HETZNER STORAGE BOX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Ejecutar asistente:
+   ./setup-hetzner.sh --setup
+
+2. Ingresar credenciales de Hetzner:
+   - Username (ej: u123456)
+   - Hostname (ej: u123456.your-storagebox.de)
+   - Puerto SSH (23)
+
+3. Agregar clave SSH pública:
+   - En panel de Hetzner: https://robot.hetzner.com/
+   - O ejecutar:
+     ssh-copy-id -p 23 -i ~/.ssh/id_rsa_hetzner_backup usuario@host
+
+4. Probar conexión:
+   ./setup-hetzner.sh --test
+
+
+AUTOMATIZACIÓN CON CRON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Instalar trabajos cron:
+  ./setup-cron.sh --install
+
+Horarios configurados:
+  - Backup diario:      02:00 AM (todos los días)
+  - Verificación:       03:00 AM (domingos)
+  - Reporte mensual:    04:00 AM (día 1 de cada mes)
+
+Ver estado:
+  ./setup-cron.sh --status
+
+Desinstalar:
+  ./setup-cron.sh --uninstall
+
+
+ESTRUCTURA DE ARCHIVOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+scripts/backup/
+├── backup.sh                  # Script principal de backup
+├── restore.sh                 # Script de restauración
+├── verify-backup.sh           # Verificación de integridad
+├── setup-cron.sh              # Configuración de automatización
+├── setup-hetzner.sh           # Configuración de Hetzner
+├── monitor.sh                 # Dashboard de monitoreo
+├── install.sh                 # Instalador automático
+├── validate-setup.sh          # Validación del sistema
+├── configs/
+│   └── backup.conf            # Configuración principal
+├── logs/                      # Logs de operaciones
+│   ├── backup_YYYYMM.log      # Logs de backup
+│   ├── restore_*.log          # Logs de restauración
+│   └── verify_*.log           # Logs de verificación
+└── [Documentación]
+    ├── INDEX.md               # Índice de documentación
+    ├── QUICKSTART.md          # Guía rápida
+    ├── README.md              # Documentación completa
+    └── SYSTEM_OVERVIEW.md     # Resumen técnico
+
+
+CARACTERÍSTICAS PRINCIPALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Backups automáticos diarios con pg_dump
+✓ Compresión gzip nivel 9 (ahorro de ~80-90% espacio)
+✓ Subida automática a Hetzner Storage Box
+✓ Rotación inteligente (local: 30 días, Hetzner: 90 días)
+✓ Verificación de integridad automática
+✓ Notificaciones por email/Slack/webhook
+✓ Restauración simple con un comando
+✓ Logs detallados de todas las operaciones
+✓ Dashboard de monitoreo en tiempo real
+✓ Backup paralelo para mejor rendimiento
+✓ Soporte para múltiples opciones de restauración
+
+
+POLÍTICAS DE RETENCIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Local:
+  - Retención: 30 días
+  - Máximo: 14 backups
+  - Ubicación: /Users/josegomez/Documents/Code/SaaS/Copilot/backups/postgres/
+
+Hetzner Storage Box:
+  - Retención: 90 días
+  - Máximo: Ilimitado
+  - Protocolo: SSH/rsync
+
+
+DOCUMENTACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Para comenzar:
+  cat QUICKSTART.md
+
+Documentación completa:
+  cat README.md
+
+Resumen técnico:
+  cat SYSTEM_OVERVIEW.md
+
+Índice de documentación:
+  cat INDEX.md
+
+
+LOGS Y MONITOREO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ver logs en tiempo real:
+  tail -f logs/backup_$(date +%Y%m).log
+
+Ver últimos errores:
+  grep ERROR logs/backup_*.log
+
+Dashboard de monitoreo:
+  ./monitor.sh
+
+Dashboard con auto-refresh:
+  ./monitor.sh watch 30
+
+Ver solo alertas:
+  ./monitor.sh alerts
+
+
+SOLUCIÓN DE PROBLEMAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Error de conexión a base de datos:
+  1. Verificar: cat configs/backup.conf | grep DB_
+  2. Probar: psql -h 46.224.33.191 -p 5432 -U copilot_dev -d copilot_dev
+
+Error de Hetzner:
+  1. Verificar: ./setup-hetzner.sh --config
+  2. Probar: ./setup-hetzner.sh --test
+
+Validar sistema completo:
+  ./validate-setup.sh
+
+
+NOTIFICACIONES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Configurar en: configs/backup.conf
+
+Email:
+  NOTIFICATIONS_ENABLED=true
+  NOTIFY_EMAIL="admin@domain.com"
+
+Slack:
+  SLACK_ENABLED=true
+  SLACK_WEBHOOK_URL="https://hooks.slack.com/..."
+
+Webhook:
+  WEBHOOK_ENABLED=true
+  WEBHOOK_URL="https://your-webhook.com/endpoint"
+
+
+SEGURIDAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Permisos configurados automáticamente:
+  - configs/backup.conf: 600 (solo propietario)
+  - backups/: 700 (solo propietario)
+  - ~/.ssh/id_rsa_hetzner_backup: 600
+
+Transferencia segura:
+  - SSH con autenticación por clave pública
+  - Sin contraseñas en texto plano
+  - Cifrado en tránsito
+
+
+PRÓXIMOS PASOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Ejecutar instalador:
+   ./install.sh
+
+2. Configurar Hetzner Storage Box:
+   ./setup-hetzner.sh --setup
+
+3. Hacer primer backup:
+   ./backup.sh
+
+4. Configurar automatización:
+   ./setup-cron.sh --install
+
+5. Verificar sistema:
+   ./validate-setup.sh
+
+6. Monitorear:
+   ./monitor.sh
+
+
+SOPORTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Para ayuda con un script:
+  ./[script].sh --help
+
+Para diagnóstico:
+  ./verify-backup.sh --report
+
+Para validación completa:
+  ./validate-setup.sh
+
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║  Sistema de Backup PostgreSQL v1.0.0                                 ║
+║  Cloud Governance Copilot                                            ║
+║  Fecha de instalación: 2025-12-21                                    ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
