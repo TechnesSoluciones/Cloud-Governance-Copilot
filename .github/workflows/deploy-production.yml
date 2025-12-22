@@ -227,9 +227,11 @@ jobs:
           # IMPORTANT: DATABASE_URL must have URL-encoded password (+ → %2B, / → %2F)
           DATABASE_URL=${{ secrets.DATABASE_URL }}
 
-          # Redis Configuration
-          REDIS_URL=${{ secrets.REDIS_URL }}
+          # Redis Configuration - Using local Redis container
+          REDIS_HOST=redis
+          REDIS_PORT=6379
           REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+          REDIS_TLS=false
 
           # JWT & Security
           JWT_SECRET=${{ secrets.JWT_SECRET }}

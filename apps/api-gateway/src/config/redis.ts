@@ -108,7 +108,30 @@ async function connectWithRetry(isStartup: boolean = true): Promise<void> {
  */
 export const initRedis = async (): Promise<void> => {
   try {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    // Build Redis URL from individual variables or use REDIS_URL
+    let redisUrl = process.env.REDIS_URL;
+
+    if (!redisUrl) {
+      // Construct URL from individual variables
+      const host = process.env.REDIS_HOST || 'localhost';
+      const port = process.env.REDIS_PORT || '6379';
+      const password = process.env.REDIS_PASSWORD || '';
+      const useTLS = process.env.REDIS_TLS === 'true';
+      const protocol = useTLS ? 'rediss' : 'redis';
+
+      if (password) {
+        redisUrl = `${protocol}://default:${password}@${host}:${port}`;
+      } else {
+        redisUrl = `${protocol}://${host}:${port}`;
+      }
+
+      logger.info('Redis: Built connection URL from individual variables', {
+        host,
+        port,
+        protocol,
+        hasPassword: !!password,
+      });
+    }
 
     logger.info('Redis: Initializing client', { url: redisUrl.replace(/:[^:]*@/, ':****@') });
 
