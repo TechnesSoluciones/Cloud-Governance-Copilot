@@ -3,7 +3,7 @@
 # Optimized for hot-reload and rapid development
 ##############################################################################
 
-FROM node:20-alpine
+FROM node:20-alpine AS development
 
 # Install development tools
 RUN apk add --no-cache \

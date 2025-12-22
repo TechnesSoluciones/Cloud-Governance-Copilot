@@ -72,8 +72,6 @@ services:
       - NODE_ENV=production
       - PORT=3010
       - INTERNAL_API_URL=http://api-gateway:3010
-      # Override Redis to use local container (not Upstash)
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-copilot_redis_2024}@redis:6379
     depends_on:
       redis:
         condition: service_healthy

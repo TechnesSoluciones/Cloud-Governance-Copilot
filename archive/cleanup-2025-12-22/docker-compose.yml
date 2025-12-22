@@ -1,0 +1,148 @@
+# ============================================================
+# Cloud Governance Copilot - Docker Compose
+# ============================================================
+# Unified configuration for local production testing
+# Usage: docker-compose up -d
+# ============================================================
+
+version: '3.8'
+
+# ============================================================
+# Networks
+# ============================================================
+networks:
+  copilot-net:
+    driver: bridge
+    name: copilot-network
+
+# ============================================================
+# Services
+# ============================================================
+services:
+
+  # ============================================================
+  # API Gateway
+  # ============================================================
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile.local
+      args:
+        NODE_ENV: production
+    image: copilot/api-gateway:local
+    container_name: copilot-api-gateway
+    restart: unless-stopped
+    environment:
+      # Core
+      NODE_ENV: ${NODE_ENV}
+      DOCKER_ENV: "true"
+      PORT: ${API_PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+
+      # Database
+      DATABASE_URL: ${DATABASE_URL}
+
+      # Redis - All variables use service name
+      REDIS_URL: ${REDIS_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # Authentication
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+
+      # Security
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      SESSION_SECRET: ${SESSION_SECRET}
+
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
+
+      # Cloud Providers (optional)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
+
+      # BullMQ - Uses same Redis instance
+      BULLMQ_REDIS_HOST: ${BULLMQ_REDIS_HOST}
+      BULLMQ_REDIS_PORT: ${BULLMQ_REDIS_PORT}
+      BULLMQ_REDIS_PASSWORD: ${BULLMQ_REDIS_PASSWORD}
+
+    networks:
+      - copilot-net
+
+    ports:
+      - "${API_PORT}:${API_PORT}"
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:${API_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ============================================================
+  # Frontend Portal
+  # ============================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: ./apps/frontend/Dockerfile.local
+      args:
+        NODE_ENV: production
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    image: copilot/frontend:local
+    container_name: copilot-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${FRONTEND_PORT}
+      HOSTNAME: 0.0.0.0
+
+      # APIs and URLs
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      INTERNAL_API_URL: ${INTERNAL_API_URL}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+
+      # Next.js
+      NEXT_TELEMETRY_DISABLED: 1
+
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+
+    networks:
+      - copilot-net
+
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:${FRONTEND_PORT}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

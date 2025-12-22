@@ -1,0 +1,47 @@
+# ============================================================
+# API Gateway Development Dockerfile
+# Cloud Governance Copilot
+# ============================================================
+# Optimized for development with hot reload
+# Uses tsx watch for instant TypeScript execution
+# No compilation required - changes reflect immediately
+# ============================================================
+
+FROM node:20-alpine
+
+# Install required packages
+RUN apk add --no-cache \
+    openssl \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install ALL dependencies (including dev dependencies for tsx, typescript, etc.)
+RUN npm install && \
+    npm cache clean --force
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Copy source code (will be mounted as volume for hot reload)
+COPY . .
+
+# Expose ports
+EXPOSE 3010 9229
+
+# Set development environment
+ENV NODE_ENV=development \
+    PORT=3010
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+    CMD curl -f http://localhost:3010/health || exit 1
+
+# Hot reload with tsx watch
+# This will automatically restart on file changes
+CMD ["npm", "run", "dev"]

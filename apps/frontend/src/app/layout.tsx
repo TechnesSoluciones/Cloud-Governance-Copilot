@@ -10,10 +10,10 @@ export const metadata: Metadata = {
   description: 'Multi-Cloud Governance and Security Platform',
 };
 
-// Disable static optimization for all routes
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-export const revalidate = 0;
+// NOTE: Do NOT force dynamic rendering at root level
+// This prevents pages from being built and causes 404 errors
+// Instead, use `export const dynamic = 'force-dynamic'` in individual
+// pages/layouts that require authentication or dynamic data
 
 export default function RootLayout({
   children,

@@ -2,9 +2,9 @@
 
 > Plataforma centralizada que unifica el acceso a 6 SaaS del ecosistema cloud bajo un solo portal, con IA integrada, gestión multi-tenant y automatizaciones inteligentes.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/yourorg/cloud-governance-copilot)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-planning-yellow.svg)](PLANNING.MD)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](docs/CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-UNLICENSED-red.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-development-yellow.svg)](docs/DEVELOPMENT.md)
 
 ---
 
@@ -71,173 +71,122 @@ Cloud Governance Copilot es un **portal unificado** que centraliza la gestión d
 ### Prerequisites
 
 - **Docker** (v24.0+) y **Docker Compose** (v2.20+)
-- **Node.js** (v20+) para desarrollo local
-- **Make** (opcional pero recomendado)
-- **Git**
-- **Hetzner VPS** (CX41 o superior recomendado) para producción
+- **Node.js** (v20 LTS, opcional) para desarrollo fuera de Docker
+- **Git** para control de versiones
 
-### Initial Setup - Local Development
+### Setup - 3 Pasos (5 minutos)
 
 ```bash
-# 1. Clonar el repositorio
+# 1. Clonar y entrar al directorio
 git clone <repository-url>
 cd cloud-governance-copilot
 
-# 2. Copiar y configurar variables de entorno
+# 2. Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus credenciales
+# Editar .env si es necesario (opcional para desarrollo)
 
-# 3. Crear docker-compose.yml desde el ejemplo
-cp docker-compose.example.yml docker-compose.yml
-
-# 4. Iniciar todos los servicios
+# 3. Iniciar servicios
 docker-compose up -d
+```
 
-# 5. Verificar que todos los contenedores estén running
+### Acceder a la Aplicación
+
+| Servicio | URL | Descripción |
+|----------|-----|-------------|
+| **Frontend** | http://localhost:3000 | Portal principal |
+| **API Gateway** | http://localhost:3010 | Backend Express |
+| **Health Check** | http://localhost:3010/health | API status |
+| **Redis** | localhost:6379 | Cache/sesiones |
+| **PostgreSQL** | Hetzner (externo) | Base de datos |
+
+### Comandos Frecuentes
+
+```bash
+# Ver estado
 docker-compose ps
 
-# 6. Ver logs
+# Ver logs (seguimiento)
 docker-compose logs -f
+
+# Detener todo
+docker-compose down
+
+# Limpiar y reiniciar
+docker-compose down -v && docker-compose up -d
 ```
 
-### Acceder a las Aplicaciones (Local)
+## 📚 Documentación
 
-```bash
-# Frontend
-http://localhost:3000              # Copilot Portal
-http://localhost:3001              # OneCloud Dashboard
-http://localhost:3002              # Spend Navigator
-http://localhost:3003              # Security Misconfig
-http://localhost:3004              # Asset 360
-http://localhost:3005              # Incident IQ
-http://localhost:3006              # Advisor Report
+Para información más detallada, consulta los siguientes documentos:
 
-# Backend
-http://localhost:4000              # API Gateway
-http://localhost:4000/docs         # API Documentation (Swagger)
+| Documento | Propósito |
+|-----------|----------|
+| **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** | Guía completa de desarrollo, debugging, troubleshooting |
+| **[docs/README.md](docs/README.md)** | Índice de toda la documentación disponible |
+| **[docs/CHANGELOG.md](docs/CHANGELOG.md)** | Historial de cambios (v1.2.0) |
+| **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** | Instrucciones de deployment |
+| **[README.MD](README.MD)** | Este archivo (documentación principal) |
 
-# Database & Cache
-localhost:5432                     # PostgreSQL
-localhost:6379                     # Redis
+## 🏗 Arquitectura Actual
+
+### Desarrollo
+```
+Frontend (3000) ──┐
+                  ├──> API Gateway (3010) <──┬──> Redis (6379)
+                  │                         │
+                  └─────────────────────────┴──> PostgreSQL (Hetzner)
 ```
 
-### Configuración de Variables de Entorno
-
-El archivo `.env.example` contiene todas las variables necesarias:
-
-```bash
-# Copiar el archivo de ejemplo
-cp .env.example .env
-
-# Editar con tus credenciales
-vim .env  # o nano .env
+### Producción
 ```
-
-**Variables críticas a configurar:**
-```bash
-# Database
-POSTGRES_PASSWORD=your_strong_password
-
-# Authentication
-JWT_SECRET=your_jwt_secret_min_32_chars
-NEXTAUTH_SECRET=your_nextauth_secret
-
-# OpenAI (para AI Insights)
-OPENAI_API_KEY=sk-your-api-key
-
-# Cloud Providers (para integraciones)
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-
-# Stripe (para billing)
-STRIPE_SECRET_KEY=sk_test_your_key
+Users ──> Caddy (80/443) ──> Frontend (3000) ──┐
+                                               ├──> API Gateway (3010) <──┬──> Redis
+                                               │                        │
+                                               └────────────────────────┴──> PostgreSQL
 ```
 
 ---
 
 ## 📋 Comandos Disponibles
 
-### Gestión del Ambiente (Docker Compose)
+### NPM Scripts (Raíz)
 
 ```bash
-# Iniciar todos los servicios
-docker-compose up -d
+npm run dev              # Iniciar desarrollo con Turbo (frontend + backend)
+npm run build            # Compilar para producción
+npm run test             # Ejecutar todos los tests
+npm run lint             # Linters en todo el proyecto
+npm run format           # Formatear código (Prettier)
 
-# Ver estado de servicios
-docker-compose ps
+npm run docker:up        # docker-compose up -d
+npm run docker:down      # docker-compose down
+npm run docker:logs      # docker-compose logs -f
+npm run docker:build     # docker-compose build
 
-# Ver logs
-docker-compose logs -f                    # Todos los servicios
-docker-compose logs -f copilot-portal     # Solo Copilot Portal
-docker-compose logs -f api-gateway        # Solo API Gateway
-
-# Detener todos los servicios
-docker-compose down
-
-# Reiniciar servicios
-docker-compose restart
-
-# Reconstruir imágenes
-docker-compose build
-docker-compose up -d --build
-
-# Eliminar todo (⚠️ incluyendo volúmenes)
-docker-compose down -v
+npm run db:migrate       # Ejecutar migraciones Prisma
+npm run db:seed          # Seed con datos de ejemplo
+npm run db:studio        # Abrir Prisma Studio GUI
+npm run db:backup        # Backup de BD
+npm run db:restore       # Restaurar BD desde backup
 ```
 
-### Desarrollo
+### Docker Compose (Contenedores)
 
 ```bash
-# Shell en contenedor específico
-docker-compose exec copilot-portal sh
-docker-compose exec api-gateway sh
-docker-compose exec postgres psql -U copilot -d copilot_main
+# Estado y logs
+docker-compose ps                          # Ver estado
+docker-compose logs -f                     # Todos
+docker-compose logs -f api-gateway         # Solo API
 
-# Ver logs en tiempo real de un servicio
-docker-compose logs -f --tail=100 copilot-portal
-
-# Ejecutar comando en contenedor
+# Ejecutar comandos en contenedores
 docker-compose exec api-gateway npm run test
-```
+docker-compose exec frontend npm run build
+docker-compose exec api-gateway npx prisma studio
 
-### Base de Datos (PostgreSQL)
-
-```bash
-# Ejecutar migraciones
-docker-compose exec api-gateway npm run migrate
-
-# Seed con datos de ejemplo
-docker-compose exec api-gateway npm run seed
-
-# Backup de base de datos
-docker-compose exec postgres pg_dump -U copilot copilot_main > backup.sql
-
-# Restaurar desde backup
-docker-compose exec -T postgres psql -U copilot copilot_main < backup.sql
-
-# Acceder a psql
-docker-compose exec postgres psql -U copilot -d copilot_main
-
-# Resetear BD (⚠️ borra todos los datos)
-docker-compose exec postgres psql -U copilot -c "DROP DATABASE copilot_main; CREATE DATABASE copilot_main;"
-```
-
-### Testing
-
-```bash
-make test              # Ejecutar todos los tests
-make test-unit         # Solo unit tests
-make test-integration  # Solo integration tests
-make test-e2e          # Solo E2E tests
-make test-coverage     # Tests con reporte de coverage
-```
-
-### Code Quality
-
-```bash
-make lint              # Ejecutar linters (backend + frontend)
-make format            # Formatear código (Prettier + ESLint)
-make type-check        # Verificar tipos de TypeScript
+# Control de servicios
+docker-compose restart api-gateway         # Reiniciar API
+docker-compose up -d --build               # Rebuild y start
+docker-compose down -v                     # Detener y limpiar volúmenes
 ```
 
 ---
@@ -247,61 +196,50 @@ make type-check        # Verificar tipos de TypeScript
 ```
 cloud-governance-copilot/
 ├── apps/
-│   ├── frontend/              # Next.js + React + Tailwind
-│   │   ├── src/
-│   │   │   ├── app/          # Pages (App Router)
-│   │   │   ├── components/   # React components
-│   │   │   ├── hooks/        # Custom hooks
-│   │   │   ├── services/     # API clients
-│   │   │   └── types/        # TypeScript types
+│   ├── frontend/                    # Next.js + React
+│   │   ├── src/app/                # Pages (App Router)
+│   │   ├── src/components/         # React components
+│   │   ├── Dockerfile              # Producción
+│   │   ├── Dockerfile.dev          # Desarrollo (hot reload)
 │   │   └── package.json
 │   │
-│   ├── api-gateway/          # Node.js + Express
-│   │   ├── src/
-│   │   │   ├── routes/       # API endpoints
-│   │   │   ├── middleware/   # Auth, RBAC, validation
-│   │   │   ├── services/     # Business logic
-│   │   │   └── utils/
-│   │   └── package.json
-│   │
-│   └── workers/              # Lambda workers
-│       ├── auth-service/
-│       ├── tenant-service/
-│       ├── billing-service/
-│       └── ai-insights/
+│   └── api-gateway/                # Express + TypeScript
+│       ├── src/
+│       │   ├── routes/             # API endpoints
+│       │   ├── middleware/         # Auth, RBAC
+│       │   ├── services/           # Business logic
+│       │   └── index.ts
+│       ├── prisma/                 # DB schema
+│       ├── Dockerfile              # Producción
+│       ├── Dockerfile.dev          # Desarrollo (tsx watch)
+│       └── package.json
 │
-├── packages/                 # Código compartido
-│   ├── shared-types/         # TypeScript types
-│   ├── ui-components/        # Shared UI components
-│   └── utils/                # Utilidades comunes
+├── packages/                       # Código compartido
+│   ├── shared-types/
+│   ├── ui-components/
+│   └── utils/
 │
-├── infrastructure/           # Infrastructure as Code
-│   └── terraform/
-│       ├── modules/          # Módulos reutilizables
-│       │   ├── networking/
-│       │   ├── compute/
-│       │   ├── database/
-│       │   └── storage/
-│       └── environments/     # Ambientes
-│           ├── dev/
-│           ├── staging/
-│           └── production/
+├── docs/                           # TODA la documentación
+│   ├── README.md                   # Índice de docs
+│   ├── DEVELOPMENT.md              # Guía de desarrollo
+│   ├── CHANGELOG.md                # Historial (v1.2.0)
+│   ├── DEPLOYMENT_GUIDE.md         # Deployments
+│   ├── architecture/               # Diagramas arquitectura
+│   └── ... (150+ docs adicionales)
 │
-├── docs/                     # Documentación adicional
-│   ├── architecture/
-│   ├── api/
-│   └── guides/
+├── infrastructure/                 # IaC (Terraform)
+├── caddy/                         # Reverse proxy config
+├── scripts/                       # Utilidades
+├── archive/cleanup-2025-12-22/   # Backup de archivos obsoletos
 │
-├── Context_Docs/             # Documentos de contexto del proyecto
-│   ├── PRD.MD               # Product Requirements Document
-│   ├── PLANNING.MD          # Planning detallado (24 sprints)
-│   ├── TASK.MD              # Task breakdown y estado
-│   └── CLAUDE.MD            # Guía técnica para Claude Code
+├── docker-compose.yml            # Desarrollo (PRINCIPAL)
+├── docker-compose.production.yml # Producción
+├── docker-compose.test.yml       # Testing
+├── docker-compose.old.yml        # Backup versión anterior
 │
-├── docker-compose.yml
-├── Makefile
-├── .env.example
-└── README.MD                 # Este archivo
+├── .env.example                  # Template de variables
+├── package.json                  # Root (versión 1.2.0)
+└── README.MD                     # Este archivo (documentación principal)
 ```
 
 ---
@@ -605,61 +543,18 @@ Este es un proyecto privado. Para miembros del equipo:
 
 ---
 
-## 🐛 Troubleshooting
+## 🐛 Troubleshooting Rápido
 
-### Servicios no inician
+| Problema | Solución |
+|----------|----------|
+| Contenedores no inician | `docker-compose down -v && docker-compose up -d` |
+| Puerto 3010 en uso | `lsof -i:3010` y `kill -9 <PID>` |
+| Hot reload no funciona | `docker-compose restart api-gateway` |
+| Error PostgreSQL | Verificar DATABASE_URL en `.env` |
+| Error Redis | `docker-compose ps redis` (verificar estado) |
+| Logs no claros | `docker-compose logs --tail=100 api-gateway` |
 
-```bash
-# Limpiar y reiniciar
-make clean
-make up
-
-# Ver logs específicos
-docker-compose logs frontend
-docker-compose logs api-gateway
-```
-
-### Puerto ya en uso
-
-```bash
-# Encontrar y matar proceso
-lsof -ti:3000 | xargs kill -9  # Frontend
-lsof -ti:4000 | xargs kill -9  # API Gateway
-```
-
-### Base de datos - Errores de conexión
-
-```bash
-# Resetear DB local
-make db-reset
-
-# Recrear tablas
-make migrate
-```
-
-### Frontend no conecta con backend
-
-Verificar proxy en `next.config.js`:
-```javascript
-async rewrites() {
-  return [
-    {
-      source: '/api/:path*',
-      destination: 'http://api-gateway:4000/:path*'
-    }
-  ]
-}
-```
-
-### Tests fallan en CI
-
-```bash
-# Ejecutar localmente
-make test-ci  # Simula ambiente de CI
-
-# Ver logs detallados
-npm run test -- --verbose
-```
+**Para más detalles:** Ver [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#-troubleshooting)
 
 ---
 
