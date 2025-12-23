@@ -73,6 +73,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 # Copy Prisma files for migrations
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown -R nodejs:nodejs /app
+
 # Switch to non-root user
 USER nodejs
 
