@@ -24,6 +24,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "downlevelIteration": true,
 
     // Declarations
     "declaration": true,

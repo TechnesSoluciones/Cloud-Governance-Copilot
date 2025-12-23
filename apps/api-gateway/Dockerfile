@@ -1,57 +1,46 @@
 # ============================================================
-# API Gateway Production Dockerfile - Multi-stage Build
+# API Gateway Production Dockerfile - Two-stage Build
 # Cloud Governance Copilot
 # ============================================================
-# Build stage: 50MB | Production stage: ~130MB
+# Builder stage: ~400MB | Production stage: ~150MB
 # ============================================================
 
 # ============================================================
-# Stage 1: Dependencies Installation
+# Stage 1: Builder - TypeScript Compilation & Dependencies
 # ============================================================
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS builder
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
-# Copy package files for dependency installation (context is project root, so we need apps/api-gateway path)
+# Copy package files first
 COPY apps/api-gateway/package*.json ./
-COPY apps/api-gateway/prisma ./prisma/
 
-# Install dependencies for production only
-# Use npm install since this might be a workspace without package-lock.json
-RUN npm install --production --no-package-lock && \
+# Install ALL dependencies (including devDependencies for build)
+# Using npm install without --production to get TypeScript and build tools
+RUN npm install --no-package-lock && \
     npm cache clean --force
 
-# Generate Prisma Client
+# Copy Prisma files and generate client
+COPY apps/api-gateway/prisma ./prisma/
 RUN npx prisma generate
 
-# ============================================================
-# Stage 2: Builder - TypeScript Compilation
-# ============================================================
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package*.json ./
-
-# Copy source code (context is project root, so copy only api-gateway app)
-COPY apps/api-gateway/ .
-
-# Install dev dependencies needed for build
-RUN npm install --only=dev
+# Copy TypeScript configuration files
+# Use tsconfig.docker.json which is standalone (doesn't extend root config)
+COPY apps/api-gateway/tsconfig.docker.json ./tsconfig.json
+COPY apps/api-gateway/src ./src/
 
 # Compile TypeScript to JavaScript
-RUN npm run build
+# Now tsc will use the standalone tsconfig.json (which is tsconfig.docker.json)
+RUN npx tsc
 
 # Remove dev dependencies after build
 RUN npm prune --production
 
 # ============================================================
-# Stage 3: Production Runtime
+# Stage 2: Production Runtime
 # ============================================================
 FROM node:20-alpine AS runner
 

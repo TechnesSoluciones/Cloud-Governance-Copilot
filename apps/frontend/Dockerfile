@@ -1,41 +1,27 @@
 # ============================================================
-# Frontend Production Dockerfile - Multi-stage Build
+# Frontend Production Dockerfile - Two-stage Build
 # Cloud Governance Copilot - Next.js 14 App Router
 # ============================================================
-# Dependencies stage: 200MB | Builder stage: 350MB | Production stage: ~180MB
+# Builder stage: ~500MB | Production stage: ~180MB
 # ============================================================
 
 # ============================================================
-# Stage 1: Dependencies Installation
+# Stage 1: Builder - Next.js Build & Dependencies
 # ============================================================
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS builder
 
 # Install libc6-compat for Next.js compatibility
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files (context is project root, so we need apps/frontend path)
+# Copy frontend package files
 COPY apps/frontend/package*.json ./
 
-# Install dependencies
-# Use npm install since this might be a workspace without package-lock.json
-RUN npm install --production --no-package-lock && \
+# Install ALL dependencies (including devDependencies for build)
+# Using npm install without --production to get Next.js build tools
+RUN npm install --no-package-lock && \
     npm cache clean --force
-
-# ============================================================
-# Stage 2: Builder - Next.js Build
-# ============================================================
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy production dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package*.json ./
-
-# Install dev dependencies needed for build
-RUN npm install --only=dev
 
 # Copy application source (context is project root, so copy only frontend app)
 COPY apps/frontend/ .
@@ -57,7 +43,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 RUN npm run build
 
 # ============================================================
-# Stage 3: Production Runtime
+# Stage 2: Production Runtime
 # ============================================================
 FROM node:20-alpine AS runner
 
