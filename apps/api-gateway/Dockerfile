@@ -15,9 +15,9 @@ RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package*.json ./
-COPY prisma ./prisma/
+# Copy package files for dependency installation (context is project root, so we need apps/api-gateway path)
+COPY apps/api-gateway/package*.json ./
+COPY apps/api-gateway/prisma ./prisma/
 
 # Install dependencies for production only
 # --omit=dev excludes devDependencies
@@ -38,8 +38,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
 
-# Copy source code
-COPY . .
+# Copy source code (context is project root, so copy only api-gateway app)
+COPY apps/api-gateway/ .
 
 # Install dev dependencies needed for build
 RUN npm install --only=dev

@@ -56,14 +56,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./apps/api-gateway/Dockerfile.production
+          file: ./apps/api-gateway/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NODE_ENV=production
             BUILDKIT_INLINE_CACHE=1
             GIT_COMMIT_SHA=${{ github.sha }}
             BUILD_TIMESTAMP=${{ github.run_number }}
@@ -107,15 +106,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./apps/frontend/Dockerfile.production
+          file: ./apps/frontend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NODE_ENV=production
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             BUILDKIT_INLINE_CACHE=1
             GIT_COMMIT_SHA=${{ github.sha }}
             BUILD_TIMESTAMP=${{ github.run_number }}

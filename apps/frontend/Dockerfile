@@ -15,8 +15,8 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (context is project root, so we need apps/frontend path)
+COPY apps/frontend/package*.json ./
 
 # Install dependencies using npm ci for reproducible builds
 # Only install production dependencies
@@ -37,8 +37,8 @@ COPY --from=deps /app/package*.json ./
 # Install dev dependencies needed for build
 RUN npm install --only=dev
 
-# Copy application source
-COPY . .
+# Copy application source (context is project root, so copy only frontend app)
+COPY apps/frontend/ .
 
 # Build arguments for version tracking
 ARG GIT_COMMIT_SHA=unknown
