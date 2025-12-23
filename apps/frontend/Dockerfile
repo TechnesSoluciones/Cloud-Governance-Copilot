@@ -18,9 +18,9 @@ WORKDIR /app
 # Copy package files (context is project root, so we need apps/frontend path)
 COPY apps/frontend/package*.json ./
 
-# Install dependencies using npm ci for reproducible builds
-# Only install production dependencies
-RUN npm ci --omit=dev && \
+# Install dependencies
+# Use npm install since this might be a workspace without package-lock.json
+RUN npm install --production --no-package-lock && \
     npm cache clean --force
 
 # ============================================================

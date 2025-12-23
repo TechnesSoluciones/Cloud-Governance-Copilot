@@ -20,8 +20,8 @@ COPY apps/api-gateway/package*.json ./
 COPY apps/api-gateway/prisma ./prisma/
 
 # Install dependencies for production only
-# --omit=dev excludes devDependencies
-RUN npm ci --omit=dev && \
+# Use npm install since this might be a workspace without package-lock.json
+RUN npm install --production --no-package-lock && \
     npm cache clean --force
 
 # Generate Prisma Client
