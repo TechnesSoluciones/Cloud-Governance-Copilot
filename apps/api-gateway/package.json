@@ -1,6 +1,6 @@
 {
   "name": "@copilot/api-gateway",
-  "version": "1.1.19",
+  "version": "1.1.20",
   "description": "Cloud Governance Copilot - API Gateway",
   "main": "dist/index.js",
   "scripts": {
