@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Cloud Governance Copilot',
   description: 'Multi-Cloud Governance and Security Platform',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 // NOTE: Do NOT force dynamic rendering at root level
