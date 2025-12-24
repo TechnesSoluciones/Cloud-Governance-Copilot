@@ -28,6 +28,9 @@ import { ResourceDistribution } from '@/components/dashboard/azure/ResourceDistr
 import { HealthStatus } from '@/components/dashboard/azure/HealthStatus';
 import { RecentActivity } from '@/components/dashboard/azure/RecentActivity';
 
+// Error Handling
+import { ErrorBoundary, DashboardErrorFallback } from '@/components/error-boundary';
+
 /**
  * Azure Dashboard Page
  * Displays overview cards, resource distribution charts, health status, and recent activity
@@ -156,7 +159,14 @@ export default function DashboardPage() {
           <Icons.alertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h4 className="font-semibold">Failed to load dashboard data</h4>
-            <p className="text-sm mt-1">{error}</p>
+            <p className="text-sm mt-1">
+              {error.includes('500') || error.includes('rate limit')
+                ? 'The Azure API is currently experiencing issues (rate limiting or service unavailable). Please try again in a few moments.'
+                : error}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              If this problem persists, please check your Azure account configuration or contact support.
+            </p>
           </div>
           <Button
             variant="outline"
@@ -164,6 +174,7 @@ export default function DashboardPage() {
             onClick={() => refetch()}
             className="flex-shrink-0"
           >
+            <Icons.refresh className="h-4 w-4 mr-1" />
             Retry
           </Button>
         </Alert>
@@ -193,51 +204,57 @@ export default function DashboardPage() {
             stats={[
               {
                 label: 'Total Resources',
-                value: overview.resources.total.toLocaleString(),
+                value: (overview?.resources?.total || 0).toLocaleString(),
                 icon: <Server className="h-14 w-14" />,
                 iconBg: PREMIUM_GRADIENTS.azure,
                 iconColor: PREMIUM_ICON_COLORS.azure,
-                subtitle: `Across ${overview.resources.byLocation.length} location${overview.resources.byLocation.length !== 1 ? 's' : ''}`,
+                subtitle: `Across ${overview?.resources?.byLocation?.length || 0} location${overview?.resources?.byLocation?.length !== 1 ? 's' : ''}`,
               },
               {
                 label: 'Monthly Cost',
-                value: `$${overview.costs.currentMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                value: `$${(overview?.costs?.currentMonth || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 icon: <DollarSign className="h-14 w-14" />,
                 iconBg: PREMIUM_GRADIENTS.warning,
                 iconColor: PREMIUM_ICON_COLORS.warning,
-                trend: {
+                trend: overview?.costs?.percentageChange ? {
                   value: overview.costs.percentageChange,
                   direction: overview.costs.trend === 'up' ? 'up' : overview.costs.trend === 'down' ? 'down' : 'stable',
-                },
+                } : undefined,
                 subtitle: 'vs last month',
               },
               {
                 label: 'Security Score',
-                value: `${overview.security.score}/100`,
+                value: `${overview?.security?.score || 0}/100`,
                 icon: <Shield className="h-14 w-14" />,
-                iconBg: overview.security.score >= 80 ? PREMIUM_GRADIENTS.success : overview.security.score >= 60 ? PREMIUM_GRADIENTS.warning : PREMIUM_GRADIENTS.error,
-                iconColor: overview.security.score >= 80 ? PREMIUM_ICON_COLORS.success : overview.security.score >= 60 ? PREMIUM_ICON_COLORS.warning : PREMIUM_ICON_COLORS.error,
-                subtitle: `${overview.security.criticalIssues} critical, ${overview.security.highIssues} high`,
+                iconBg: (overview?.security?.score || 0) >= 80 ? PREMIUM_GRADIENTS.success : (overview?.security?.score || 0) >= 60 ? PREMIUM_GRADIENTS.warning : PREMIUM_GRADIENTS.error,
+                iconColor: (overview?.security?.score || 0) >= 80 ? PREMIUM_ICON_COLORS.success : (overview?.security?.score || 0) >= 60 ? PREMIUM_ICON_COLORS.warning : PREMIUM_ICON_COLORS.error,
+                subtitle: `${overview?.security?.criticalIssues || 0} critical, ${overview?.security?.highIssues || 0} high`,
               },
               {
                 label: 'Active Alerts',
-                value: overview.alerts.active,
+                value: overview?.alerts?.active || 0,
                 icon: <Bell className="h-14 w-14" />,
                 iconBg: PREMIUM_GRADIENTS.error,
                 iconColor: PREMIUM_ICON_COLORS.error,
-                subtitle: `${overview.alerts.recent.length} in last 24 hours`,
+                subtitle: `${overview?.alerts?.recent?.length || 0} in last 24 hours`,
               },
             ]}
           />
 
           {/* Resource Distribution Charts */}
-          <ResourceDistribution overview={overview} />
+          <ErrorBoundary fallback={DashboardErrorFallback}>
+            <ResourceDistribution overview={overview} />
+          </ErrorBoundary>
 
           {/* Health Status and Resources by Location */}
-          <HealthStatus health={health} />
+          <ErrorBoundary fallback={DashboardErrorFallback}>
+            <HealthStatus health={health} />
+          </ErrorBoundary>
 
           {/* Recent Activity Feed */}
-          <RecentActivity health={health} maxItems={10} />
+          <ErrorBoundary fallback={DashboardErrorFallback}>
+            <RecentActivity health={health} maxItems={10} />
+          </ErrorBoundary>
         </>
       )}
 

@@ -71,6 +71,11 @@ const ResourceTypeIcons: Record<string, React.ComponentType<any>> = {
 
 // Get icon for resource type
 const getResourceTypeIcon = (type: string): React.ComponentType<any> => {
+  // Defensive programming: validate type before using toLowerCase
+  if (!type || typeof type !== 'string') {
+    return ResourceTypeIcons.Default;
+  }
+
   for (const [key, Icon] of Object.entries(ResourceTypeIcons)) {
     if (type.toLowerCase().includes(key.toLowerCase())) {
       return Icon;

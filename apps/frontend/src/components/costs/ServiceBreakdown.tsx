@@ -234,6 +234,8 @@ const TableView: React.FC<{
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter((service) =>
+        // Defensive programming: validate before using toLowerCase
+        service?.service && typeof service.service === 'string' &&
         service.service.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -244,8 +246,9 @@ const TableView: React.FC<{
       let bValue: any = b[sortField];
 
       if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = (bValue as string).toLowerCase();
+        // Defensive programming: validate before using toLowerCase
+        aValue = (aValue && typeof aValue === 'string') ? aValue.toLowerCase() : '';
+        bValue = (bValue && typeof bValue === 'string') ? (bValue as string).toLowerCase() : '';
       }
 
       if (sortDirection === 'asc') {

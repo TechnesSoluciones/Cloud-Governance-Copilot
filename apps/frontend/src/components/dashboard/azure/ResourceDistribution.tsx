@@ -47,41 +47,59 @@ export const ResourceDistribution: React.FC<ResourceDistributionProps> = ({
 }) => {
   // Prepare data for resources by type (top 5)
   const resourcesByTypeData = React.useMemo(() => {
+    // Defensive programming: validate data before processing
+    if (!overview?.resources?.byType || !Array.isArray(overview.resources.byType)) {
+      return [];
+    }
+
     const topTypes = overview.resources.byType
+      .filter((item) => item && typeof item.count === 'number' && item.type)
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
     const totalTop = topTypes.reduce((sum, item) => sum + item.count, 0);
-    const othersCount = overview.resources.total - totalTop;
+    const othersCount = (overview.resources.total || 0) - totalTop;
 
     const data = topTypes.map((item) => ({
-      name: item.type,
+      name: item.type || 'Unknown',
       value: item.count,
-      percentage: ((item.count / overview.resources.total) * 100).toFixed(1),
+      percentage: overview.resources.total > 0
+        ? ((item.count / overview.resources.total) * 100).toFixed(1)
+        : '0.0',
     }));
 
     if (othersCount > 0) {
       data.push({
         name: 'Others',
         value: othersCount,
-        percentage: ((othersCount / overview.resources.total) * 100).toFixed(1),
+        percentage: overview.resources.total > 0
+          ? ((othersCount / overview.resources.total) * 100).toFixed(1)
+          : '0.0',
       });
     }
 
     return data;
-  }, [overview.resources.byType, overview.resources.total]);
+  }, [overview?.resources?.byType, overview?.resources?.total]);
 
   // Prepare data for resources by location (top 5)
   const resourcesByLocationData = React.useMemo(() => {
+    // Defensive programming: validate data before processing
+    if (!overview?.resources?.byLocation || !Array.isArray(overview.resources.byLocation)) {
+      return [];
+    }
+
     return overview.resources.byLocation
+      .filter((item) => item && typeof item.count === 'number' && item.location)
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
       .map((item) => ({
-        location: item.location,
+        location: item.location || 'Unknown',
         count: item.count,
-        percentage: ((item.count / overview.resources.total) * 100).toFixed(1),
+        percentage: overview.resources.total > 0
+          ? ((item.count / overview.resources.total) * 100).toFixed(1)
+          : '0.0',
       }));
-  }, [overview.resources.byLocation, overview.resources.total]);
+  }, [overview?.resources?.byLocation, overview?.resources?.total]);
 
   // Custom tooltip for pie chart
   const CustomPieTooltip = ({ active, payload }: any) => {

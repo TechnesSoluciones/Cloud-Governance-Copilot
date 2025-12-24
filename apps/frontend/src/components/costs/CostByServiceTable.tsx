@@ -91,8 +91,9 @@ export const CostByServiceTable: React.FC<CostByServiceTableProps> = ({
 
       // String comparison for text columns
       if (sortColumn === 'service' || sortColumn === 'provider') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
+        // Defensive programming: validate before using toLowerCase
+        aValue = (aValue && typeof aValue === 'string') ? aValue.toLowerCase() : '';
+        bValue = (bValue && typeof bValue === 'string') ? bValue.toLowerCase() : '';
       }
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;

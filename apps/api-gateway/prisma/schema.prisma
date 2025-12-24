@@ -36,6 +36,7 @@ model Tenant {
   costRecommendations         CostRecommendation[]
   securityScans               SecurityScan[]
   securityFindings            SecurityFinding[]
+  azureSecurityScores         AzureSecurityScore[]
   incidents                   Incident[]
   reports                     Report[]
   logAnalyticsQueries         LogAnalyticsQuery[]
@@ -478,6 +479,27 @@ model SecurityFinding {
   @@index([tenantId, provider, status, severity]) // Multi-filter security dashboards
   @@index([tenantId, severity, status]) // ARCHITECT RECOMMENDATION: Optimized security dashboard queries
   @@map("security_findings")
+}
+
+// Azure Security Scores - Historical security posture tracking
+model AzureSecurityScore {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  subscriptionId String   @map("subscription_id") @db.VarChar(255)
+  scoreType      String   @map("score_type") @db.VarChar(50) // "overall" | "network" | "compute" | "data" | "identity"
+  currentScore   Float    @map("current_score")
+  maxScore       Float    @map("max_score")
+  percentage     Float // Calculated: currentScore / maxScore
+  scoredAt       DateTime @map("scored_at") @db.Timestamptz(6)
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([tenantId, scoreType, scoredAt(sort: Desc)]) // Latest scores by type
+  @@index([scoredAt(sort: Desc)]) // Time-series queries
+  @@map("azure_security_scores")
 }
 
 // ============================================================

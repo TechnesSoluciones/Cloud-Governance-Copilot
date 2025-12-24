@@ -72,25 +72,25 @@ export const azureConfig: AzureConfig = {
   },
 
   cacheTTL: {
-    resources: 900,      // 15 minutes
-    costs: 3600,         // 1 hour
-    security: 300,       // 5 minutes
-    advisor: 1800,       // 30 minutes
-    metrics: 300,        // 5 minutes
+    resources: 3600,     // 1 hour (increased from 15 min to reduce Azure API calls)
+    costs: 7200,         // 2 hours (increased from 1 hour)
+    security: 600,       // 10 minutes (increased from 5 min)
+    advisor: 3600,       // 1 hour (increased from 30 min)
+    metrics: 600,        // 10 minutes (increased from 5 min)
   },
 
   rateLimit: {
     resourceGraph: {
-      requestsPerSecond: 15,  // Azure Resource Graph limit
-      burstSize: 20,
+      requestsPerSecond: 5,   // Reduced from 15 to prevent Azure rate limiting
+      burstSize: 8,           // Reduced from 20 to prevent burst spikes
     },
     costManagement: {
-      requestsPerSecond: 5,   // Conservative for cost APIs
-      burstSize: 10,
+      requestsPerSecond: 3,   // Reduced from 5 to be more conservative
+      burstSize: 5,           // Reduced from 10
     },
     advisor: {
-      requestsPerSecond: 10,  // Azure Advisor API limit
-      burstSize: 15,
+      requestsPerSecond: 5,   // Reduced from 10
+      burstSize: 8,           // Reduced from 15
     },
   },
 

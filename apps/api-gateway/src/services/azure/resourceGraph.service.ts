@@ -59,6 +59,7 @@ import { AzureCredentialsService } from './azureCredentials.service';
 import { azureConfig } from '../../config/azure.config';
 import { AzureRateLimiterService } from './azureRateLimiter.service';
 import { AzureCacheService } from './azureCache.service';
+import { AzureRequestQueueService } from './azureRequestQueue.service';
 import { logger } from '../../utils/logger';
 
 export interface ResourceCount {
@@ -153,6 +154,7 @@ export class AzureResourceGraphService {
 
   /**
    * Execute a KQL query against Azure Resource Graph with security controls
+   * Implements request queuing, retry logic, and exponential backoff
    * @param accountId - Cloud account ID
    * @param query - KQL query string
    * @param cacheKey - Optional cache key for caching results
@@ -163,6 +165,33 @@ export class AzureResourceGraphService {
     query: string,
     cacheKey?: string
   ): Promise<any> {
+    // Wrap execution in request queue to prevent burst traffic
+    return AzureRequestQueueService.enqueue(
+      'resourceGraph',
+      accountId,
+      async () => {
+        return await this.executeQueryWithRetry(accountId, query, 0);
+      },
+      5 // Default priority
+    );
+  }
+
+  /**
+   * Execute query with exponential backoff retry logic
+   * @param accountId - Cloud account ID
+   * @param query - KQL query string
+   * @param attempt - Current retry attempt (0-based)
+   * @returns Query results
+   */
+  private static async executeQueryWithRetry(
+    accountId: string,
+    query: string,
+    attempt: number
+  ): Promise<any> {
+    const maxRetries = azureConfig.retryOptions.maxRetries;
+    const baseDelayMs = azureConfig.retryOptions.retryDelayMs;
+    const maxDelayMs = azureConfig.retryOptions.maxRetryDelayMs;
+
     try {
       // Check rate limit before making API call
       const rateLimit = await AzureRateLimiterService.checkRateLimit(
@@ -174,7 +203,20 @@ export class AzureResourceGraphService {
         logger.warn('Rate limit exceeded for Resource Graph', {
           accountId,
           retryAfter: rateLimit.retryAfter,
+          attempt,
         });
+
+        // If rate limited, wait and retry
+        if (attempt < maxRetries) {
+          const waitTime = (rateLimit.retryAfter || 1) * 1000;
+          logger.info('Waiting for rate limit to clear', {
+            accountId,
+            waitTimeMs: waitTime,
+            attempt: attempt + 1,
+          });
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+          return await this.executeQueryWithRetry(accountId, query, attempt + 1);
+        }
 
         throw new Error(
           `Rate limit exceeded. Please retry after ${rateLimit.retryAfter} seconds.`
@@ -203,18 +245,78 @@ export class AzureResourceGraphService {
 
       return result;
     } catch (error: any) {
+      const errorCode = error.code || error.statusCode || error.error?.code;
+      const errorMessage = error.message || '';
+
+      // Check if this is a rate limiting error from Azure
+      const isRateLimitError =
+        errorCode === 'RateLimiting' ||
+        errorCode === 'TooManyRequests' ||
+        errorCode === 429 ||
+        errorMessage.includes('RateLimiting') ||
+        errorMessage.includes('Too Many Requests');
+
+      // Check if this is a transient error that should be retried
+      const isTransientError =
+        isRateLimitError ||
+        errorCode === 'ServiceUnavailable' ||
+        errorCode === 503 ||
+        errorCode === 'RequestTimeout' ||
+        errorCode === 408 ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('ECONNRESET');
+
       // Log error without exposing sensitive information
       logger.error('Azure Resource Graph query failed', {
         accountId,
         queryPreview: query.substring(0, 50), // Only log first 50 chars
-        errorMessage: error.message,
-        errorCode: error.code,
+        errorMessage: errorMessage,
+        errorCode: errorCode,
+        isRateLimitError,
+        isTransientError,
+        attempt,
       });
 
+      // Retry with exponential backoff for transient errors
+      if (isTransientError && attempt < maxRetries) {
+        // Calculate exponential backoff delay
+        const exponentialDelay = Math.min(
+          baseDelayMs * Math.pow(2, attempt),
+          maxDelayMs
+        );
+
+        // Add jitter to prevent thundering herd (±25%)
+        const jitter = exponentialDelay * 0.25 * (Math.random() - 0.5);
+        const delayMs = Math.round(exponentialDelay + jitter);
+
+        logger.warn('Retrying Azure Resource Graph query with exponential backoff', {
+          accountId,
+          attempt: attempt + 1,
+          maxRetries,
+          delayMs,
+          errorCode,
+          isRateLimitError,
+        });
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+        // Retry the query
+        return await this.executeQueryWithRetry(accountId, query, attempt + 1);
+      }
+
       // Sanitize error message to avoid leaking sensitive info
-      const sanitizedMessage = error.message?.includes('credentials')
+      const sanitizedMessage = errorMessage?.includes('credentials')
         ? 'Authentication failed'
-        : error.message;
+        : errorMessage;
+
+      // If max retries exceeded or non-transient error, throw
+      if (attempt >= maxRetries && isTransientError) {
+        throw new Error(
+          `Azure Resource Graph query failed after ${maxRetries} retries: ${sanitizedMessage}`
+        );
+      }
 
       throw new Error(`Failed to execute Azure Resource Graph query: ${sanitizedMessage}`);
     }
@@ -1323,5 +1425,32 @@ export class AzureResourceGraphService {
    */
   static async invalidateCache(accountId: string): Promise<void> {
     await AzureCacheService.invalidateAccount(accountId);
+  }
+
+  /**
+   * Get diagnostic information about request queue and rate limiting
+   * Useful for monitoring and debugging
+   * @param accountId - Cloud account ID
+   * @returns Diagnostic information
+   */
+  static async getDiagnostics(accountId: string): Promise<{
+    queue: {
+      queueSize: number;
+      isProcessing: boolean;
+      oldestRequestAge?: number;
+    };
+    rateLimit: {
+      currentTokens: number;
+      maxTokens: number;
+      requestsPerSecond: number;
+      utilizationPercent: number;
+    };
+  }> {
+    const [queue, rateLimit] = await Promise.all([
+      Promise.resolve(AzureRequestQueueService.getQueueStatus('resourceGraph', accountId)),
+      AzureRateLimiterService.getRateLimitStatus('resourceGraph', accountId),
+    ]);
+
+    return { queue, rateLimit };
   }
 }

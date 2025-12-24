@@ -18,6 +18,11 @@ export interface RecentActivityProps {
  * Get icon for change type
  */
 const getChangeTypeIcon = (changeType: string) => {
+  // Defensive programming: validate changeType before using toLowerCase
+  if (!changeType || typeof changeType !== 'string') {
+    return <Icons.activity className="h-4 w-4 text-slate-500" aria-hidden="true" />;
+  }
+
   const type = changeType.toLowerCase();
 
   if (type.includes('create') || type.includes('add')) {
@@ -47,6 +52,11 @@ const getChangeTypeIcon = (changeType: string) => {
  * Get badge variant for change type
  */
 const getChangeTypeBadgeVariant = (changeType: string): 'success' | 'error' | 'warning' | 'info' | 'secondary' => {
+  // Defensive programming: validate changeType before using toLowerCase
+  if (!changeType || typeof changeType !== 'string') {
+    return 'secondary';
+  }
+
   const type = changeType.toLowerCase();
 
   if (type.includes('create') || type.includes('add') || type.includes('start')) {
@@ -107,10 +117,16 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
 }) => {
   // Sort by timestamp (newest first) and limit items
   const activities = React.useMemo(() => {
+    // Defensive programming: validate data before processing
+    if (!health?.recentActivity || !Array.isArray(health.recentActivity)) {
+      return [];
+    }
+
     return [...health.recentActivity]
+      .filter((activity) => activity && activity.timestamp && activity.changeType)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, maxItems);
-  }, [health.recentActivity, maxItems]);
+  }, [health?.recentActivity, maxItems]);
 
   return (
     <Card className={className}>
@@ -201,7 +217,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
         {activities.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <p className="text-xs text-muted-foreground text-center">
-              Showing {activities.length} of {health.recentActivity.length} recent changes
+              Showing {activities.length} of {health?.recentActivity?.length || 0} recent changes
             </p>
           </div>
         )}

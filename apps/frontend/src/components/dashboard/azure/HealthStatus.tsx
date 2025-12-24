@@ -30,24 +30,36 @@ export interface HealthStatusProps {
 export const HealthStatus: React.FC<HealthStatusProps> = ({ health, className = '' }) => {
   // Calculate VM percentages
   const vmPercentages = React.useMemo(() => {
-    const total = health.virtualMachines.total;
+    // Defensive programming: validate data before processing
+    if (!health?.virtualMachines) {
+      return { running: 0, stopped: 0, deallocated: 0 };
+    }
+
+    const total = health.virtualMachines.total || 0;
     if (total === 0) return { running: 0, stopped: 0, deallocated: 0 };
 
     return {
-      running: (health.virtualMachines.running / total) * 100,
-      stopped: (health.virtualMachines.stopped / total) * 100,
-      deallocated: (health.virtualMachines.deallocated / total) * 100,
+      running: ((health.virtualMachines.running || 0) / total) * 100,
+      stopped: ((health.virtualMachines.stopped || 0) / total) * 100,
+      deallocated: ((health.virtualMachines.deallocated || 0) / total) * 100,
     };
-  }, [health.virtualMachines]);
+  }, [health?.virtualMachines]);
 
   // Prepare data for locations bar chart
   const locationChartData = React.useMemo(() => {
-    return health.resourcesByLocation.map((location) => ({
-      location: location.location,
-      count: location.count,
-      percentage: location.percentage,
-    }));
-  }, [health.resourcesByLocation]);
+    // Defensive programming: validate data before processing
+    if (!health?.resourcesByLocation || !Array.isArray(health.resourcesByLocation)) {
+      return [];
+    }
+
+    return health.resourcesByLocation
+      .filter((location) => location && location.location)
+      .map((location) => ({
+        location: location.location || 'Unknown',
+        count: location.count || 0,
+        percentage: location.percentage || 0,
+      }));
+  }, [health?.resourcesByLocation]);
 
   // Get health color based on percentage
   const getHealthColor = (percentage: number): string => {
