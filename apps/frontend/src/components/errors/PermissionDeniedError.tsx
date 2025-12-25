@@ -216,7 +216,7 @@ export function PermissionDeniedError({
                   {errorInfo.requiredPermissions && errorInfo.requiredPermissions.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {errorInfo.requiredPermissions.map((perm, idx) => (
-                        <Badge key={idx} variant="outline" className="font-mono text-xs">
+                        <Badge key={idx} variant="secondary" className="font-mono text-xs">
                           {perm}
                         </Badge>
                       ))}
