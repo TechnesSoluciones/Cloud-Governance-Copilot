@@ -206,7 +206,8 @@ export default function SecurityPage() {
 
   const {
     data: scansResponse,
-    error: scansError
+    error: scansError,
+    refetch: refetchScans,
   } = useScans(
     {
       page: 1,
