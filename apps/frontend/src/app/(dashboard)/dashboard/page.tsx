@@ -8,10 +8,10 @@ import { StatCardGridSkeleton, CardSkeleton } from '@/components/ui/skeleton';
 import { Icons } from '@/components/icons';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useCloudAccounts } from '@/hooks/useCloudAccounts';
-import { Server, DollarSign, Shield, Bell, RefreshCw } from 'lucide-react';
+import { Server, DollarSign, Shield, Bell, RefreshCw, AlertCircle } from 'lucide-react';
 
 // Premium Design System Components
 import {
@@ -34,6 +34,31 @@ import { PermissionDeniedError, PermissionDeniedBanner } from '@/components/erro
 import { CircuitBreakerError as CircuitBreakerErrorComponent } from '@/components/errors/CircuitBreakerError';
 import { analyzePermissionError, getErrorFromQueryError } from '@/lib/errors';
 import { isCircuitBreakerError } from '@/lib/api/client';
+
+/**
+ * Dashboard Error Fallback Component
+ * Used within ErrorBoundaries to show a lightweight error UI for dashboard widgets
+ */
+function DashboardErrorFallback() {
+  return (
+    <Card className="border-red-200 dark:border-red-800">
+      <CardContent className="pt-6">
+        <div className="flex flex-col items-center text-center py-8">
+          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-3">
+            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Unable to load this section
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
+            We encountered an error while loading this dashboard component.
+            Please refresh the page or try again later.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 /**
  * Azure Dashboard Page
