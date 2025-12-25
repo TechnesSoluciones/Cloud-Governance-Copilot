@@ -287,17 +287,17 @@ export default function DashboardPage() {
           />
 
           {/* Resource Distribution Charts */}
-          <ErrorBoundary fallback={DashboardErrorFallback}>
+          <ErrorBoundary fallback={<DashboardErrorFallback />}>
             <ResourceDistribution overview={overview} />
           </ErrorBoundary>
 
           {/* Health Status and Resources by Location */}
-          <ErrorBoundary fallback={DashboardErrorFallback}>
+          <ErrorBoundary fallback={<DashboardErrorFallback />}>
             <HealthStatus health={health} />
           </ErrorBoundary>
 
           {/* Recent Activity Feed */}
-          <ErrorBoundary fallback={DashboardErrorFallback}>
+          <ErrorBoundary fallback={<DashboardErrorFallback />}>
             <RecentActivity health={health} maxItems={10} />
           </ErrorBoundary>
         </>
