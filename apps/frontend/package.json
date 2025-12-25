@@ -1,6 +1,6 @@
 {
   "name": "@copilot/frontend",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Cloud Governance Copilot - Frontend Portal",
   "private": true,
   "scripts": {
