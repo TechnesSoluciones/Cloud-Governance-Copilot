@@ -70,7 +70,7 @@ export function useAssets(
   return useQuery({
     queryKey: assetsKeys.list(params),
     queryFn: () => assetsApi.list(params, token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds (assets change frequently during discovery)
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
@@ -100,7 +100,7 @@ export function useAsset(
   return useQuery({
     queryKey: assetsKeys.detail(id),
     queryFn: () => assetsApi.getById(id, token),
-    enabled: !!id && options?.enabled !== false,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -184,7 +184,7 @@ export function useOrphanedAssets(
   return useQuery({
     queryKey: [...assetsKeys.all, 'orphaned', accountId] as const,
     queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getOrphaned(accountId, token)),
-    enabled: !!accountId && options?.enabled !== false,
+    enabled: !!accountId && !!token && options?.enabled !== false,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
@@ -215,7 +215,7 @@ export function useAssetsByType(
   return useQuery({
     queryKey: [...assetsKeys.all, 'byType', accountId, type] as const,
     queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getByType(accountId, type, token)),
-    enabled: !!accountId && !!type && options?.enabled !== false,
+    enabled: !!accountId && !!type && !!token && options?.enabled !== false,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
@@ -246,7 +246,7 @@ export function useCostAllocation(
   return useQuery({
     queryKey: [...assetsKeys.all, 'costAllocation', accountId, groupBy] as const,
     queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getCostAllocation(accountId, groupBy, token)),
-    enabled: !!accountId && options?.enabled !== false,
+    enabled: !!accountId && !!token && options?.enabled !== false,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -275,7 +275,7 @@ export function useAssetStats(
   return useQuery({
     queryKey: [...assetsKeys.all, 'stats', accountId] as const,
     queryFn: () => import('@/lib/api/assets').then(m => m.assetsApi.getStats(accountId, token)),
-    enabled: !!accountId && options?.enabled !== false,
+    enabled: !!accountId && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,

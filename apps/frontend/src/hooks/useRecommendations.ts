@@ -86,7 +86,7 @@ export function useRecommendations(
   return useQuery({
     queryKey: recommendationsKeys.list(params),
     queryFn: () => recommendationsApi.list(params, token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 3 * 60 * 1000, // 3 minutes (recommendations change frequently)
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     retry: 2,
@@ -116,7 +116,7 @@ export function useRecommendation(
   return useQuery({
     queryKey: recommendationsKeys.detail(id),
     queryFn: () => recommendationsApi.getById(id, token),
-    enabled: options?.enabled !== false && !!id,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -149,7 +149,7 @@ export function useRecommendationsSummary(
   return useQuery({
     queryKey: recommendationsKeys.summary(params),
     queryFn: () => recommendationsApi.getSummary(params, token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,

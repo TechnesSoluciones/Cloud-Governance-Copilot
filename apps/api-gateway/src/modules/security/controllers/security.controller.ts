@@ -70,7 +70,7 @@ const listScansSchema = z.object({
 
   // Filters
   status: z.enum(['running', 'completed', 'failed']).optional(),
-  cloudAccountId: z.string().uuid('Invalid cloud account ID').optional(),
+  cloudAccountId: z.string().uuid('Invalid cloud account ID').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   startDate: z.string().datetime('Invalid start date').optional(),
   endDate: z.string().datetime('Invalid end date').optional(),
 
@@ -98,9 +98,9 @@ const listFindingsSchema = z.object({
   severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   category: z.string().optional(),
   status: z.enum(['open', 'resolved', 'dismissed']).default('open'),
-  cloudAccountId: z.string().uuid('Invalid cloud account ID').optional(),
+  cloudAccountId: z.string().uuid('Invalid cloud account ID').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   resourceType: z.string().optional(),
-  scanId: z.string().uuid('Invalid scan ID').optional(),
+  scanId: z.string().uuid('Invalid scan ID').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
 
   // Sorting
   sortBy: z.enum(['severity', 'detectedAt']).default('severity'),
@@ -111,7 +111,7 @@ const listFindingsSchema = z.object({
  * Schema for POST /api/v1/security/scans request body
  */
 const triggerScanSchema = z.object({
-  cloudAccountId: z.string().uuid('Invalid cloud account ID').optional(),
+  cloudAccountId: z.string().uuid('Invalid cloud account ID').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
 });
 
 /**
@@ -332,7 +332,8 @@ export class SecurityController {
         where.status = params.status;
       }
 
-      if (params.cloudAccountId) {
+      // Only add UUID filters if they're non-empty strings (prevents Prisma UUID = text errors)
+      if (params.cloudAccountId && params.cloudAccountId.trim() !== '') {
         where.cloudAccountId = params.cloudAccountId;
       }
 
@@ -723,12 +724,13 @@ export class SecurityController {
         where.resourceType = params.resourceType;
       }
 
-      if (params.scanId) {
+      // Only add UUID filters if they're non-empty strings (prevents Prisma UUID = text errors)
+      if (params.scanId && params.scanId.trim() !== '') {
         where.scanId = params.scanId;
       }
 
       // Filter by cloudAccountId through scan relation
-      if (params.cloudAccountId) {
+      if (params.cloudAccountId && params.cloudAccountId.trim() !== '') {
         where.scan = {
           cloudAccountId: params.cloudAccountId,
         };

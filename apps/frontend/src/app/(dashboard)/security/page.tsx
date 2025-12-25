@@ -76,6 +76,10 @@ import { Finding } from '@/lib/api/security';
 // Import components
 import { AssessmentsList } from '@/components/security/AssessmentsList';
 import { SecurityFindingModal } from '@/components/security/SecurityFindingModal';
+import { PermissionDeniedError } from '@/components/errors/PermissionDeniedError';
+import { CircuitBreakerError as CircuitBreakerErrorComponent } from '@/components/errors/CircuitBreakerError';
+import { analyzePermissionError, getErrorFromQueryError } from '@/lib/errors';
+import { isCircuitBreakerError } from '@/lib/api/client';
 
 const ITEMS_PER_PAGE = 20;
 const POLLING_INTERVAL = 30000; // 30 seconds
@@ -317,11 +321,57 @@ export default function SecurityPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Check for authentication errors
+  // Check for authentication and permission errors
+  const errorToAnalyze = findingsError || summaryError || scansError;
+  const actualError = errorToAnalyze ? getErrorFromQueryError(errorToAnalyze) : null;
+  const permissionErrorInfo = actualError ? analyzePermissionError(actualError) : null;
   const hasAuthError =
     (findingsError && findingsError.message?.includes('authentication')) ||
     (summaryError && summaryError.message?.includes('authentication')) ||
     (scansError && scansError.message?.includes('authentication'));
+
+  // Show circuit breaker error state
+  if (actualError && isCircuitBreakerError(actualError)) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+          <PremiumSectionHeader
+            title="Security Dashboard"
+            subtitle="Monitor and manage your cloud security posture"
+          />
+          <CircuitBreakerErrorComponent
+            error={actualError}
+            onRetry={() => {
+              refetchSummary();
+              refetchFindings();
+              refetchScans();
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show permission denied error state
+  if (permissionErrorInfo?.isPermissionError) {
+    return (
+      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
+        <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
+          <PremiumSectionHeader
+            title="Security Dashboard"
+            subtitle="Monitor and manage your cloud security posture"
+          />
+          <PermissionDeniedError
+            errorInfo={permissionErrorInfo}
+            onRetry={() => {
+              refetchSummary();
+              refetchFindings();
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // Show authentication error state
   if (hasAuthError) {
@@ -536,8 +586,8 @@ export default function SecurityPage() {
           }}
         />
 
-        {/* Error State */}
-        {findingsError && (
+        {/* Error State - This is a fallback inline error (main permission errors are handled above) */}
+        {findingsError && !permissionErrorInfo?.isPermissionError && (
           <Card className="p-6 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" aria-hidden="true" />

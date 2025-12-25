@@ -61,6 +61,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { StatCardGridSkeleton, ChartSkeleton, CardSkeleton } from '@/components/skeletons';
+import { PermissionDeniedError } from '@/components/errors/PermissionDeniedError';
+import { CircuitBreakerError as CircuitBreakerErrorComponent } from '@/components/errors/CircuitBreakerError';
+import { analyzePermissionError, getErrorFromQueryError } from '@/lib/errors';
+import { isCircuitBreakerError } from '@/lib/api/client';
 
 /**
  * Provider filter options
@@ -129,6 +133,27 @@ interface ErrorStateProps {
 }
 
 function ErrorState({ error, onRetry }: ErrorStateProps) {
+  // Extract the actual error from React Query error wrapper
+  const actualError = getErrorFromQueryError(error);
+
+  // Check if this is a circuit breaker error first
+  if (isCircuitBreakerError(actualError)) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center p-6">
+        <CircuitBreakerErrorComponent error={actualError} onRetry={onRetry} />
+      </div>
+    );
+  }
+
+  // Analyze if this is a permission error
+  const permissionErrorInfo = analyzePermissionError(actualError);
+
+  // If it's a permission error, show the specialized permission denied component
+  if (permissionErrorInfo.isPermissionError) {
+    return <PermissionDeniedError errorInfo={permissionErrorInfo} onRetry={onRetry} />;
+  }
+
+  // Otherwise, show the generic error state
   return (
     <div className="min-h-[50vh] flex items-center justify-center p-6">
       <Card className="max-w-md w-full border-red-200">
@@ -141,7 +166,7 @@ function ErrorState({ error, onRetry }: ErrorStateProps) {
               Failed to Load Cost Data
             </h3>
             <p className="text-sm text-gray-600 mb-6">
-              {error?.message || 'An unexpected error occurred while fetching cost data. Please try again.'}
+              {actualError?.message || 'An unexpected error occurred while fetching cost data. Please try again.'}
             </p>
             <Button onClick={onRetry} className="w-full sm:w-auto">
               <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />

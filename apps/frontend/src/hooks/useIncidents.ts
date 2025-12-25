@@ -143,7 +143,7 @@ export function useIncidentById(
   return useQuery({
     queryKey: incidentsKeys.detail(id),
     queryFn: () => incidentsApi.getIncident(id, token),
-    enabled: !!id && options?.enabled !== false,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: 60 * 1000, // Auto-refresh every 60 seconds
@@ -218,7 +218,7 @@ export function useAlertById(
   return useQuery({
     queryKey: incidentsKeys.alertDetail(id),
     queryFn: () => incidentsApi.getAlert(id, token),
-    enabled: !!id && options?.enabled !== false,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,

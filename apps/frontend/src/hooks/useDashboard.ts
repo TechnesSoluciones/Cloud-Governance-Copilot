@@ -54,7 +54,7 @@ export function useDashboardOverview(
   return useQuery({
     queryKey: dashboardKeys.overview(accountId),
     queryFn: () => dashboardApi.getOverview(accountId, token),
-    enabled: !!accountId && options?.enabled !== false,
+    enabled: !!accountId && !!token && options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
@@ -85,7 +85,7 @@ export function useDashboardHealth(
   return useQuery({
     queryKey: dashboardKeys.health(accountId),
     queryFn: () => dashboardApi.getHealth(accountId, token),
-    enabled: !!accountId && options?.enabled !== false,
+    enabled: !!accountId && !!token && options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes

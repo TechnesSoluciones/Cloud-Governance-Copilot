@@ -141,7 +141,7 @@ export function useFinding(
   return useQuery({
     queryKey: securityKeys.findingDetail(id),
     queryFn: () => securityApi.getFinding(id, token),
-    enabled: !!id && options?.enabled !== false,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -214,7 +214,7 @@ export function useScan(
   return useQuery({
     queryKey: securityKeys.scanDetail(id),
     queryFn: () => securityApi.getScan(id, token),
-    enabled: !!id && options?.enabled !== false,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
@@ -443,7 +443,7 @@ export function useSecurityScore(
   return useQuery({
     queryKey: [...securityKeys.summary(), 'score', accountId],
     queryFn: () => securityApi.getSummary(token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -502,7 +502,7 @@ export function useComplianceResults(
   return useQuery({
     queryKey: [...securityKeys.summary(), 'compliance', accountId],
     queryFn: () => securityApi.getSummary(token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,

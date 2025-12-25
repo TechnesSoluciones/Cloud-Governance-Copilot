@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopNav } from '@/components/layout/TopNav';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);

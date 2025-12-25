@@ -29,7 +29,11 @@ import { HealthStatus } from '@/components/dashboard/azure/HealthStatus';
 import { RecentActivity } from '@/components/dashboard/azure/RecentActivity';
 
 // Error Handling
-import { ErrorBoundary, DashboardErrorFallback } from '@/components/error-boundary';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { PermissionDeniedError, PermissionDeniedBanner } from '@/components/errors/PermissionDeniedError';
+import { CircuitBreakerError as CircuitBreakerErrorComponent } from '@/components/errors/CircuitBreakerError';
+import { analyzePermissionError, getErrorFromQueryError } from '@/lib/errors';
+import { isCircuitBreakerError } from '@/lib/api/client';
 
 /**
  * Azure Dashboard Page
@@ -154,31 +158,47 @@ export default function DashboardPage() {
         />
 
       {/* Error State */}
-      {error && !isLoading && (
-        <Alert variant="error" className="flex items-start gap-3">
-          <Icons.alertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="font-semibold">Failed to load dashboard data</h4>
-            <p className="text-sm mt-1">
-              {error.includes('500') || error.includes('rate limit')
-                ? 'The Azure API is currently experiencing issues (rate limiting or service unavailable). Please try again in a few moments.'
-                : error}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              If this problem persists, please check your Azure account configuration or contact support.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            className="flex-shrink-0"
-          >
-            <Icons.refresh className="h-4 w-4 mr-1" />
-            Retry
-          </Button>
-        </Alert>
-      )}
+      {error && !isLoading && (() => {
+        // Check if this is a circuit breaker error first
+        if (isCircuitBreakerError(error)) {
+          return <CircuitBreakerErrorComponent error={error} onRetry={refetch} />;
+        }
+
+        // Analyze if this is a permission error
+        const permissionErrorInfo = analyzePermissionError(error);
+
+        // If it's a permission error, show the full permission denied component
+        if (permissionErrorInfo.isPermissionError) {
+          return <PermissionDeniedError errorInfo={permissionErrorInfo} onRetry={refetch} />;
+        }
+
+        // Otherwise, show the generic error alert
+        return (
+          <Alert variant="error" className="flex items-start gap-3">
+            <Icons.alertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-semibold">Failed to load dashboard data</h4>
+              <p className="text-sm mt-1">
+                {error.includes && (error.includes('500') || error.includes('rate limit'))
+                  ? 'The Azure API is currently experiencing issues (rate limiting or service unavailable). Please try again in a few moments.'
+                  : typeof error === 'string' ? error : 'An unexpected error occurred'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                If this problem persists, please check your Azure account configuration or contact support.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="flex-shrink-0"
+            >
+              <Icons.refresh className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </Alert>
+        );
+      })()}
 
       {/* Loading State */}
       {isLoading && (

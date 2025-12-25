@@ -95,7 +95,7 @@ export function useRecommendations(
   return useQuery({
     queryKey: azureAdvisorKeys.recommendationsList(params),
     queryFn: () => azureAdvisorApi.listRecommendations(params, token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 1000 * 60 * 5, // 5 minutes - recommendations change frequently
     gcTime: 1000 * 60 * 10, // 10 minutes cache time
     refetchInterval: params.status === 'Active' ? 1000 * 60 * 30 : false, // Auto-refresh active every 30 min
@@ -126,7 +126,7 @@ export function useRecommendationById(
   return useQuery({
     queryKey: azureAdvisorKeys.recommendation(id),
     queryFn: () => azureAdvisorApi.getRecommendationById(id, token),
-    enabled: options?.enabled !== false && !!id,
+    enabled: !!id && !!token && options?.enabled !== false,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
     retry: 2,
@@ -162,7 +162,7 @@ export function useRecommendationsSummary(
   return useQuery({
     queryKey: azureAdvisorKeys.summary(filters),
     queryFn: () => azureAdvisorApi.getSummary(filters, token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
     retry: 2,
@@ -190,7 +190,7 @@ export function usePotentialSavings(
   return useQuery({
     queryKey: azureAdvisorKeys.savings(),
     queryFn: () => azureAdvisorApi.getSavingsDashboard(token),
-    enabled: options?.enabled !== false,
+    enabled: !!token && options?.enabled !== false,
     staleTime: 1000 * 60 * 10, // 10 minutes - savings data changes slowly
     gcTime: 1000 * 60 * 30, // 30 minutes cache time
     retry: 2,

@@ -79,7 +79,7 @@ export function useCosts(
   return useQuery({
     queryKey: finopsKeys.costsWithParams(params),
     queryFn: () => finopsApi.getCosts(params, token),
-    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate,
+    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate && !!token,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     retry: 2,
@@ -113,7 +113,7 @@ export function useCostsByService(
   return useQuery({
     queryKey: finopsKeys.costsByServiceWithParams(params),
     queryFn: () => finopsApi.getCostsByService(params, token),
-    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate,
+    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate && !!token,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -147,7 +147,7 @@ export function useCostTrends(
   return useQuery({
     queryKey: finopsKeys.trendsWithParams(params),
     queryFn: () => finopsApi.getCostTrends(params, token),
-    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate,
+    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate && !!token,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -181,7 +181,7 @@ export function useAnomalies(
   return useQuery({
     queryKey: finopsKeys.anomaliesWithParams(params),
     queryFn: () => finopsApi.getAnomalies(params, token),
-    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate,
+    enabled: options?.enabled !== false && !!params.startDate && !!params.endDate && !!token,
     staleTime: 3 * 60 * 1000, // 3 minutes (anomalies need more frequent updates)
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,

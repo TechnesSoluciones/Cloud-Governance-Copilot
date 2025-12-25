@@ -2,6 +2,12 @@
  * API Client with error handling and token management
  */
 
+import {
+  azureApiCircuitBreaker,
+  CircuitBreakerError,
+  isCircuitBreakerError,
+} from './circuitBreaker';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export interface ApiResponse<T = any> {
@@ -33,13 +39,19 @@ interface RequestOptions extends RequestInit {
 }
 
 /**
- * Base API request function with error handling
+ * Base API request function with error handling and circuit breaker protection
  */
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<ApiResponse<T>> {
   const { token, skipAuth, ...fetchOptions } = options;
+
+  // Check circuit breaker before making request
+  if (!azureApiCircuitBreaker.canRequest()) {
+    const state = azureApiCircuitBreaker.getState();
+    throw new CircuitBreakerError('AzureAPI', state.nextAttemptTime);
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -59,11 +71,29 @@ export async function apiRequest<T = any>(
 
     // Handle 401 Unauthorized - user needs to re-authenticate
     if (response.status === 401) {
+      // Don't record 401 as circuit breaker failure (auth issue, not service issue)
       throw new ApiError(
         'Authentication required. Please sign in again.',
         'UNAUTHORIZED',
         401
       );
+    }
+
+    // Handle 403 Forbidden - insufficient permissions
+    if (response.status === 403) {
+      // Don't record 403 as circuit breaker failure (permission issue, not service issue)
+      const data = await response.json().catch(() => ({}));
+      throw new ApiError(
+        data.error?.message || data.message || 'Access denied. You do not have permission to access this resource.',
+        data.error?.code || 'FORBIDDEN',
+        403,
+        data.error?.details || data
+      );
+    }
+
+    // Record circuit breaker failure for rate limiting and server errors
+    if (response.status === 429 || response.status >= 500) {
+      azureApiCircuitBreaker.recordFailure(response.status);
     }
 
     const data = await response.json();
@@ -77,13 +107,23 @@ export async function apiRequest<T = any>(
       );
     }
 
+    // Record success for circuit breaker
+    azureApiCircuitBreaker.recordSuccess();
+
     return data;
   } catch (error) {
+    // Re-throw circuit breaker errors without modification
+    if (isCircuitBreakerError(error)) {
+      throw error;
+    }
+
     if (error instanceof ApiError) {
       throw error;
     }
 
-    // Network or other errors
+    // Network or other errors - record as circuit breaker failure
+    azureApiCircuitBreaker.recordFailure();
+
     throw new ApiError(
       error instanceof Error ? error.message : 'Network error occurred',
       'NETWORK_ERROR'
@@ -149,3 +189,8 @@ export function apiPatch<T = any>(
 export function apiDelete<T = any>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
   return apiRequest<T>(endpoint, { method: 'DELETE', token });
 }
+
+/**
+ * Export circuit breaker utilities for use in error handling
+ */
+export { CircuitBreakerError, isCircuitBreakerError, azureApiCircuitBreaker } from './circuitBreaker';
