@@ -239,21 +239,19 @@ export function PermissionDeniedError({
               </Button>
             )}
             {errorInfo.documentationUrl && (
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto"
-                asChild
+              <a
+                href={errorInfo.documentationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <a
-                  href={errorInfo.documentationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center"
+                <Button
+                  variant="secondary"
+                  className="w-full sm:w-auto flex items-center justify-center"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
                   View Documentation
-                </a>
-              </Button>
+                </Button>
+              </a>
             )}
           </div>
 
