@@ -43,8 +43,8 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   // Status & Indicators
   'trending_up': LucideIcons.TrendingUp,
   'trending_down': LucideIcons.TrendingDown,
-  'cloud_done': LucideIcons.CloudCheck,
-  'cloud_sync': LucideIcons.CloudCog,
+  'cloud_done': LucideIcons.Check,
+  'cloud_sync': LucideIcons.Cloud,
   'savings': LucideIcons.PiggyBank,
   'analytics': LucideIcons.BarChart3,
 
@@ -54,7 +54,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   'folder': LucideIcons.Folder,
 };
 
-export interface IconProps extends React.HTMLAttributes<HTMLElement> {
+export interface IconProps {
   /** Icon name (Material Symbol name) */
   name: string;
   /** Size className (e.g., 'text-lg', 'text-2xl') */
@@ -63,6 +63,8 @@ export interface IconProps extends React.HTMLAttributes<HTMLElement> {
   filled?: boolean;
   /** Use Lucide fallback instead of Material Symbols */
   useLucide?: boolean;
+  /** Additional CSS classes */
+  className?: string;
 }
 
 export const Icon: React.FC<IconProps> = ({
@@ -71,7 +73,6 @@ export const Icon: React.FC<IconProps> = ({
   filled = false,
   useLucide = false,
   className,
-  ...props
 }) => {
   const [useFallback, setUseFallback] = React.useState(useLucide);
 
@@ -99,7 +100,6 @@ export const Icon: React.FC<IconProps> = ({
         <DefaultIcon
           className={cn('inline-block', size, className)}
           size={size === 'text-2xl' ? 24 : size === 'text-lg' ? 20 : 16}
-          {...props}
         />
       );
     }
@@ -108,7 +108,6 @@ export const Icon: React.FC<IconProps> = ({
       <LucideIcon
         className={cn('inline-block', size, className)}
         size={size === 'text-2xl' ? 24 : size === 'text-lg' ? 20 : 16}
-        {...props}
       />
     );
   }
@@ -122,7 +121,6 @@ export const Icon: React.FC<IconProps> = ({
         size,
         className
       )}
-      {...props}
     >
       {name}
     </span>
