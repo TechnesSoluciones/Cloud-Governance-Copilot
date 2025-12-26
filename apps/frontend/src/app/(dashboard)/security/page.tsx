@@ -5,7 +5,6 @@
 
 'use client';
 
-import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
@@ -104,9 +103,8 @@ const securityCategories = [
 
 export default function SecurityV2Page() {
   return (
-    <DashboardLayoutV2>
-      <div className="p-6 space-y-6">
-        {/* Page Header */}
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
@@ -430,7 +428,6 @@ export default function SecurityV2Page() {
             </table>
           </div>
         </div>
-      </div>
-    </DashboardLayoutV2>
+    </div>
   );
 }

@@ -13,6 +13,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 interface HeaderV2Props {

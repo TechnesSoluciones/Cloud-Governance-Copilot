@@ -13,6 +13,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 interface NavigationItem {
@@ -33,7 +34,7 @@ const navigationItems: NavigationItem[] = [
     icon: 'dashboard',
   },
   {
-    label: 'Cost Management',
+    label: 'Cost Analysis',
     href: '/costs',
     icon: 'attach_money',
   },
@@ -48,27 +49,59 @@ const navigationItems: NavigationItem[] = [
     icon: 'dns',
   },
   {
-    label: 'Analytics',
-    href: '/analytics',
-    icon: 'analytics',
+    label: 'Recommendations',
+    href: '/recommendations',
+    icon: 'lightbulb',
+  },
+  {
+    label: 'Incidents',
+    href: '/incidents',
+    icon: 'warning',
+  },
+  {
+    label: 'Assets',
+    href: '/assets',
+    icon: 'inventory_2',
+  },
+  {
+    label: 'Azure Advisor',
+    href: '/azure-advisor',
+    icon: 'psychology',
+  },
+  {
+    label: 'Cloud Accounts',
+    href: '/cloud-accounts',
+    icon: 'cloud',
+  },
+  {
+    label: 'Audit Logs',
+    href: '/audit-logs',
+    icon: 'list_alt',
   },
 ];
 
 const systemItems: NavigationItem[] = [
   {
     label: 'Settings',
-    href: '/settings',
+    href: '/settings/profile',
     icon: 'settings',
-  },
-  {
-    label: 'Support',
-    href: '/support',
-    icon: 'help',
   },
 ];
 
 export function SidebarV2({ className }: SidebarV2Props) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  // Extract user information from session
+  const user = session?.user as any;
+  const userName = user?.fullName || user?.name || 'User';
+  const userEmail = user?.email || '';
+  const userInitials = userName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -166,14 +199,14 @@ export function SidebarV2({ className }: SidebarV2Props) {
       <div className="p-4 border-t border-slate-100 dark:border-slate-800/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary-400 to-brand-primary-600 flex items-center justify-center text-white font-semibold">
-            JD
+            {userInitials}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-              John Doe
+              {userName}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              admin@company.com
+              {userEmail}
             </p>
           </div>
           <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">

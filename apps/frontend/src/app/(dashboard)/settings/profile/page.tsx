@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { cn } from '@/lib/utils';
 
@@ -70,9 +69,8 @@ export default function ProfileSettingsPage() {
   };
 
   return (
-    <DashboardLayoutV2>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        {/* Page Header */}
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Profile Settings
@@ -471,7 +469,6 @@ export default function ProfileSettingsPage() {
             )}
           </button>
         </div>
-      </div>
-    </DashboardLayoutV2>
+    </div>
   );
 }

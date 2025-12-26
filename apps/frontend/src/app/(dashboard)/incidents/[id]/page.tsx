@@ -7,7 +7,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { cn } from '@/lib/utils';
@@ -219,9 +218,8 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
   };
 
   return (
-    <DashboardLayoutV2>
-      <div className="p-6 space-y-6">
-        {/* Header */}
+    <div className="p-6 space-y-6">
+      {/* Header */}
         <div>
           <button
             onClick={() => router.back()}
@@ -574,7 +572,6 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
             )}
           </div>
         </div>
-      </div>
-    </DashboardLayoutV2>
+    </div>
   );
 }

@@ -7,7 +7,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { cn } from '@/lib/utils';
 
@@ -81,9 +80,8 @@ export default function NewCloudAccountPage() {
   };
 
   return (
-    <DashboardLayoutV2>
-      <div className="p-6">
-        {/* Header */}
+    <div className="p-6">
+      {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => router.back()}
@@ -562,7 +560,6 @@ export default function NewCloudAccountPage() {
             </div>
           )}
         </div>
-      </div>
-    </DashboardLayoutV2>
+    </div>
   );
 }

@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
 import { FilterToolbar, FilterGroup } from '@/components/ui/FilterToolbar';
 import { RecommendationCard, Recommendation } from '@/components/dashboard/RecommendationCard';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
@@ -286,8 +285,7 @@ export default function RecommendationsV2Page() {
     }, 0);
 
   return (
-    <DashboardLayoutV2>
-      <div className="h-full flex overflow-hidden">
+    <div className="h-full flex overflow-hidden">
         {/* Main Content */}
         <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
           {/* Page Header */}
@@ -559,7 +557,6 @@ export default function RecommendationsV2Page() {
             </div>
           </div>
         )}
-      </div>
-    </DashboardLayoutV2>
+    </div>
   );
 }

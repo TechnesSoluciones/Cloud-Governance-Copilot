@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { FilterToolbar, FilterGroup } from '@/components/ui/FilterToolbar';
@@ -210,8 +209,7 @@ export default function InventoryV2Page() {
   }, 0);
 
   return (
-    <DashboardLayoutV2>
-      <div className="h-full flex overflow-hidden">
+    <div className="h-full flex overflow-hidden">
         {/* Main Content */}
         <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
           {/* Page Header */}
@@ -575,7 +573,6 @@ export default function InventoryV2Page() {
             </div>
           </div>
         )}
-      </div>
-    </DashboardLayoutV2>
+    </div>
   );
 }

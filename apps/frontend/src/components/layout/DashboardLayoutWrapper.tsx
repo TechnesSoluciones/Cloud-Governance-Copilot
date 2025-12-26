@@ -1,22 +1,28 @@
 'use client';
 
 import * as React from 'react';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { TopNav } from '@/components/layout/TopNav';
+import { SidebarV2 } from '@/components/layout/SidebarV2';
+import { HeaderV2 } from '@/components/layout/HeaderV2';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 export function DashboardLayoutWrapper({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-
   return (
     <ErrorBoundary>
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <TopNav onMenuClick={() => setSidebarOpen(true)} />
+      <div className="h-screen flex overflow-hidden bg-bg-light dark:bg-bg-dark">
+        {/* Sidebar V2 - CloudNexus Design System */}
+        <SidebarV2 />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header V2 with Cloud Filters and Search */}
+          <HeaderV2 />
+
+          {/* Email Verification Banner (if needed) */}
           <EmailVerificationBanner />
-          <main className="flex-1 overflow-y-auto">
+
+          {/* Scrollable Content Area - No padding, pages handle their own layout */}
+          <main className="flex-1 overflow-y-auto custom-scrollbar bg-bg-light dark:bg-bg-dark">
             {children}
           </main>
         </div>
