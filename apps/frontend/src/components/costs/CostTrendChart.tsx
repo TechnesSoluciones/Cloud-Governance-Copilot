@@ -178,18 +178,10 @@ export const CostTrendChart: React.FC<CostTrendChartProps> = ({
   isLoading = false,
   showProviderBreakdown = true,
 }) => {
-  // Show loading state
-  if (isLoading) {
-    return <ChartSkeleton />;
-  }
-
-  // Show empty state
-  if (!dailyCosts || dailyCosts.length === 0) {
-    return <EmptyState />;
-  }
-
   // Prepare chart data
   const chartData = React.useMemo(() => {
+    if (!dailyCosts || dailyCosts.length === 0) return [];
+
     // Historical data
     const historical = dailyCosts.map(point => ({
       date: point.date,
@@ -211,9 +203,20 @@ export const CostTrendChart: React.FC<CostTrendChartProps> = ({
 
   // Calculate Y-axis domain
   const maxValue = React.useMemo(() => {
+    if (chartData.length === 0) return 100;
     const values = chartData.map(d => d.total || 0);
     return Math.max(...values) * 1.1; // Add 10% padding
   }, [chartData]);
+
+  // Show loading state
+  if (isLoading) {
+    return <ChartSkeleton />;
+  }
+
+  // Show empty state
+  if (!dailyCosts || dailyCosts.length === 0) {
+    return <EmptyState />;
+  }
 
   // Format date for X-axis
   const formatXAxis = (dateStr: string) => {

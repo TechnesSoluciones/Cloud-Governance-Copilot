@@ -98,6 +98,15 @@ export const ResourceDetailPanel: React.FC<ResourceDetailPanelProps> = ({
     }
   }, [asset]);
 
+  // Calculate cost trend (mock data - would come from API)
+  const costTrend = React.useMemo(() => {
+    if (!asset) return { current: 0, previous: 0, change: 0 };
+    const current = asset.monthlyCost || 0;
+    const previous = current * (0.9 + Math.random() * 0.2); // Mock previous value
+    const change = ((current - previous) / previous) * 100;
+    return { current, previous, change };
+  }, [asset]);
+
   if (!asset) {
     return null;
   }
@@ -138,14 +147,6 @@ export const ResourceDetailPanel: React.FC<ResourceDetailPanelProps> = ({
       }
     );
   };
-
-  // Calculate cost trend (mock data - would come from API)
-  const costTrend = React.useMemo(() => {
-    const current = asset.monthlyCost || 0;
-    const previous = current * (0.9 + Math.random() * 0.2); // Mock previous value
-    const change = ((current - previous) / previous) * 100;
-    return { current, previous, change };
-  }, [asset.monthlyCost]);
 
   // Check if orphaned
   const isOrphaned = !asset.tags?.Owner || !asset.tags?.Environment || !asset.tags?.Project;

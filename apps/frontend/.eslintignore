@@ -1,0 +1,15 @@
+# Backup folder with old implementations
+**/_ old/
+_old/
+
+# Build outputs
+.next/
+out/
+dist/
+
+# Dependencies
+node_modules/
+
+# Generated files
+.turbo/
+*.tsbuildinfo
