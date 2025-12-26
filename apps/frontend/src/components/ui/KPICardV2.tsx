@@ -98,7 +98,7 @@ export function KPICardV2({
       {/* Header: Icon + Label */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={cn('p-2.5 rounded-lg', styles.bg)}>
+          <div className={cn('p-3 rounded-lg', styles.bg)}>
             <span className={cn('material-symbols-outlined text-2xl', styles.icon)}>{icon}</span>
           </div>
           <div>

@@ -28,9 +28,9 @@ export function HeaderV2({ className }: HeaderV2Props) {
   const [notificationCount] = useState(3);
 
   const providers: Array<{ id: CloudProvider; label: string; color: string }> = [
-    { id: 'all', label: 'All Clouds', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' },
+    { id: 'all', label: 'ALL CLOUDS', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' },
     { id: 'aws', label: 'AWS', color: 'bg-[#FF9900]/10 text-[#FF9900] border border-[#FF9900]/20' },
-    { id: 'azure', label: 'Azure', color: 'bg-[#0078d4]/10 text-[#0078d4] border border-[#0078d4]/20' },
+    { id: 'azure', label: 'AZURE', color: 'bg-[#0078d4]/10 text-[#0078d4] border border-[#0078d4]/20' },
     { id: 'gcp', label: 'GCP', color: 'bg-[#34A853]/10 text-[#34A853] border border-[#34A853]/20' },
   ];
 
@@ -94,7 +94,7 @@ export function HeaderV2({ className }: HeaderV2Props) {
       </div>
 
       {/* Right Section: Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {/* Search Icon (Mobile Only) */}
         <button className="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors">
           <span className="material-symbols-outlined text-xl">search</span>

@@ -120,22 +120,22 @@ export function SidebarV2({ className }: SidebarV2Props) {
       )}
     >
       {/* Logo Section */}
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-100 dark:border-slate-800/50">
-        <div className="bg-brand-primary-400/10 p-1.5 rounded-lg text-brand-primary-400">
-          <span className="material-symbols-outlined text-3xl">cloud_queue</span>
-        </div>
-        <div className="flex flex-col">
-          <h1 className="text-slate-900 dark:text-white text-lg font-bold leading-none tracking-tight">
+      <div className="flex items-center gap-3 px-4 py-5">
+        <span className="material-symbols-outlined text-3xl text-brand-primary-400">
+          cloud_queue
+        </span>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
             CloudNexus
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Multi-Cloud Admin
           </p>
         </div>
       </div>
 
       {/* Navigation Section */}
-      <nav className="flex-1 overflow-y-auto py-6 px-3 flex flex-col gap-1 custom-scrollbar">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
         {navigationItems.map((item) => {
           const active = isActive(item.href);
 
@@ -168,8 +168,8 @@ export function SidebarV2({ className }: SidebarV2Props) {
         {/* System Section Divider */}
         <div className="my-4 border-t border-slate-100 dark:border-slate-800/50 mx-3" />
 
-        <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-          System
+        <p className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          SYSTEM
         </p>
 
         {systemItems.map((item) => {
@@ -186,7 +186,7 @@ export function SidebarV2({ className }: SidebarV2Props) {
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'
               )}
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
+              <span className={cn('material-symbols-outlined', active && 'icon-filled')}>{item.icon}</span>
               <span className={cn('text-sm', active ? 'font-semibold' : 'font-medium')}>
                 {item.label}
               </span>
