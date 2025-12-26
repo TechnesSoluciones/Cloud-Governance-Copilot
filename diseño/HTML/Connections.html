@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CloudBridge Analytics - Cloud Connections</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2780d",
+                        "primary-hover": "#d66606",
+                        "background-light": "#f3f2f1", // Azure-like light gray background
+                        "background-dark": "#1b1a19",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#292827",
+                        "text-main": "#323130", // Azure-like dark gray text
+                        "text-subtle": "#605e5c",
+                        "border-light": "#edebe9",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'azure': '0 1.6px 3.6px 0 rgba(0,0,0,0.132), 0 0.3px 0.9px 0 rgba(0,0,0,0.108)',
+                        'azure-hover': '0 3.2px 7.2px 0 rgba(0,0,0,0.132), 0 0.6px 1.8px 0 rgba(0,0,0,0.108)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for an enterprise feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 flex flex-col h-screen overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="flex-none h-14 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-gray-700 flex items-center justify-between px-4 z-20 shadow-sm relative">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl">cloud_circle</span>
+<h1 class="text-lg font-bold tracking-tight text-text-main dark:text-white hidden sm:block">CloudBridge Analytics</h1>
+</div>
+<!-- Vertical Divider -->
+<div class="h-6 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>
+<!-- Breadcrumbs -->
+<nav class="hidden md:flex items-center text-sm">
+<a class="text-text-subtle hover:text-primary transition-colors" href="#">Portal</a>
+<span class="mx-2 text-gray-400">/</span>
+<a class="text-text-subtle hover:text-primary transition-colors" href="#">Settings</a>
+<span class="mx-2 text-gray-400">/</span>
+<span class="font-medium text-text-main dark:text-gray-200">Connections</span>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<!-- Search Bar -->
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-2 top-1.5 text-primary text-xl">search</span>
+<input class="pl-9 pr-4 py-1.5 text-sm bg-background-light dark:bg-black border-transparent focus:border-primary focus:ring-0 rounded-md w-64 transition-all" placeholder="Search resources..." type="text"/>
+</div>
+<button class="p-2 text-text-subtle hover:bg-background-light dark:hover:bg-gray-700 rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border border-white"></span>
+</button>
+<button class="p-2 text-text-subtle hover:bg-background-light dark:hover:bg-gray-700 rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="p-2 text-text-subtle hover:bg-background-light dark:hover:bg-gray-700 rounded-full transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="ml-2 h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs cursor-pointer ring-2 ring-transparent hover:ring-primary transition-all">
+                JD
+            </div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden relative">
+<!-- Side Navigation (Collapsed/Expanded hybrid style) -->
+<aside class="w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-gray-700 flex flex-col flex-none hidden md:flex z-10">
+<div class="flex flex-col py-4 gap-1">
+<a class="flex items-center gap-3 px-4 py-2 text-text-subtle hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 bg-primary/10 text-primary border-l-4 border-primary transition-colors" href="#">
+<span class="material-symbols-outlined fill-current">link</span>
+<span class="text-sm font-medium">Connections</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-text-subtle hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-medium">Data Analysis</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-text-subtle hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors" href="#">
+<span class="material-symbols-outlined">security</span>
+<span class="text-sm font-medium">Access Control</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-text-subtle hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-sm font-medium">Cost Management</span>
+</a>
+</div>
+<div class="mt-auto p-4 border-t border-border-light dark:border-gray-700">
+<div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+<p class="text-xs font-semibold text-text-subtle uppercase mb-2">Usage</p>
+<div class="flex justify-between text-xs mb-1">
+<span>Connections</span>
+<span class="font-bold">12/20</span>
+</div>
+<div class="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-1.5">
+<div class="bg-primary h-1.5 rounded-full" style="width: 60%"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-auto bg-background-light dark:bg-background-dark p-6 md:p-8 relative">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+<div>
+<h2 class="text-2xl font-bold text-text-main dark:text-white flex items-center gap-2">
+                        Cloud Connections
+                        <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200 font-medium">Healthy</span>
+</h2>
+<p class="text-text-subtle dark:text-gray-400 text-sm mt-1 max-w-2xl">
+                        Manage your access keys, service principals, and API integrations for AWS, Azure, and Google Cloud Platform ingestion.
+                    </p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-lg">refresh</span>
+                        Refresh Status
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md text-sm font-medium shadow-sm transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+                        Add New Provider
+                    </button>
+</div>
+</div>
+<!-- Stats Overview (Azure style cards) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-md shadow-azure border-t-4 border-blue-500">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-sm font-medium text-text-subtle">Total Connections</p>
+<h3 class="text-3xl font-bold text-text-main dark:text-white mt-1">12</h3>
+</div>
+<div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-blue-600">
+<span class="material-symbols-outlined">hub</span>
+</div>
+</div>
+<div class="mt-4 text-xs text-text-subtle flex items-center gap-1">
+<span class="text-green-600 font-medium flex items-center"><span class="material-symbols-outlined text-sm">arrow_upward</span> 2</span> 
+                        new this month
+                    </div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-md shadow-azure border-t-4 border-green-500">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-sm font-medium text-text-subtle">Active Syncs</p>
+<h3 class="text-3xl font-bold text-text-main dark:text-white mt-1">9</h3>
+</div>
+<div class="p-2 bg-green-50 dark:bg-green-900/20 rounded-md text-green-600">
+<span class="material-symbols-outlined">sync</span>
+</div>
+</div>
+<div class="mt-4 text-xs text-text-subtle flex items-center gap-1">
+<span class="text-green-600 font-medium">100%</span> 
+                        uptime in last 24h
+                    </div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-md shadow-azure border-t-4 border-primary">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-sm font-medium text-text-subtle">Data Ingested</p>
+<h3 class="text-3xl font-bold text-text-main dark:text-white mt-1">4.2 TB</h3>
+</div>
+<div class="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-md text-primary">
+<span class="material-symbols-outlined">database</span>
+</div>
+</div>
+<div class="mt-4 text-xs text-text-subtle flex items-center gap-1">
+<span class="text-primary font-medium flex items-center"><span class="material-symbols-outlined text-sm">trending_up</span> 15%</span> 
+                        vs last month
+                    </div>
+</div>
+</div>
+<!-- Filters Toolbar -->
+<div class="flex flex-wrap items-center gap-3 mb-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-2 text-gray-400 text-lg">filter_alt</span>
+<select class="pl-8 pr-8 py-1.5 text-sm bg-white dark:bg-surface-dark border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary focus:ring-primary">
+<option>All Providers</option>
+<option>AWS</option>
+<option>Azure</option>
+<option>GCP</option>
+</select>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-2 text-gray-400 text-lg">check_circle</span>
+<select class="pl-8 pr-8 py-1.5 text-sm bg-white dark:bg-surface-dark border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary focus:ring-primary">
+<option>All Statuses</option>
+<option>Connected</option>
+<option>Error</option>
+<option>Syncing</option>
+</select>
+</div>
+<div class="flex-1"></div>
+<div class="flex bg-white dark:bg-surface-dark rounded-md border border-gray-300 dark:border-gray-600 p-0.5">
+<button class="p-1.5 bg-gray-100 dark:bg-gray-700 rounded shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg">grid_view</span>
+</button>
+<button class="p-1.5 text-gray-400 hover:text-gray-600">
+<span class="material-symbols-outlined text-lg">list</span>
+</button>
+</div>
+</div>
+<!-- Connection Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
+<!-- AWS Card (Active) -->
+<div class="group bg-surface-light dark:bg-surface-dark rounded-lg shadow-azure hover:shadow-azure-hover transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex flex-col h-full relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-[#FF9900]"></div> <!-- AWS Color Bar -->
+<div class="p-5 flex-1">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-md bg-[#232F3E] flex items-center justify-center">
+<span class="text-white font-bold text-xs tracking-wider">AWS</span>
+</div>
+<div>
+<h4 class="font-bold text-text-main dark:text-white">Production AWS</h4>
+<p class="text-xs text-text-subtle">ID: aws-prod-01</p>
+</div>
+</div>
+<div class="relative group/menu">
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+<!-- Dropdown simulation -->
+<div class="absolute right-0 top-8 w-32 bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-100 dark:border-gray-700 hidden group-hover/menu:block z-10 py-1">
+<a class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" href="#">Edit</a>
+<a class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700" href="#">Delete</a>
+</div>
+</div>
+</div>
+<div class="space-y-3 mb-4">
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Region</span>
+<span class="font-medium text-text-main dark:text-gray-200">us-east-1</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Last Sync</span>
+<span class="font-medium text-text-main dark:text-gray-200">2 mins ago</span>
+</div>
+<div class="flex justify-between text-sm items-center">
+<span class="text-text-subtle">Status</span>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
+<span class="h-1.5 w-1.5 rounded-full bg-green-600"></span> Active
+                                </span>
+</div>
+</div>
+</div>
+<div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<button class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1">
+<span class="material-symbols-outlined text-base">settings</span> Configure
+                        </button>
+<span class="material-symbols-outlined text-green-500" title="Secure connection">lock</span>
+</div>
+</div>
+<!-- Azure Card (Attention Needed) -->
+<div class="group bg-surface-light dark:bg-surface-dark rounded-lg shadow-azure hover:shadow-azure-hover transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex flex-col h-full relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-[#0078D4]"></div> <!-- Azure Color Bar -->
+<div class="p-5 flex-1">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-md bg-[#0078D4] flex items-center justify-center">
+<span class="text-white font-bold text-xs tracking-wider">AZURE</span>
+</div>
+<div>
+<h4 class="font-bold text-text-main dark:text-white">Analytics Tenant</h4>
+<p class="text-xs text-text-subtle">ID: az-analytics-dev</p>
+</div>
+</div>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="space-y-3 mb-4">
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Region</span>
+<span class="font-medium text-text-main dark:text-gray-200">West Europe</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Last Sync</span>
+<span class="font-medium text-text-main dark:text-gray-200">4 hours ago</span>
+</div>
+<div class="flex justify-between text-sm items-center">
+<span class="text-text-subtle">Status</span>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+<span class="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span> Warning
+                                </span>
+</div>
+</div>
+<!-- Alert Box inside card -->
+<div class="bg-primary/5 p-2 rounded border border-primary/10 text-xs text-text-main dark:text-gray-300 flex gap-2 items-start mb-2">
+<span class="material-symbols-outlined text-primary text-sm mt-0.5">info</span>
+<span>Client secret expires in 3 days. Please rotate credentials.</span>
+</div>
+</div>
+<div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<button class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1">
+<span class="material-symbols-outlined text-base">edit_square</span> Update Key
+                        </button>
+<span class="material-symbols-outlined text-green-500" title="Secure connection">lock</span>
+</div>
+</div>
+<!-- GCP Card (Syncing) -->
+<div class="group bg-surface-light dark:bg-surface-dark rounded-lg shadow-azure hover:shadow-azure-hover transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex flex-col h-full relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-[#4285F4]"></div> <!-- GCP Color Bar -->
+<div class="p-5 flex-1">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-md bg-white border border-gray-200 flex items-center justify-center p-1">
+<!-- Simple CSS Shapes for GCP logo feel -->
+<div class="w-6 h-6 rounded-full border-4 border-[#4285F4] border-r-[#34A853] border-b-[#FBBC05] border-l-[#EA4335]"></div>
+</div>
+<div>
+<h4 class="font-bold text-text-main dark:text-white">BigQuery Main</h4>
+<p class="text-xs text-text-subtle">ID: gcp-bq-main</p>
+</div>
+</div>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="space-y-3 mb-4">
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Zone</span>
+<span class="font-medium text-text-main dark:text-gray-200">us-central1-a</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Last Sync</span>
+<span class="font-medium text-text-main dark:text-gray-200">Syncing...</span>
+</div>
+<div class="flex justify-between text-sm items-center">
+<span class="text-text-subtle">Status</span>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
+<span class="material-symbols-outlined text-xs animate-spin">refresh</span> Syncing
+                                </span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+<div class="bg-blue-500 h-1.5 rounded-full" style="width: 45%"></div>
+</div>
+<p class="text-[10px] text-right text-text-subtle">Importing schemas (45%)</p>
+</div>
+<div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<button class="text-sm font-semibold text-gray-400 cursor-not-allowed flex items-center gap-1">
+<span class="material-symbols-outlined text-base">settings</span> Configure
+                        </button>
+<span class="material-symbols-outlined text-green-500" title="Secure connection">lock</span>
+</div>
+</div>
+<!-- AWS Card (Secondary) -->
+<div class="group bg-surface-light dark:bg-surface-dark rounded-lg shadow-azure hover:shadow-azure-hover transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex flex-col h-full relative overflow-hidden opacity-80 hover:opacity-100">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-[#FF9900]"></div>
+<div class="p-5 flex-1">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-md bg-[#232F3E] flex items-center justify-center">
+<span class="text-white font-bold text-xs tracking-wider">AWS</span>
+</div>
+<div>
+<h4 class="font-bold text-text-main dark:text-white">Staging Env</h4>
+<p class="text-xs text-text-subtle">ID: aws-staging-04</p>
+</div>
+</div>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="space-y-3 mb-4">
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Region</span>
+<span class="font-medium text-text-main dark:text-gray-200">eu-west-2</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-text-subtle">Last Sync</span>
+<span class="font-medium text-text-main dark:text-gray-200">1 day ago</span>
+</div>
+<div class="flex justify-between text-sm items-center">
+<span class="text-text-subtle">Status</span>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold">
+<span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span> Idle
+                                </span>
+</div>
+</div>
+</div>
+<div class="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+<button class="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1">
+<span class="material-symbols-outlined text-base">settings</span> Configure
+                        </button>
+<span class="material-symbols-outlined text-green-500" title="Secure connection">lock</span>
+</div>
+</div>
+</div>
+<!-- "Blade" / Side Drawer for Configuration (Visual Representation) -->
+<!-- This would typically be hidden/shown via JS, but rendering it to show the UI state -->
+<div class="absolute top-0 right-0 h-full w-full md:w-[480px] bg-white dark:bg-surface-dark shadow-2xl transform transition-transform duration-300 border-l border-border-light dark:border-gray-700 z-50 flex flex-col">
+<div class="flex items-center justify-between p-6 border-b border-border-light dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+<div>
+<h3 class="text-xl font-bold text-text-main dark:text-white">Configure Azure</h3>
+<p class="text-sm text-text-subtle">Analytics Tenant (ID: az-analytics-dev)</p>
+</div>
+<button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Form Group -->
+<div class="space-y-4">
+<h4 class="font-semibold text-primary text-sm uppercase tracking-wide">Credential Settings</h4>
+<div class="space-y-1">
+<label class="block text-sm font-medium text-text-main dark:text-gray-300">Client ID (Application ID)</label>
+<div class="flex rounded-md shadow-sm">
+<span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 text-sm">
+<span class="material-symbols-outlined text-lg">badge</span>
+</span>
+<input class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md text-sm border-gray-300 dark:border-gray-600 dark:bg-black dark:text-white focus:ring-primary focus:border-primary" type="text" value="7e4329a-2211-44b2-..."/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="block text-sm font-medium text-text-main dark:text-gray-300">Client Secret</label>
+<div class="flex rounded-md shadow-sm relative">
+<span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 text-sm">
+<span class="material-symbols-outlined text-lg">key</span>
+</span>
+<input class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md text-sm border-gray-300 dark:border-gray-600 dark:bg-black dark:text-white focus:ring-primary focus:border-primary" type="password" value="supersecretvalue123"/>
+<button class="absolute right-2 top-2 text-gray-400 hover:text-primary">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+</div>
+<p class="text-xs text-primary mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">warning</span> Expires in 3 days
+                            </p>
+</div>
+<div class="space-y-1">
+<label class="block text-sm font-medium text-text-main dark:text-gray-300">Tenant ID</label>
+<input class="block w-full px-3 py-2 rounded-md text-sm border-gray-300 dark:border-gray-600 dark:bg-black dark:text-white focus:ring-primary focus:border-primary shadow-sm" type="text" value="88f212-..."/>
+</div>
+</div>
+<div class="w-full border-t border-border-light dark:border-gray-700 my-4"></div>
+<div class="space-y-4">
+<h4 class="font-semibold text-primary text-sm uppercase tracking-wide">Sync Options</h4>
+<div class="flex items-center justify-between py-2">
+<div>
+<p class="text-sm font-medium text-text-main dark:text-gray-200">Auto-Sync</p>
+<p class="text-xs text-text-subtle">Automatically ingest new data every hour</p>
+</div>
+<!-- Toggle Switch -->
+<button aria-checked="true" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-primary" role="switch">
+<span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+<div class="flex items-center justify-between py-2">
+<div>
+<p class="text-sm font-medium text-text-main dark:text-gray-200">Read-Only Mode</p>
+<p class="text-xs text-text-subtle">Prevent write operations to source</p>
+</div>
+<button aria-checked="false" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 bg-gray-200 dark:bg-gray-600" role="switch">
+<span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</div>
+</div>
+<div class="p-6 border-t border-border-light dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-end gap-3">
+<button class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-text-main dark:text-white rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+<button class="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary-hover shadow-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">save</span> Save Changes
+                    </button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

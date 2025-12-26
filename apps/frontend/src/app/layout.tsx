@@ -2,11 +2,17 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import Script from 'next/script';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
-  title: 'Cloud Governance Copilot',
+  title: 'Cloud Governance Copilot - CloudNexus',
   description: 'Multi-Cloud Governance and Security Platform',
   icons: {
     icon: '/favicon.svg',
@@ -25,6 +31,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Material Symbols Icons - Design System V2 */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

@@ -5,25 +5,25 @@
 @layer base {
   :root {
     /* ============================================
-       Cloud Copilot Design System
-       Primary Color: Orange (#ff6b35)
-       Inspired by AWS, Azure, and GCP
+       Cloud Copilot Design System V2
+       Primary Color: Orange (#f2780d)
+       Inspired by CloudNexus Design (Dec 2025)
        ============================================ */
 
-    /* Background Colors */
-    --background: 0 0% 100%;
-    --foreground: 210 11% 15%;
+    /* Background Colors - Light Theme */
+    --background: 30 25% 97%;      /* #f8f7f5 */
+    --foreground: 215 25% 27%;     /* slate-800 */
 
     /* Card Colors */
-    --card: 0 0% 100%;
-    --card-foreground: 210 11% 15%;
+    --card: 0 0% 100%;             /* #ffffff */
+    --card-foreground: 215 25% 27%;
 
     /* Popover Colors */
     --popover: 0 0% 100%;
-    --popover-foreground: 210 11% 15%;
+    --popover-foreground: 215 25% 27%;
 
-    /* Primary Colors - Orange Brand */
-    --primary: 16 100% 60%;        /* #ff6b35 */
+    /* Primary Colors - Orange Brand V2 */
+    --primary: 24 95% 49%;         /* #f2780d */
     --primary-foreground: 0 0% 100%;
 
     /* Secondary Colors - Azure Blue */
@@ -31,63 +31,62 @@
     --secondary-foreground: 0 0% 100%;
 
     /* Muted Colors */
-    --muted: 0 0% 98%;
-    --muted-foreground: 0 0% 46%;
+    --muted: 210 20% 95%;          /* slate-100 */
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent Colors - GCP Green */
-    --accent: 140 58% 43%;         /* #34a853 */
-    --accent-foreground: 0 0% 100%;
+    /* Accent Colors */
+    --accent: 210 20% 95%;
+    --accent-foreground: 215 25% 27%;
 
     /* Destructive/Error Colors */
-    --destructive: 0 72% 51%;      /* #dc2626 */
+    --destructive: 0 84% 60%;      /* #ef4444 */
     --destructive-foreground: 0 0% 98%;
 
     /* Border & Input */
-    --border: 0 0% 93%;
-    --input: 0 0% 93%;
-    --ring: 16 100% 60%;
+    --border: 214 32% 91%;         /* slate-200 */
+    --input: 214 32% 91%;
+    --ring: 24 95% 49%;            /* primary */
 
     /* Radius */
     --radius: 0.5rem;
 
     /* Semantic Colors */
-    --success: 140 58% 43%;        /* #34a853 */
+    --success: 142 71% 45%;        /* #10b981 */
     --warning: 38 92% 50%;         /* #f59e0b */
     --info: 217 91% 60%;           /* #3b82f6 */
   }
 
   .dark {
-    /* Dark Mode - AWS Dark Navy Inspired */
-    --background: 210 30% 12%;     /* #232f3e */
-    --foreground: 0 0% 98%;
+    /* Dark Mode - CloudNexus Dark */
+    --background: 20 29% 10%;      /* #221810 */
+    --foreground: 210 20% 98%;     /* slate-50 */
 
-    --card: 210 20% 16%;
-    --card-foreground: 0 0% 98%;
+    --card: 20 20% 17%;            /* #2d241e */
+    --card-foreground: 210 20% 98%;
 
-    --popover: 210 20% 16%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 20 20% 17%;
+    --popover-foreground: 210 20% 98%;
 
-    /* Primary Orange (same in dark) */
-    --primary: 16 100% 60%;
+    /* Primary Orange (slightly adjusted for dark) */
+    --primary: 24 95% 49%;         /* #f2780d */
     --primary-foreground: 0 0% 100%;
 
     /* Secondary Blue (lighter in dark) */
-    --secondary: 206 100% 60%;
+    --secondary: 206 100% 50%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 20%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 215 28% 17%;          /* slate-800 */
+    --muted-foreground: 217 13% 65%;
 
-    /* Accent Green (same in dark) */
-    --accent: 140 58% 43%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 215 28% 17%;
+    --accent-foreground: 210 20% 98%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 210 20% 20%;
-    --input: 210 20% 20%;
-    --ring: 16 100% 60%;
+    --border: 215 28% 17%;         /* slate-800 */
+    --input: 215 28% 17%;
+    --ring: 24 95% 49%;
   }
 }
 
@@ -98,4 +97,36 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ============================================
+   Material Symbols Icons - Design System V2
+   ============================================ */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.material-symbols-outlined.icon-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Custom scrollbar - Design System V2 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225 / 0.8);
+  border-radius: 20px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(51 65 85 / 0.8);
 }

@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import { designTokens } from './src/lib/design-tokens';
 
 const config: Config = {
   darkMode: ['class'],
@@ -16,15 +17,16 @@ const config: Config = {
       },
     },
     extend: {
-      // Cloud Copilot Design System Colors
+      // Cloud Copilot Design System V2 - Colors
       colors: {
-        // Shadcn/UI compatibility (preserved)
+        // Shadcn/UI compatibility (preserved for existing components)
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
+          ...designTokens.colors.primary,
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
         },
@@ -53,51 +55,41 @@ const config: Config = {
           foreground: 'hsl(var(--card-foreground))',
         },
 
-        // Cloud Copilot Design System - Primary Orange
-        'brand-orange': {
-          DEFAULT: '#ff6b35',
-          dark: '#e65525',
-          light: '#ff8556',
-          accent: '#ff9770',
-        },
+        // Design System V2 - Brand Colors
+        'brand-primary': designTokens.colors.primary,
 
-        // Cloud Copilot Design System - Secondary Blues
-        'cloud-blue': {
-          DEFAULT: '#0078d4', // Azure blue
-          light: '#50e6ff',
-        },
+        // Design System V2 - Cloud Provider Colors
+        aws: designTokens.colors.aws,
+        azure: designTokens.colors.azure,
+        gcp: designTokens.colors.gcp,
 
-        // Cloud Copilot Design System - Status Colors
+        // Design System V2 - Status Colors
         success: {
-          DEFAULT: '#34a853', // GCP green
+          DEFAULT: designTokens.colors.success,
           foreground: '#ffffff',
         },
         error: {
-          DEFAULT: '#dc2626',
+          DEFAULT: designTokens.colors.error,
           foreground: '#ffffff',
         },
         warning: {
-          DEFAULT: '#f59e0b',
+          DEFAULT: designTokens.colors.warning,
           foreground: '#ffffff',
         },
         info: {
-          DEFAULT: '#3b82f6',
+          DEFAULT: designTokens.colors.info,
           foreground: '#ffffff',
         },
 
-        // Cloud Copilot Design System - Neutral Grays
-        gray: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#eeeeee',
-          300: '#e0e0e0',
-          400: '#bdbdbd',
-          500: '#9e9e9e',
-          600: '#757575',
-          700: '#616161',
-          800: '#424242',
-          900: '#232f3e', // AWS dark
-        },
+        // Design System V2 - Background & Cards
+        'bg-light': designTokens.colors.background.light,
+        'bg-dark': designTokens.colors.background.dark,
+        'card-light': designTokens.colors.card.light,
+        'card-dark': designTokens.colors.card.dark,
+        'azure-gray': designTokens.colors.azureGray,
+
+        // Design System V2 - Slate Grays
+        slate: designTokens.colors.slate,
       },
 
       // Cloud Copilot Design System - Spacing Scale (4px base unit)
@@ -145,74 +137,24 @@ const config: Config = {
         none: 'none',
       },
 
-      // Cloud Copilot Design System - Typography
+      // Design System V2 - Typography
       fontFamily: {
-        sans: [
-          'Segoe UI',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Google Sans',
-          'system-ui',
-          'sans-serif',
-        ],
-        mono: ['Consolas', 'Monaco', 'Courier New', 'monospace'],
+        display: designTokens.typography.fontFamily.display,
+        body: designTokens.typography.fontFamily.body,
+        sans: designTokens.typography.fontFamily.display,
+        mono: designTokens.typography.fontFamily.mono,
       },
 
-      fontSize: {
-        xs: ['12px', { lineHeight: '1.5' }],
-        sm: ['14px', { lineHeight: '1.5' }],
-        base: ['16px', { lineHeight: '1.6' }],
-        md: ['16px', { lineHeight: '1.6' }],
-        lg: ['18px', { lineHeight: '1.6' }],
-        xl: ['20px', { lineHeight: '1.5' }],
-        '2xl': ['24px', { lineHeight: '1.4' }],
-        '3xl': ['32px', { lineHeight: '1.3' }],
-        '4xl': ['40px', { lineHeight: '1.2' }],
-        '5xl': ['56px', { lineHeight: '1.1' }],
-      },
+      fontSize: designTokens.typography.fontSize,
+      fontWeight: designTokens.typography.fontWeight,
+      letterSpacing: designTokens.typography.letterSpacing,
 
-      fontWeight: {
-        regular: '400',
-        medium: '500',
-        semibold: '600',
-        bold: '700',
-        extrabold: '800',
-      },
+      // Design System V2 - Responsive Breakpoints
+      screens: designTokens.screens,
 
-      // Cloud Copilot Design System - Letter Spacing
-      letterSpacing: {
-        tighter: '-0.02em',
-        tight: '-0.01em',
-        normal: '0',
-        wide: '0.05em',
-        wider: '0.1em',
-        widest: '0.15em',
-      },
-
-      // Cloud Copilot Design System - Responsive Breakpoints
-      screens: {
-        xs: '320px',
-        sm: '640px',
-        md: '768px',
-        lg: '1024px',
-        xl: '1280px',
-        '2xl': '1440px',
-        '3xl': '1920px',
-      },
-
-      // Cloud Copilot Design System - Animation
-      transitionTimingFunction: {
-        'default': 'cubic-bezier(0.4, 0, 0.2, 1)', // Material standard
-        'in': 'cubic-bezier(0.4, 0, 1, 1)',
-        'out': 'cubic-bezier(0, 0, 0.2, 1)',
-        'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
-      },
-
-      transitionDuration: {
-        fast: '150ms',
-        normal: '200ms',
-        slow: '300ms',
-      },
+      // Design System V2 - Animation
+      transitionTimingFunction: designTokens.transitionTimingFunction,
+      transitionDuration: designTokens.transitionDuration,
 
       // Cloud Copilot Design System - Keyframes
       keyframes: {

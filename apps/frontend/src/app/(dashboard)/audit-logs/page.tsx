@@ -1,227 +1,543 @@
+/**
+ * Audit Logs V2 Page
+ * CloudNexus Design - Audit Logs with Advanced Filtering
+ */
+
 'use client';
 
-import * as React from 'react';
-import { AuditEvent } from '@/components/dashboard/RecentActivity';
-import { AuditFilters, AuditFiltersState } from '@/components/audit/AuditFilters';
-import { AuditTable } from '@/components/audit/AuditTable';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/toast';
-import { StatCardGridSkeleton } from '@/components/ui/skeleton';
-import {
-  FileText,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Download,
-} from 'lucide-react';
+import { useState } from 'react';
+import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
+import { KPICardV2 } from '@/components/ui/KPICardV2';
+import { BadgeV2 } from '@/components/ui/BadgeV2';
+import { cn } from '@/lib/utils';
 
-// Premium Design System Components
-import {
-  PremiumSectionHeader,
-  PremiumStatsBar,
-  PREMIUM_GRADIENTS,
-  PREMIUM_ICON_COLORS,
-  PREMIUM_TRANSITIONS,
-} from '@/components/shared/premium';
+interface AuditLog {
+  id: string;
+  timestamp: string;
+  user: {
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  action: string;
+  actionType: 'create' | 'update' | 'delete' | 'access' | 'config';
+  resource: string;
+  resourceType: string;
+  provider: 'AWS' | 'Azure' | 'GCP';
+  status: 'success' | 'failed' | 'warning';
+  ipAddress: string;
+  location: string;
+  details?: string;
+}
 
-const ITEMS_PER_PAGE = 20;
+const mockLogs: AuditLog[] = [
+  {
+    id: '1',
+    timestamp: '2024-12-26T10:30:00Z',
+    user: {
+      name: 'John Doe',
+      email: 'john.doe@company.com',
+    },
+    action: 'Created EC2 instance',
+    actionType: 'create',
+    resource: 'i-0abc123def456',
+    resourceType: 'EC2 Instance',
+    provider: 'AWS',
+    status: 'success',
+    ipAddress: '192.168.1.100',
+    location: 'San Francisco, CA',
+    details: 'Instance type: t3.medium, Region: us-east-1',
+  },
+  {
+    id: '2',
+    timestamp: '2024-12-26T10:25:00Z',
+    user: {
+      name: 'Jane Smith',
+      email: 'jane.smith@company.com',
+    },
+    action: 'Updated security group rules',
+    actionType: 'update',
+    resource: 'sg-0987654321',
+    resourceType: 'Security Group',
+    provider: 'AWS',
+    status: 'success',
+    ipAddress: '192.168.1.101',
+    location: 'New York, NY',
+    details: 'Added inbound rule for port 443',
+  },
+  {
+    id: '3',
+    timestamp: '2024-12-26T10:20:00Z',
+    user: {
+      name: 'Mike Johnson',
+      email: 'mike.j@company.com',
+    },
+    action: 'Deleted storage account',
+    actionType: 'delete',
+    resource: 'storageaccount123',
+    resourceType: 'Storage Account',
+    provider: 'Azure',
+    status: 'success',
+    ipAddress: '192.168.1.102',
+    location: 'London, UK',
+    details: 'Permanently deleted unused storage account',
+  },
+  {
+    id: '4',
+    timestamp: '2024-12-26T10:15:00Z',
+    user: {
+      name: 'Sarah Wilson',
+      email: 'sarah.w@company.com',
+    },
+    action: 'Failed to access RDS database',
+    actionType: 'access',
+    resource: 'db-prod-main',
+    resourceType: 'RDS Database',
+    provider: 'AWS',
+    status: 'failed',
+    ipAddress: '192.168.1.103',
+    location: 'Austin, TX',
+    details: 'Access denied: Insufficient permissions',
+  },
+  {
+    id: '5',
+    timestamp: '2024-12-26T10:10:00Z',
+    user: {
+      name: 'David Lee',
+      email: 'david.lee@company.com',
+    },
+    action: 'Modified IAM policy',
+    actionType: 'config',
+    resource: 'policy-admin-access',
+    resourceType: 'IAM Policy',
+    provider: 'AWS',
+    status: 'success',
+    ipAddress: '192.168.1.104',
+    location: 'Seattle, WA',
+    details: 'Updated permissions for S3 bucket access',
+  },
+  {
+    id: '6',
+    timestamp: '2024-12-26T10:05:00Z',
+    user: {
+      name: 'Emily Brown',
+      email: 'emily.b@company.com',
+    },
+    action: 'Created Kubernetes cluster',
+    actionType: 'create',
+    resource: 'cluster-prod-01',
+    resourceType: 'GKE Cluster',
+    provider: 'GCP',
+    status: 'success',
+    ipAddress: '192.168.1.105',
+    location: 'Tokyo, Japan',
+    details: 'Cluster type: Standard, Nodes: 3',
+  },
+  {
+    id: '7',
+    timestamp: '2024-12-26T10:00:00Z',
+    user: {
+      name: 'Robert Garcia',
+      email: 'robert.g@company.com',
+    },
+    action: 'Updated load balancer configuration',
+    actionType: 'update',
+    resource: 'lb-prod-web',
+    resourceType: 'Load Balancer',
+    provider: 'Azure',
+    status: 'warning',
+    ipAddress: '192.168.1.106',
+    location: 'Sydney, Australia',
+    details: 'Modified health check settings',
+  },
+  {
+    id: '8',
+    timestamp: '2024-12-26T09:55:00Z',
+    user: {
+      name: 'Lisa Anderson',
+      email: 'lisa.a@company.com',
+    },
+    action: 'Accessed S3 bucket',
+    actionType: 'access',
+    resource: 's3://prod-data-bucket',
+    resourceType: 'S3 Bucket',
+    provider: 'AWS',
+    status: 'success',
+    ipAddress: '192.168.1.107',
+    location: 'Boston, MA',
+    details: 'Downloaded 5 objects',
+  },
+];
 
-export default function AuditLogsPage() {
-  const { addToast } = useToast();
-  // Note: Audit logs feature requires backend API implementation
-  const [isLoading] = React.useState(false);
-  const [isLoadingStats] = React.useState(false);
-  const [allLogs] = React.useState<AuditEvent[]>([]);
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [sortColumn, setSortColumn] = React.useState<keyof AuditEvent>('timestamp');
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
-  const [filters, setFilters] = React.useState<AuditFiltersState>({
-    search: '',
-    actionType: 'all',
-    user: '',
-    status: 'all',
-    dateFrom: '',
-    dateTo: '',
+export default function AuditLogsV2Page() {
+  const [logs, setLogs] = useState<AuditLog[]>(mockLogs);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAction, setFilterAction] = useState<string>('all');
+  const [filterProvider, setFilterProvider] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<string>('today');
+
+  const totalEvents = logs.length;
+  const uniqueUsers = new Set(logs.map((l) => l.user.email)).size;
+  const criticalActions = logs.filter(
+    (l) => l.actionType === 'delete' || l.status === 'failed'
+  ).length;
+  const successRate = Math.round(
+    (logs.filter((l) => l.status === 'success').length / logs.length) * 100
+  );
+
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch =
+      log.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.resource.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesAction = filterAction === 'all' || log.actionType === filterAction;
+    const matchesProvider = filterProvider === 'all' || log.provider === filterProvider;
+    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
+
+    return matchesSearch && matchesAction && matchesProvider && matchesStatus;
   });
 
-  const filteredLogs = React.useMemo(() => {
-    let result = [...allLogs];
-
-    // Apply filters
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(
-        (log) =>
-          log.user.toLowerCase().includes(searchLower) ||
-          log.action.toLowerCase().includes(searchLower) ||
-          log.resource.toLowerCase().includes(searchLower)
-      );
+  const getActionIcon = (actionType: AuditLog['actionType']) => {
+    switch (actionType) {
+      case 'create':
+        return 'add_circle';
+      case 'update':
+        return 'edit';
+      case 'delete':
+        return 'delete';
+      case 'access':
+        return 'visibility';
+      case 'config':
+        return 'settings';
+      default:
+        return 'circle';
     }
-
-    if (filters.user) {
-      result = result.filter((log) =>
-        log.user.toLowerCase().includes(filters.user.toLowerCase())
-      );
-    }
-
-    if (filters.status !== 'all') {
-      result = result.filter((log) => log.status === filters.status);
-    }
-
-    if (filters.dateFrom) {
-      const fromDate = new Date(filters.dateFrom);
-      result = result.filter((log) => new Date(log.timestamp) >= fromDate);
-    }
-
-    if (filters.dateTo) {
-      const toDate = new Date(filters.dateTo);
-      toDate.setHours(23, 59, 59, 999);
-      result = result.filter((log) => new Date(log.timestamp) <= toDate);
-    }
-
-    // Apply sorting
-    result.sort((a, b) => {
-      let aValue: string | number = a[sortColumn];
-      let bValue: string | number = b[sortColumn];
-
-      if (sortColumn === 'timestamp') {
-        aValue = new Date(aValue as string).getTime();
-        bValue = new Date(bValue as string).getTime();
-      }
-
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return result;
-  }, [allLogs, filters, sortColumn, sortDirection]);
-
-  const paginatedLogs = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredLogs, currentPage]);
-
-  const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE);
-
-  const handleSort = (column: keyof AuditEvent, direction: 'asc' | 'desc') => {
-    setSortColumn(column);
-    setSortDirection(direction);
-    setCurrentPage(1);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const getStatusBadge = (status: AuditLog['status']) => {
+    switch (status) {
+      case 'success':
+        return (
+          <BadgeV2 variant="success" size="sm" icon="check_circle">
+            Success
+          </BadgeV2>
+        );
+      case 'failed':
+        return (
+          <BadgeV2 variant="error" size="sm" icon="cancel">
+            Failed
+          </BadgeV2>
+        );
+      case 'warning':
+        return (
+          <BadgeV2 variant="warning" size="sm" icon="warning">
+            Warning
+          </BadgeV2>
+        );
+    }
   };
 
-  const handleFiltersChange = (newFilters: AuditFiltersState) => {
-    setFilters(newFilters);
-    setCurrentPage(1);
-  };
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
 
-  const handleResetFilters = () => {
-    setFilters({
-      search: '',
-      actionType: 'all',
-      user: '',
-      status: 'all',
-      dateFrom: '',
-      dateTo: '',
-    });
-    setCurrentPage(1);
-  };
-
-  const handleExport = () => {
-    addToast('Exporting audit logs...', 'info');
-    // In production, trigger CSV/PDF export
-    setTimeout(() => {
-      addToast('Audit logs exported successfully', 'success');
-    }, 2000);
+    if (diffMins < 60) {
+      return `${diffMins} min ago`;
+    } else if (diffMins < 1440) {
+      return `${Math.floor(diffMins / 60)} hr ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
   };
 
   return (
-    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-        {/* Premium Header */}
-        <PremiumSectionHeader
-          title="Audit Logs"
-          subtitle="Track all activities across your cloud accounts"
-          actions={
-            <Button variant="outline" size="lg" onClick={handleExport} className="shadow-lg">
-              <Download className="h-5 w-5 mr-2" aria-hidden="true" />
-              Export
-            </Button>
-          }
-        />
+    <DashboardLayoutV2>
+      <div className="p-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+              Audit Logs
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400">
+              Track all user activities and system events across your infrastructure
+            </p>
+          </div>
 
-        {/* Premium Stats Bar */}
-        {isLoadingStats ? (
-          <StatCardGridSkeleton count={4} />
-        ) : (
-          <PremiumStatsBar
-            stats={[
-              {
-                label: 'Total Events',
-                value: filteredLogs.length,
-                icon: <FileText className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.azure,
-                iconColor: PREMIUM_ICON_COLORS.azure,
-                subtitle: 'Audit records',
-              },
-              {
-                label: 'Success',
-                value: filteredLogs.filter((log) => log.status === 'success').length,
-                icon: <CheckCircle className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.success,
-                iconColor: PREMIUM_ICON_COLORS.success,
-                subtitle: 'Completed actions',
-              },
-              {
-                label: 'Failures',
-                value: filteredLogs.filter((log) => log.status === 'failure').length,
-                icon: <XCircle className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.error,
-                iconColor: PREMIUM_ICON_COLORS.error,
-                subtitle: 'Failed attempts',
-              },
-              {
-                label: 'Pending',
-                value: filteredLogs.filter((log) => log.status === 'pending').length,
-                icon: <Clock className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.warning,
-                iconColor: PREMIUM_ICON_COLORS.warning,
-                subtitle: 'In progress',
-              },
-            ]}
-          />
-        )}
-
-      {/* Filters */}
-      <AuditFilters
-        filters={filters}
-        onChange={handleFiltersChange}
-        onReset={handleResetFilters}
-      />
-
-      {/* Results Info */}
-      {filteredLogs.length > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredLogs.length)} to{' '}
-          {Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length} results
+          <div className="flex items-center gap-3">
+            <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">filter_list</span>
+              Advanced Filters
+            </button>
+            <button className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">download</span>
+              Export Logs
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Table */}
-      <AuditTable
-        logs={paginatedLogs}
-        isLoading={isLoading}
-        onSort={handleSort}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
+        {/* KPI Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICardV2
+            icon="history"
+            label="Total Events"
+            value={totalEvents.toLocaleString()}
+            variant="blue"
+            comparison="Last 24 hours"
+          />
+          <KPICardV2
+            icon="group"
+            label="Active Users"
+            value={uniqueUsers}
+            variant="indigo"
+            comparison={`${totalEvents} total actions`}
+          />
+          <KPICardV2
+            icon="warning"
+            label="Critical Actions"
+            value={criticalActions}
+            variant="orange"
+            comparison="Deletes & failures"
+          />
+          <KPICardV2
+            icon="check_circle"
+            label="Success Rate"
+            value={`${successRate}%`}
+            variant="emerald"
+            comparison="Overall reliability"
+          />
+        </div>
+
+        {/* Filters Bar */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {/* Search */}
+            <div className="md:col-span-2 relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search logs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+              />
+            </div>
+
+            {/* Action Type Filter */}
+            <select
+              value={filterAction}
+              onChange={(e) => setFilterAction(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+            >
+              <option value="all">All Actions</option>
+              <option value="create">Create</option>
+              <option value="update">Update</option>
+              <option value="delete">Delete</option>
+              <option value="access">Access</option>
+              <option value="config">Config</option>
+            </select>
+
+            {/* Provider Filter */}
+            <select
+              value={filterProvider}
+              onChange={(e) => setFilterProvider(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+            >
+              <option value="all">All Providers</option>
+              <option value="AWS">AWS</option>
+              <option value="Azure">Azure</option>
+              <option value="GCP">GCP</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+            >
+              <option value="all">All Status</option>
+              <option value="success">Success</option>
+              <option value="failed">Failed</option>
+              <option value="warning">Warning</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Audit Logs Table */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Timestamp
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Action
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Resource
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Provider
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Location
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {filteredLogs.map((log) => (
+                  <tr
+                    key={log.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors cursor-pointer"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-900 dark:text-white font-medium">
+                        {formatTimestamp(log.timestamp)}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-primary-400 flex items-center justify-center text-white text-sm font-semibold">
+                          {log.user.name
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900 dark:text-white">
+                            {log.user.name}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {log.user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'material-symbols-outlined text-lg',
+                            log.actionType === 'delete' && 'text-error',
+                            log.actionType === 'create' && 'text-success',
+                            log.actionType === 'update' && 'text-blue-500',
+                            log.actionType === 'access' && 'text-indigo-500',
+                            log.actionType === 'config' && 'text-purple-500'
+                          )}
+                        >
+                          {getActionIcon(log.actionType)}
+                        </span>
+                        <div>
+                          <div className="text-sm text-slate-900 dark:text-white">
+                            {log.action}
+                          </div>
+                          {log.details && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {log.details}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <code className="text-xs bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded text-slate-700 dark:text-slate-300">
+                          {log.resource}
+                        </code>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {log.resourceType}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <BadgeV2
+                        variant={log.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}
+                        size="sm"
+                      >
+                        {log.provider}
+                      </BadgeV2>
+                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(log.status)}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-900 dark:text-white">
+                        {log.location}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        {log.ipAddress}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Empty State */}
+          {filteredLogs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4">
+                search_off
+              </span>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                No logs found
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Try adjusting your filters to see more results
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {filteredLogs.length > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Showing <span className="font-semibold">{filteredLogs.length}</span> of{' '}
+              <span className="font-semibold">{totalEvents}</span> events
+            </p>
+            <div className="flex items-center gap-2">
+              <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
+                Previous
+              </button>
+              <button className="px-3 py-1.5 bg-brand-primary-400 text-white rounded-lg text-sm font-medium hover:bg-brand-primary-500 transition-colors">
+                1
+              </button>
+              <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                2
+              </button>
+              <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                3
+              </button>
+              <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </DashboardLayoutV2>
   );
 }

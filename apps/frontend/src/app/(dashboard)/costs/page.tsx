@@ -1,702 +1,414 @@
+/**
+ * Costs V2 Page
+ * CloudNexus Design - Complete Cost Analysis Implementation
+ */
+
 'use client';
 
-/**
- * Cost Analysis Page
- *
- * Comprehensive cost analysis dashboard for cloud cost management.
- * Features:
- * - Interactive date range selector with presets
- * - Cost overview cards with KPIs and trends
- * - Visual cost trend charts with forecasting
- * - Service breakdown with pie/bar charts and table views
- * - Export functionality for reports
- * - Real-time data refresh
- * - Responsive design with loading/error/empty states
- * - Full accessibility support
- */
-
-import * as React from 'react';
-import { useState, useMemo } from 'react';
-import { subDays, format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { Provider } from '@/lib/api/finops';
-import { useCombinedCostData } from '@/hooks/useCosts';
-import { CostOverviewCards, BudgetAlert } from '@/components/costs/CostOverviewCards';
-import { CostTrendChart } from '@/components/costs/CostTrendChart';
-import { ServiceBreakdown } from '@/components/costs/ServiceBreakdown';
-import { DateRangeSelector } from '@/components/costs/DateRangeSelector';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
+import { KPICardV2 } from '@/components/ui/KPICardV2';
+import { BadgeV2 } from '@/components/ui/BadgeV2';
+import { CostTrendChart } from '@/components/charts/CostTrendChart';
 import {
-  RefreshCw,
-  Download,
-  FileText,
-  AlertCircle,
-  TrendingUp,
-  Filter,
-  DollarSign,
-  TrendingDown,
-  Activity,
-} from 'lucide-react';
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
-// Premium Design System Components
-import {
-  PremiumSectionHeader,
-  PremiumStatsBar,
-  PREMIUM_GRADIENTS,
-  PREMIUM_ICON_BACKGROUNDS,
-  PREMIUM_ICON_COLORS,
-  PREMIUM_TRANSITIONS
-} from '@/components/shared/premium';
-import {
-  formatCurrency,
-  calculateTrend,
-  calculatePercentageChange,
-  forecastCost,
-  exportToCSV,
-  generateForecast,
-} from '@/lib/costs';
-import { ServiceData } from '@/components/costs/ServiceBreakdown';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/components/ui/toast';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import { StatCardGridSkeleton, ChartSkeleton, CardSkeleton } from '@/components/skeletons';
-import { PermissionDeniedError } from '@/components/errors/PermissionDeniedError';
-import { CircuitBreakerError as CircuitBreakerErrorComponent } from '@/components/errors/CircuitBreakerError';
-import { analyzePermissionError, getErrorFromQueryError } from '@/lib/errors';
-import { isCircuitBreakerError } from '@/lib/api/client';
+const serviceBreakdown = [
+  { name: 'EC2 Instances', aws: 2800, azure: 1200, gcp: 800 },
+  { name: 'Storage', aws: 600, azure: 900, gcp: 400 },
+  { name: 'Networking', aws: 400, azure: 500, gcp: 300 },
+  { name: 'Database', aws: 800, azure: 600, gcp: 500 },
+  { name: 'Other', aws: 600, azure: 800, gcp: 500 },
+];
 
-/**
- * Provider filter options
- */
-const PROVIDER_OPTIONS = [
-  { value: 'ALL', label: 'All Providers' },
-  { value: 'AWS', label: 'AWS' },
-  { value: 'AZURE', label: 'Azure' },
-] as const;
+const costByProvider = [
+  { name: 'AWS', value: 4800, color: '#FF9900' },
+  { name: 'Azure', value: 3600, color: '#0078D4' },
+  { name: 'GCP', value: 2500, color: '#34A853' },
+];
 
-/**
- * Loading skeleton for the entire page
- */
-function PageLoadingSkeleton() {
+const topCostResources = [
+  {
+    id: '1',
+    name: 'prod-web-cluster',
+    type: 'EC2 Instance',
+    provider: 'AWS',
+    region: 'us-east-1',
+    cost: '$1,245',
+    trend: 8,
+    utilizaton: 78,
+  },
+  {
+    id: '2',
+    name: 'db-primary',
+    type: 'RDS MySQL',
+    provider: 'AWS',
+    region: 'us-west-2',
+    cost: '$892',
+    trend: -3,
+    utilizaton: 92,
+  },
+  {
+    id: '3',
+    name: 'storage-prod-data',
+    type: 'Storage Account',
+    provider: 'Azure',
+    region: 'westeurope',
+    cost: '$756',
+    trend: 15,
+    utilizaton: 45,
+  },
+  {
+    id: '4',
+    name: 'app-service-api',
+    type: 'App Service',
+    provider: 'Azure',
+    region: 'eastus',
+    cost: '$624',
+    trend: 5,
+    utilizaton: 65,
+  },
+  {
+    id: '5',
+    name: 'gke-cluster-prod',
+    type: 'GKE Cluster',
+    provider: 'GCP',
+    region: 'us-central1',
+    cost: '$580',
+    trend: -2,
+    utilizaton: 88,
+  },
+];
+
+export default function CostsV2Page() {
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-9 w-64" />
-          <Skeleton className="h-5 w-96 max-w-full" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-10 w-28" />
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-40" />
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="grid gap-4 lg:grid-cols-[1fr,auto]">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full lg:w-64" />
-      </div>
-
-      {/* KPI Cards */}
-      <StatCardGridSkeleton count={4} />
-
-      {/* Cost Trend Chart */}
-      <ChartSkeleton type="line" height="lg" showLegend showControls />
-
-      {/* Service Breakdown */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-6 w-48" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24" />
-          </div>
-        </div>
-        <ChartSkeleton type="pie" height="md" showLegend={false} />
-      </div>
-
-      {/* Insights Card */}
-      <CardSkeleton variant="default" rows={4} />
-    </div>
-  );
-}
-
-/**
- * Error state component
- */
-interface ErrorStateProps {
-  error: any;
-  onRetry: () => void;
-}
-
-function ErrorState({ error, onRetry }: ErrorStateProps) {
-  // Extract the actual error from React Query error wrapper
-  const actualError = getErrorFromQueryError(error);
-
-  // Check if this is a circuit breaker error first
-  if (isCircuitBreakerError(actualError)) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center p-6">
-        <CircuitBreakerErrorComponent error={actualError} onRetry={onRetry} />
-      </div>
-    );
-  }
-
-  // Analyze if this is a permission error
-  const permissionErrorInfo = analyzePermissionError(actualError);
-
-  // If it's a permission error, show the specialized permission denied component
-  if (permissionErrorInfo.isPermissionError) {
-    return <PermissionDeniedError errorInfo={permissionErrorInfo} onRetry={onRetry} />;
-  }
-
-  // Otherwise, show the generic error state
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center p-6">
-      <Card className="max-w-md w-full border-red-200">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600" aria-hidden="true" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Failed to Load Cost Data
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              {actualError?.message || 'An unexpected error occurred while fetching cost data. Please try again.'}
-            </p>
-            <Button onClick={onRetry} className="w-full sm:w-auto">
-              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-              Retry
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-/**
- * Empty state component
- */
-function EmptyState() {
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center p-6">
-      <Card className="max-w-md w-full">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <FileText className="w-8 h-8 text-gray-400" aria-hidden="true" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No Cost Data Available
-            </h3>
-            <p className="text-sm text-gray-600">
-              There is no cost data available for the selected period. Try selecting a different date range or provider.
+    <DashboardLayoutV2>
+      <div className="p-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+              Cost Analysis
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400">
+              Track and optimize your multi-cloud spending
             </p>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
-/**
- * Main Cost Analysis Page Component (wrapped in ErrorBoundary)
- */
-function CostsPageContent() {
-  // Date range state (default: current month to date)
-  const [dateRange, setDateRange] = useState(() => ({
-    start: startOfMonth(new Date()),
-    end: new Date(),
-  }));
-
-  // Provider filter state
-  const [selectedProvider, setSelectedProvider] = useState<Provider>('ALL');
-
-  // View mode for service breakdown
-  const [serviceViewMode, setServiceViewMode] = useState<'chart' | 'table'>('chart');
-  const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
-
-  // Toast notifications
-  const { addToast } = useToast();
-
-  // Convert date range to API format (YYYY-MM-DD)
-  const apiDateRange = useMemo(
-    () => ({
-      startDate: format(dateRange.start, 'yyyy-MM-dd'),
-      endDate: format(dateRange.end, 'yyyy-MM-dd'),
-    }),
-    [dateRange]
-  );
-
-  // Fetch all cost data using combined hook
-  const {
-    costs,
-    costsByService,
-    trends,
-    anomalies,
-    isLoading,
-    hasError,
-  } = useCombinedCostData({
-    ...apiDateRange,
-    provider: selectedProvider,
-  });
-
-  // Extract data from API responses
-  const costsData = costs.data?.success ? costs.data.data : null;
-  const serviceData = costsByService.data?.success ? costsByService.data.data : null;
-  const trendsData = trends.data?.success ? trends.data.data : null;
-  const anomaliesData = anomalies.data?.success ? anomalies.data.data : null;
-
-  // Calculate previous month data for comparison
-  const previousMonthRange = useMemo(() => {
-    const prevMonth = subMonths(dateRange.start, 1);
-    return {
-      startDate: format(startOfMonth(prevMonth), 'yyyy-MM-dd'),
-      endDate: format(endOfMonth(prevMonth), 'yyyy-MM-dd'),
-    };
-  }, [dateRange.start]);
-
-  // Fetch previous month data
-  const { costs: previousCosts } = useCombinedCostData({
-    ...previousMonthRange,
-    provider: selectedProvider,
-  });
-
-  const previousCostsData = previousCosts.data?.success ? previousCosts.data.data : null;
-
-  // Calculate KPIs
-  const currentMonthCost = costsData?.summary?.totalCost || 0;
-  const previousMonthCost = previousCostsData?.summary?.totalCost || 0;
-  const currency = costsData?.summary?.currency || 'USD';
-
-  const trend = calculateTrend(currentMonthCost, previousMonthCost);
-  const percentageChange = calculatePercentageChange(currentMonthCost, previousMonthCost);
-
-  // Calculate forecast with proper validation
-  const forecast = useMemo(() => {
-    if (!trendsData?.trends || !Array.isArray(trendsData.trends) || trendsData.trends.length === 0) {
-      return currentMonthCost * 1.1;
-    }
-
-    const daysInMonth = new Date(
-      dateRange.start.getFullYear(),
-      dateRange.start.getMonth() + 1,
-      0
-    ).getDate();
-
-    // Filter and validate trend data before passing to forecastCost
-    const validTrends = trendsData.trends
-      .filter(t => t && t.date && typeof t.total === 'number')
-      .map(t => ({ date: t.date, cost: t.total }));
-
-    if (validTrends.length === 0) {
-      return currentMonthCost * 1.1;
-    }
-
-    return forecastCost(validTrends, daysInMonth);
-  }, [trendsData, currentMonthCost, dateRange.start]);
-
-  // Get top service with proper null/undefined/empty checks
-  const topService = serviceData?.services && serviceData.services.length > 0
-    ? serviceData.services[0].service
-    : 'N/A';
-  const topServiceCost = serviceData?.services && serviceData.services.length > 0
-    ? serviceData.services[0].totalCost
-    : 0;
-
-  // Convert service data for component with proper validation
-  const serviceBreakdownData: ServiceData[] = useMemo(
-    () => {
-      if (!serviceData?.services || !Array.isArray(serviceData.services) || serviceData.services.length === 0) {
-        return [];
-      }
-
-      return serviceData.services.map((s) => ({
-        service: s.service || 'Unknown',
-        cost: s.totalCost || 0,
-        percentage: s.percentage || 0,
-        provider: (s.provider || 'AWS') as 'AWS' | 'Azure',
-        currency: s.currency || 'USD',
-      }));
-    },
-    [serviceData]
-  );
-
-  // Generate forecast data for chart with proper validation
-  const forecastData = useMemo(() => {
-    if (!trendsData?.trends || !Array.isArray(trendsData.trends) || trendsData.trends.length < 2) {
-      return [];
-    }
-
-    // Validate that trends have required fields
-    const validTrends = trendsData.trends.filter(t => t && t.date && typeof t.total === 'number');
-    if (validTrends.length < 2) {
-      return [];
-    }
-
-    return generateForecast(validTrends, 7);
-  }, [trendsData]);
-
-  // Handle refresh
-  const handleRefresh = () => {
-    costs.refetch();
-    costsByService.refetch();
-    trends.refetch();
-    anomalies.refetch();
-  };
-
-  // Handle export to CSV
-  const handleExportCosts = () => {
-    if (!trendsData?.trends || !Array.isArray(trendsData.trends) || trendsData.trends.length === 0) {
-      addToast('No cost data available to export', 'warning');
-      return;
-    }
-
-    const exportData = trendsData.trends
-      .filter(t => t && t.date)
-      .map((t) => ({
-        Date: t.date,
-        AWS: t.aws || 0,
-        Azure: t.azure || 0,
-        Total: t.total || 0,
-        Currency: t.currency || currency,
-      }));
-
-    if (exportData.length === 0) {
-      addToast('No valid cost data to export', 'warning');
-      return;
-    }
-
-    exportToCSV(exportData, `cost-analysis-${apiDateRange.startDate}-to-${apiDateRange.endDate}`);
-    addToast('Cost data exported successfully', 'success');
-  };
-
-  // Handle generate report (placeholder for PDF generation)
-  const handleGenerateReport = () => {
-    // TODO: Implement PDF report generation
-    addToast('PDF report generation will be implemented soon!', 'info');
-  };
-
-  // Show loading state
-  if (isLoading && !costsData) {
-    return <PageLoadingSkeleton />;
-  }
-
-  // Show error state
-  if (hasError && !costsData) {
-    return <ErrorState error={costs.error} onRetry={handleRefresh} />;
-  }
-
-  // Show empty state
-  if (!costsData || currentMonthCost === 0) {
-    return <EmptyState />;
-  }
-
-  return (
-    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-      <div className="space-y-8 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
-        {/* Premium Header */}
-        <PremiumSectionHeader
-          title="Cost Analysis"
-          subtitle="Monitor and optimize your cloud spending across all providers"
-          actions={
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isLoading}
-                aria-label="Refresh cost data"
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
-                Refresh
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCosts}
-                aria-label="Export cost data to CSV"
-              >
-                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                Export CSV
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateReport}
-                className="shadow-lg"
-                aria-label="Generate cost report"
-              >
-                <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
-                Generate Report
-              </Button>
-            </>
-          }
-        />
-
-      {/* Filters Section */}
-      <div className="grid gap-4 lg:grid-cols-[1fr,auto]">
-        {/* Date Range Selector */}
-        <DateRangeSelector
-          value={dateRange}
-          onChange={setDateRange}
-          maxDate={new Date()}
-        />
-
-        {/* Provider Filter */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-gray-500" aria-hidden="true" />
-                <h3 className="text-sm font-semibold text-gray-900">Provider</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {PROVIDER_OPTIONS.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={selectedProvider === option.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedProvider(option.value as Provider)}
-                    aria-pressed={selectedProvider === option.value}
-                    aria-label={`Filter by ${option.label}`}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+              {(['7d', '30d', '90d'] as const).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    timeRange === range
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
+                </button>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <button className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">download</span>
+              Export Report
+            </button>
+          </div>
+        </div>
 
-      {/* Anomaly Alerts */}
-      {anomaliesData && anomaliesData.anomalies.length > 0 && (
-        <Card className="border-l-4 border-amber-500 bg-amber-50/50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-amber-600" aria-hidden="true" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-amber-900">
-                  Cost Anomalies Detected
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICardV2
+            icon="attach_money"
+            label="Total Spend (MTD)"
+            value="$10,900"
+            variant="blue"
+            trend={{
+              direction: 'up',
+              percentage: 12,
+              label: 'vs last month',
+            }}
+          />
+          <KPICardV2
+            icon="savings"
+            label="Potential Savings"
+            value="$1,850"
+            variant="emerald"
+            comparison="From recommendations"
+          />
+          <KPICardV2
+            icon="trending_up"
+            label="Forecast (Month End)"
+            value="$12,450"
+            variant="orange"
+            trend={{
+              direction: 'up',
+              percentage: 8,
+            }}
+          />
+          <KPICardV2
+            icon="analytics"
+            label="Daily Average"
+            value="$415"
+            variant="indigo"
+            trend={{
+              direction: 'down',
+              percentage: 3,
+            }}
+          />
+        </div>
+
+        {/* Main Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Cost Trend */}
+          <div className="lg:col-span-2 bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Cost Trend
                 </h3>
-                <p className="text-sm text-amber-800 mt-1">
-                  {anomaliesData.summary.high > 0 && (
-                    <span className="font-medium">
-                      {anomaliesData.summary.high} high severity
-                    </span>
-                  )}
-                  {anomaliesData.summary.high > 0 && anomaliesData.summary.medium > 0 && ', '}
-                  {anomaliesData.summary.medium > 0 && (
-                    <span className="font-medium">
-                      {anomaliesData.summary.medium} medium severity
-                    </span>
-                  )}
-                  {' '}anomalies detected in your spending patterns.
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Daily spending across all providers
                 </p>
-                <div className="mt-3 space-y-2">
-                  {anomaliesData.anomalies.slice(0, 2).map((anomaly) => (
-                    <div
-                      key={anomaly.id}
-                      className="text-sm bg-white rounded-md p-3 border border-amber-200"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-medium text-gray-900 truncate">
-                            {anomaly.service}
-                          </span>
-                          <Badge variant="secondary" className="text-xs flex-shrink-0">
-                            {anomaly.provider}
-                          </Badge>
-                        </div>
-                        <Badge
-                          variant={
-                            anomaly.severity === 'high'
-                              ? 'error'
-                              : anomaly.severity === 'medium'
-                              ? 'warning'
-                              : 'secondary'
-                          }
-                          className="text-xs flex-shrink-0"
-                        >
-                          {anomaly.severity}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-gray-600">
-                        {anomaly.deviationPercentage > 0 ? '+' : ''}
-                        {anomaly.deviationPercentage.toFixed(1)}% deviation on{' '}
-                        {format(new Date(anomaly.date), 'MMM dd, yyyy')}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <BadgeV2 variant="aws" size="sm">
+                  AWS
+                </BadgeV2>
+                <BadgeV2 variant="azure" size="sm">
+                  Azure
+                </BadgeV2>
+                <BadgeV2 variant="gcp" size="sm">
+                  GCP
+                </BadgeV2>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Premium Stats Bar - Cost KPIs */}
-      <PremiumStatsBar
-        stats={[
-          {
-            label: 'Current Month',
-            value: formatCurrency(currentMonthCost, currency),
-            icon: <DollarSign className="h-14 w-14" />,
-            iconBg: PREMIUM_GRADIENTS.warning,
-            iconColor: PREMIUM_ICON_COLORS.warning,
-            trend: {
-              value: Math.abs(percentageChange),
-              direction: trend === 'up' ? 'up' : trend === 'down' ? 'down' : 'stable',
-            },
-            subtitle: 'vs last month',
-          },
-          {
-            label: 'Previous Month',
-            value: formatCurrency(previousMonthCost, currency),
-            icon: <TrendingDown className="h-14 w-14" />,
-            iconBg: PREMIUM_GRADIENTS.info,
-            iconColor: PREMIUM_ICON_COLORS.info,
-            subtitle: format(subMonths(dateRange.start, 1), 'MMMM yyyy'),
-          },
-          {
-            label: 'Forecast',
-            value: formatCurrency(forecast, currency),
-            icon: <TrendingUp className="h-14 w-14" />,
-            iconBg: PREMIUM_GRADIENTS.success,
-            iconColor: PREMIUM_ICON_COLORS.success,
-            subtitle: 'Projected end of month',
-          },
-          {
-            label: 'Top Service',
-            value: formatCurrency(topServiceCost, currency),
-            icon: <Activity className="h-14 w-14" />,
-            iconBg: PREMIUM_GRADIENTS.azure,
-            iconColor: PREMIUM_ICON_COLORS.azure,
-            subtitle: topService || 'N/A',
-          },
-        ]}
-      />
-
-      {/* Cost Trend Chart */}
-      <CostTrendChart
-        dailyCosts={
-          trendsData?.trends && Array.isArray(trendsData.trends)
-            ? trendsData.trends
-                .filter(t => t && t.date && typeof t.total === 'number')
-                .map((t) => ({
-                  date: t.date,
-                  cost: t.total || 0,
-                  aws: t.aws || 0,
-                  azure: t.azure || 0,
-                  total: t.total || 0,
-                }))
-            : []
-        }
-        forecast={forecastData}
-        currency={currency}
-        isLoading={trends.isLoading}
-        showProviderBreakdown={selectedProvider === 'ALL'}
-      />
-
-      {/* Service Breakdown */}
-      <ServiceBreakdown
-        services={serviceBreakdownData}
-        viewMode={serviceViewMode}
-        onViewModeChange={setServiceViewMode}
-        currency={currency}
-        isLoading={costsByService.isLoading}
-        chartType={chartType}
-        onChartTypeChange={setChartType}
-      />
-
-      {/* Additional Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Cost Insights</CardTitle>
-          <CardDescription>
-            Key findings and recommendations based on your spending patterns
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {trend === 'up' && percentageChange > 10 && (
-              <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                <TrendingUp className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-medium text-red-900">
-                    Significant Cost Increase
-                  </p>
-                  <p className="text-sm text-red-800 mt-1">
-                    Your costs have increased by {percentageChange.toFixed(1)}% compared to last month.
-                    Review your top services to identify opportunities for optimization.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {serviceBreakdownData.length > 0 &&
-             serviceBreakdownData[0] &&
-             typeof serviceBreakdownData[0].percentage === 'number' &&
-             serviceBreakdownData[0].percentage > 50 && (
-              <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">
-                    Concentrated Spending
-                  </p>
-                  <p className="text-sm text-blue-800 mt-1">
-                    {serviceBreakdownData[0].service || 'Unknown service'} accounts for{' '}
-                    {serviceBreakdownData[0].percentage.toFixed(1)}% of your total costs.
-                    Consider implementing cost controls or reserved instances for this service.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {forecast > currentMonthCost * 1.2 && (
-              <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-medium text-amber-900">
-                    High Forecasted Spend
-                  </p>
-                  <p className="text-sm text-amber-800 mt-1">
-                    Your forecasted month-end spending is {formatCurrency(forecast, currency)},
-                    which is {((forecast / currentMonthCost - 1) * 100).toFixed(0)}% higher than current spend.
-                    Monitor your usage closely.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {serviceBreakdownData.length === 0 && (
-              <div className="flex items-center justify-center py-8 text-sm text-gray-500">
-                No insights available for the selected period.
-              </div>
-            )}
+            <CostTrendChart />
           </div>
-        </CardContent>
-      </Card>
-      </div>
-    </div>
-  );
-}
 
-/**
- * Exported page component wrapped in ErrorBoundary
- */
-export default function CostsPage() {
-  return (
-    <ErrorBoundary>
-      <CostsPageContent />
-    </ErrorBoundary>
+          {/* Cost by Provider */}
+          <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Cost by Provider
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Distribution breakdown
+              </p>
+            </div>
+            <div className="flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={costByProvider}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {costByProvider.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-2 mt-4">
+              {costByProvider.map((provider) => (
+                <div key={provider.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: provider.color }}
+                    />
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {provider.name}
+                    </span>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    ${provider.value.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Service Breakdown */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Service Breakdown
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Costs by service category
+              </p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={serviceBreakdown} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                className="stroke-slate-200 dark:stroke-slate-700"
+              />
+              <XAxis
+                dataKey="name"
+                className="text-xs text-slate-600 dark:text-slate-400"
+                stroke="currentColor"
+              />
+              <YAxis
+                className="text-xs text-slate-600 dark:text-slate-400"
+                stroke="currentColor"
+                tickFormatter={(value) => `$${value}`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+                formatter={(value: number) => `$${value.toLocaleString()}`}
+              />
+              <Legend />
+              <Bar dataKey="aws" fill="#FF9900" name="AWS" />
+              <Bar dataKey="azure" fill="#0078D4" name="Azure" />
+              <Bar dataKey="gcp" fill="#34A853" name="GCP" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Top Cost Resources */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Top Cost Resources
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Highest spending resources this month
+              </p>
+            </div>
+            <button className="text-sm font-medium text-brand-primary-400 hover:text-brand-primary-500 transition-colors flex items-center gap-1">
+              View All
+              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+            </button>
+          </div>
+
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Resource
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Region
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Cost (MTD)
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Trend
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Utilization
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {topCostResources.map((resource) => (
+                  <tr
+                    key={resource.id}
+                    className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                  >
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <BadgeV2
+                          variant={resource.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}
+                          size="sm"
+                        >
+                          {resource.provider}
+                        </BadgeV2>
+                        <span className="text-sm font-medium text-slate-900 dark:text-white">
+                          {resource.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {resource.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {resource.region}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {resource.cost}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`material-symbols-outlined text-lg ${
+                            resource.trend > 0 ? 'text-error' : 'text-success'
+                          }`}
+                        >
+                          {resource.trend > 0 ? 'trending_up' : 'trending_down'}
+                        </span>
+                        <span
+                          className={`text-sm font-medium ${
+                            resource.trend > 0 ? 'text-error' : 'text-success'
+                          }`}
+                        >
+                          {Math.abs(resource.trend)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 max-w-[80px]">
+                          <div
+                            className="bg-brand-primary-400 h-2 rounded-full"
+                            style={{ width: `${resource.utilizaton}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[40px]">
+                          {resource.utilizaton}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </DashboardLayoutV2>
   );
 }

@@ -1,356 +1,483 @@
 /**
- * Incidents List Page
- * Displays all incidents with filtering, sorting, and pagination
+ * Incidents V2 Page
+ * CloudNexus Design - Incidents Management
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useIncidents, extractIncidentsData } from '@/hooks/useIncidents';
-import { useCloudAccounts } from '@/hooks/useCloudAccounts';
-import { IncidentsList } from '@/components/incidents/IncidentsList';
-import {
-  IncidentFilters,
-  IncidentFiltersState,
-} from '@/components/incidents/IncidentFilters';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatDistanceToNow } from 'date-fns';
-import {
-  AlertTriangle,
-  RefreshCw,
-  SlidersHorizontal,
-  X,
-  TrendingUp,
-  Activity,
-  AlertOctagon,
-  AlertCircle,
-  Server,
-} from 'lucide-react';
+import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
+import { KPICardV2 } from '@/components/ui/KPICardV2';
+import { BadgeV2 } from '@/components/ui/BadgeV2';
+import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { cn } from '@/lib/utils';
-import { Icons } from '@/components/icons';
 
-// Premium Design System Components
-import {
-  PremiumSectionHeader,
-  PremiumStatsBar,
-  PremiumEmptyState,
-  EmptyStateVariants,
-  PREMIUM_GRADIENTS,
-  PREMIUM_ICON_COLORS,
-  PREMIUM_TRANSITIONS,
-} from '@/components/shared/premium';
+interface Incident {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  status: 'open' | 'investigating' | 'resolved' | 'closed';
+  provider: 'AWS' | 'Azure' | 'GCP';
+  affectedResources: number;
+  affectedServices: string[];
+  createdAt: string;
+  updatedAt: string;
+  assignee?: {
+    name: string;
+    email: string;
+  };
+  tags: string[];
+}
 
-export default function IncidentsPage() {
+const mockIncidents: Incident[] = [
+  {
+    id: '1',
+    title: 'High CPU utilization on production EC2 instances',
+    description:
+      'Multiple EC2 instances in the production environment are experiencing sustained high CPU utilization above 90%, causing performance degradation.',
+    severity: 'critical',
+    status: 'investigating',
+    provider: 'AWS',
+    affectedResources: 8,
+    affectedServices: ['EC2', 'Auto Scaling', 'CloudWatch'],
+    createdAt: '2024-12-26T09:30:00Z',
+    updatedAt: '2024-12-26T10:15:00Z',
+    assignee: {
+      name: 'John Doe',
+      email: 'john.doe@company.com',
+    },
+    tags: ['performance', 'production', 'compute'],
+  },
+  {
+    id: '2',
+    title: 'Database connection pool exhausted',
+    description:
+      'RDS database connection pool has reached maximum capacity, causing application timeouts and connection failures.',
+    severity: 'high',
+    status: 'open',
+    provider: 'AWS',
+    affectedResources: 1,
+    affectedServices: ['RDS', 'Application'],
+    createdAt: '2024-12-26T08:45:00Z',
+    updatedAt: '2024-12-26T09:00:00Z',
+    assignee: {
+      name: 'Jane Smith',
+      email: 'jane.smith@company.com',
+    },
+    tags: ['database', 'connectivity', 'performance'],
+  },
+  {
+    id: '3',
+    title: 'Azure Storage blob service degradation',
+    description:
+      'Storage account in West Europe region is experiencing intermittent blob service availability issues.',
+    severity: 'medium',
+    status: 'investigating',
+    provider: 'Azure',
+    affectedResources: 12,
+    affectedServices: ['Blob Storage', 'CDN'],
+    createdAt: '2024-12-26T07:20:00Z',
+    updatedAt: '2024-12-26T10:00:00Z',
+    tags: ['storage', 'availability'],
+  },
+  {
+    id: '4',
+    title: 'Unauthorized access attempts detected',
+    description:
+      'Multiple failed login attempts from suspicious IP addresses detected on IAM accounts.',
+    severity: 'high',
+    status: 'open',
+    provider: 'AWS',
+    affectedResources: 3,
+    affectedServices: ['IAM', 'CloudTrail', 'GuardDuty'],
+    createdAt: '2024-12-26T06:15:00Z',
+    updatedAt: '2024-12-26T06:30:00Z',
+    assignee: {
+      name: 'Mike Johnson',
+      email: 'mike.j@company.com',
+    },
+    tags: ['security', 'authentication', 'compliance'],
+  },
+  {
+    id: '5',
+    title: 'GCP Kubernetes cluster node failure',
+    description:
+      'One node in the production GKE cluster has failed health checks and is not responding.',
+    severity: 'medium',
+    status: 'resolved',
+    provider: 'GCP',
+    affectedResources: 1,
+    affectedServices: ['GKE', 'Compute Engine'],
+    createdAt: '2024-12-25T22:00:00Z',
+    updatedAt: '2024-12-26T01:30:00Z',
+    assignee: {
+      name: 'Sarah Wilson',
+      email: 'sarah.w@company.com',
+    },
+    tags: ['kubernetes', 'infrastructure', 'reliability'],
+  },
+  {
+    id: '6',
+    title: 'S3 bucket public access misconfiguration',
+    description:
+      'Production S3 bucket was accidentally configured with public read access, exposing sensitive data.',
+    severity: 'critical',
+    status: 'resolved',
+    provider: 'AWS',
+    affectedResources: 1,
+    affectedServices: ['S3', 'IAM'],
+    createdAt: '2024-12-25T18:00:00Z',
+    updatedAt: '2024-12-25T18:45:00Z',
+    assignee: {
+      name: 'David Lee',
+      email: 'david.lee@company.com',
+    },
+    tags: ['security', 'data-breach', 'compliance'],
+  },
+  {
+    id: '7',
+    title: 'Load balancer health check failures',
+    description:
+      'Azure Application Gateway is reporting health check failures for backend pool instances.',
+    severity: 'high',
+    status: 'investigating',
+    provider: 'Azure',
+    affectedResources: 5,
+    affectedServices: ['Application Gateway', 'Virtual Machines'],
+    createdAt: '2024-12-25T16:30:00Z',
+    updatedAt: '2024-12-26T09:45:00Z',
+    tags: ['networking', 'availability', 'load-balancing'],
+  },
+  {
+    id: '8',
+    title: 'Disk space threshold exceeded',
+    description:
+      'Multiple EC2 instances have exceeded 85% disk utilization threshold.',
+    severity: 'low',
+    status: 'closed',
+    provider: 'AWS',
+    affectedResources: 4,
+    affectedServices: ['EC2', 'EBS'],
+    createdAt: '2024-12-25T14:00:00Z',
+    updatedAt: '2024-12-25T20:00:00Z',
+    tags: ['storage', 'capacity', 'monitoring'],
+  },
+];
+
+export default function IncidentsV2Page() {
   const router = useRouter();
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<IncidentFiltersState>({
-    severity: [],
-    status: [],
-    dateFrom: undefined,
-    dateTo: undefined,
-    resourceType: undefined,
+  const [incidents, setIncidents] = useState<Incident[]>(mockIncidents);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterProvider, setFilterProvider] = useState<string>('all');
+
+  const openIncidents = incidents.filter((i) => i.status === 'open' || i.status === 'investigating').length;
+  const criticalIncidents = incidents.filter((i) => i.severity === 'critical').length;
+  const resolvedToday = incidents.filter(
+    (i) =>
+      (i.status === 'resolved' || i.status === 'closed') &&
+      new Date(i.updatedAt).toDateString() === new Date().toDateString()
+  ).length;
+  const avgResolutionTime = '2.5h';
+
+  const filteredIncidents = incidents.filter((incident) => {
+    const matchesSearch =
+      incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      incident.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      incident.affectedServices.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesSeverity = filterSeverity === 'all' || incident.severity === filterSeverity;
+    const matchesStatus = filterStatus === 'all' || incident.status === filterStatus;
+    const matchesProvider = filterProvider === 'all' || incident.provider === filterProvider;
+
+    return matchesSearch && matchesSeverity && matchesStatus && matchesProvider;
   });
-  const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<'severity' | 'createdAt' | 'updatedAt'>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Get user's cloud accounts using centralized hook
-  const {
-    cloudAccounts,
-    selectedAccount,
-    isLoading: accountsLoading,
-  } = useCloudAccounts();
-
-  // Build query params
-  const queryParams = {
-    accountId: selectedAccount?.id,
-    ...(filters.severity.length > 0 && { severity: filters.severity }),
-    ...(filters.status.length > 0 && { status: filters.status }),
-    ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-    ...(filters.dateTo && { dateTo: filters.dateTo }),
-    ...(filters.resourceType && { resourceType: filters.resourceType }),
-    page,
-    limit: 20,
-    sortBy,
-    sortOrder,
-  };
-
-  // Fetch incidents
-  const {
-    data: incidentsResponse,
-    isLoading,
-    error,
-    refetch,
-    isRefetching,
-    dataUpdatedAt,
-  } = useIncidents(queryParams);
-
-  const incidentsData = extractIncidentsData(incidentsResponse);
-
-  // Auto-refresh every 60 seconds is handled by React Query
-  // Show last updated time
-  const lastUpdated = dataUpdatedAt
-    ? formatDistanceToNow(dataUpdatedAt, { addSuffix: true })
-    : 'Never';
-
-  const handleFiltersChange = (newFilters: IncidentFiltersState) => {
-    setFilters(newFilters);
-    setPage(1); // Reset to first page when filters change
-  };
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleSort = (field: 'severity' | 'createdAt' | 'updatedAt') => {
-    if (sortBy === field) {
-      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
+  const getSeverityColor = (severity: Incident['severity']) => {
+    switch (severity) {
+      case 'critical':
+        return 'text-error bg-error/10';
+      case 'high':
+        return 'text-warning bg-warning/10';
+      case 'medium':
+        return 'text-info bg-info/10';
+      case 'low':
+        return 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800';
     }
   };
 
-  const handleRefresh = () => {
-    refetch();
+  const getStatusIndicator = (status: Incident['status']) => {
+    switch (status) {
+      case 'open':
+        return <StatusIndicatorV2 status="critical" label="Open" />;
+      case 'investigating':
+        return <StatusIndicatorV2 status="warning" label="Investigating" />;
+      case 'resolved':
+        return <StatusIndicatorV2 status="operational" label="Resolved" />;
+      case 'closed':
+        return <StatusIndicatorV2 status="operational" label="Closed" />;
+    }
   };
 
-  const activeFiltersCount =
-    filters.severity.length +
-    filters.status.length +
-    (filters.dateFrom ? 1 : 0) +
-    (filters.dateTo ? 1 : 0) +
-    (filters.resourceType ? 1 : 0);
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
 
-  // Check for authentication errors
-  const hasAuthError = error && error.message?.includes('authentication');
-
-  // Show authentication error state
-  if (hasAuthError) {
-    return (
-      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-          <PremiumSectionHeader
-            title="Incident Management"
-            subtitle="Monitor and manage cloud infrastructure incidents"
-          />
-          <Card className="p-12 text-center border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20">
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="h-24 w-24 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
-                <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-red-900 dark:text-red-100">Authentication Required</h3>
-                <p className="text-red-700 dark:text-red-300">
-                  Your session may have expired. Please sign in again to access incidents.
-                </p>
-              </div>
-              <Button
-                size="lg"
-                onClick={() => router.push('/auth/signin')}
-                className="shadow-lg bg-red-600 hover:bg-red-700 text-white"
-              >
-                Sign In
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state when no cloud accounts are configured
-  if (!accountsLoading && cloudAccounts.length === 0) {
-    return (
-      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-          <PremiumSectionHeader
-            title="Incident Management"
-            subtitle="Monitor and manage cloud infrastructure incidents"
-          />
-          <Card className="p-12 text-center">
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="h-24 w-24 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
-                <Server className="h-12 w-12 text-orange-600" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold">No Cloud Accounts Connected</h3>
-                <p className="text-muted-foreground">
-                  Connect your first cloud account to start monitoring incidents.
-                </p>
-              </div>
-              <Button
-                size="lg"
-                onClick={() => router.push('/cloud-accounts/new')}
-                className="shadow-lg"
-              >
-                <Icons.plus className="h-5 w-5 mr-2" />
-                Add Cloud Account
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+    if (diffHours < 1) {
+      return `${Math.floor(diffMs / 60000)} min ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hr ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  };
 
   return (
-    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-        {/* Premium Header */}
-        <PremiumSectionHeader
-          title="Incident Management"
-          subtitle="Monitor and manage cloud infrastructure incidents"
-          actions={
-            <>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-2 shadow-lg"
-                aria-label={showFilters ? 'Hide filters' : 'Show filters'}
-                aria-expanded={showFilters}
-              >
-                <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-                Filters
-                {activeFiltersCount > 0 && (
-                  <Badge variant="secondary" className="ml-1">
-                    {activeFiltersCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleRefresh}
-                disabled={isRefetching}
-                className="gap-2 shadow-lg"
-                aria-label="Refresh incidents"
-              >
-                <RefreshCw
-                  className={cn('h-5 w-5', isRefetching && 'animate-spin')}
-                  aria-hidden="true"
-                />
-                {isRefetching ? 'Refreshing...' : 'Refresh'}
-              </Button>
-            </>
-          }
-        />
-
-        {/* Premium Stats Bar */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16" />
-                </CardContent>
-              </Card>
-            ))}
+    <DashboardLayoutV2>
+      <div className="p-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Incidents</h1>
+            <p className="text-slate-600 dark:text-slate-400">
+              Track and manage infrastructure incidents across all cloud providers
+            </p>
           </div>
-        ) : incidentsData ? (
-          <PremiumStatsBar
-            stats={[
-              {
-                label: 'Active Incidents',
-                value: incidentsData.metadata.activeCount,
-                icon: <Activity className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.azure,
-                iconColor: PREMIUM_ICON_COLORS.azure,
-                subtitle: 'Currently open',
-              },
-              {
-                label: 'Critical',
-                value: incidentsData.metadata.criticalCount,
-                icon: <AlertOctagon className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.error,
-                iconColor: PREMIUM_ICON_COLORS.error,
-                subtitle: 'Require immediate action',
-              },
-              {
-                label: 'High Priority',
-                value: incidentsData.metadata.highCount,
-                icon: <AlertTriangle className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.warning,
-                iconColor: PREMIUM_ICON_COLORS.warning,
-                subtitle: 'Needs attention',
-              },
-              {
-                label: 'Total Incidents',
-                value: incidentsData.pagination.total,
-                icon: <TrendingUp className="h-14 w-14" />,
-                iconBg: PREMIUM_GRADIENTS.info,
-                iconColor: PREMIUM_ICON_COLORS.info,
-                subtitle: `Last updated: ${lastUpdated}`,
-              },
-            ]}
+
+          <button className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">add</span>
+            Create Incident
+          </button>
+        </div>
+
+        {/* KPI Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICardV2
+            icon="error"
+            label="Open Incidents"
+            value={openIncidents}
+            variant="red"
+            comparison="Requires attention"
           />
-        ) : null}
-
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="error">
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          <AlertDescription>
-            Failed to load incidents:{' '}
-            {error instanceof Error ? error.message : 'Unknown error'}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Empty State - No Incidents */}
-      {!isLoading && !error && incidentsData && incidentsData.data.length === 0 ? (
-        <PremiumEmptyState
-          {...EmptyStateVariants.noIncidents()}
-        />
-      ) : (
-        /* Main Content */
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Filters Sidebar */}
-        {showFilters && (
-          <div className="lg:col-span-1">
-            <div className="sticky top-6">
-              <div className="flex items-center justify-between lg:hidden">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Filters
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFilters(false)}
-                  aria-label="Close filters"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </div>
-              <IncidentFilters filters={filters} onFiltersChange={handleFiltersChange} />
-            </div>
-          </div>
-        )}
-
-        {/* Incidents List */}
-        <div className={cn(showFilters ? 'lg:col-span-3' : 'lg:col-span-4')}>
-          <IncidentsList
-            incidents={incidentsData?.data || []}
-            isLoading={isLoading}
-            pagination={incidentsData?.pagination}
-            onPageChange={handlePageChange}
-            onSort={handleSort}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
+          <KPICardV2
+            icon="priority_high"
+            label="Critical"
+            value={criticalIncidents}
+            variant="orange"
+            comparison={`${incidents.length} total incidents`}
+          />
+          <KPICardV2
+            icon="check_circle"
+            label="Resolved Today"
+            value={resolvedToday}
+            variant="emerald"
+            trend={{
+              direction: 'up',
+              percentage: 15,
+            }}
+          />
+          <KPICardV2
+            icon="schedule"
+            label="Avg Resolution Time"
+            value={avgResolutionTime}
+            variant="blue"
+            comparison="Last 7 days"
           />
         </div>
+
+        {/* Filters Bar */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search incidents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+              />
+            </div>
+
+            {/* Severity Filter */}
+            <select
+              value={filterSeverity}
+              onChange={(e) => setFilterSeverity(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+            >
+              <option value="all">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+            >
+              <option value="all">All Status</option>
+              <option value="open">Open</option>
+              <option value="investigating">Investigating</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+
+            {/* Provider Filter */}
+            <select
+              value={filterProvider}
+              onChange={(e) => setFilterProvider(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+            >
+              <option value="all">All Providers</option>
+              <option value="AWS">AWS</option>
+              <option value="Azure">Azure</option>
+              <option value="GCP">GCP</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Incidents Table */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Severity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Incident
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Provider
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Affected
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Assignee
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Updated
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {filteredIncidents.map((incident) => (
+                  <tr
+                    key={incident.id}
+                    onClick={() => router.push(`/incidents-v2/${incident.id}`)}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <BadgeV2 variant={incident.severity} size="sm">
+                        {incident.severity}
+                      </BadgeV2>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="max-w-md">
+                        <div className="font-semibold text-slate-900 dark:text-white mb-1">
+                          {incident.title}
+                        </div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
+                          {incident.description}
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          {incident.tags.slice(0, 3).map((tag) => (
+                            <BadgeV2 key={tag} variant="default" size="sm">
+                              {tag}
+                            </BadgeV2>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{getStatusIndicator(incident.status)}</td>
+                    <td className="px-6 py-4">
+                      <BadgeV2
+                        variant={incident.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}
+                        size="sm"
+                      >
+                        {incident.provider}
+                      </BadgeV2>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-white">
+                          <span className="material-symbols-outlined text-lg text-indigo-500">
+                            dns
+                          </span>
+                          {incident.affectedResources} resources
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {incident.affectedServices.join(', ')}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {incident.assignee ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-brand-primary-400 flex items-center justify-center text-white text-xs font-semibold">
+                            {incident.assignee.name
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-white">
+                              {incident.assignee.name}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400">Unassigned</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-900 dark:text-white">
+                        {formatTimestamp(incident.updatedAt)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Empty State */}
+          {filteredIncidents.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4">
+                check_circle
+              </span>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                No incidents found
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Try adjusting your filters or create a new incident
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-      )}
-      </div>
-    </div>
+    </DashboardLayoutV2>
   );
 }

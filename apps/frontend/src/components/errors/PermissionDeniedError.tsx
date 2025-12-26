@@ -245,7 +245,7 @@ export function PermissionDeniedError({
                 rel="noopener noreferrer"
               >
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   className="w-full sm:w-auto flex items-center justify-center"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />

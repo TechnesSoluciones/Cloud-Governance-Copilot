@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Security Analyzer - Multi-Cloud</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2780d", // Requested Orange
+                        "primary-dark": "#c25e08",
+                        "primary-light": "#fdecdb",
+                        "background-light": "#f8f7f5", // Light grayish background similar to enterprise apps
+                        "background-dark": "#1a1a1a", // Darker background for dark mode
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#2d2d2d",
+                        "border-light": "#e5e7eb",
+                        "border-dark": "#404040",
+                        "text-main": "#181411",
+                        "text-muted": "#6b7280",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem", // rounded-md typical of Azure/Enterprise
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                        'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for dense data tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-white font-display overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-6 py-2 h-14 z-20 shadow-sm shrink-0">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl icon-fill">shield_lock</span>
+<h2 class="text-text-main dark:text-white text-lg font-bold tracking-tight">Security Analyzer</h2>
+</div>
+<!-- Global Search -->
+<div class="hidden md:flex relative group w-96">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-text-muted text-[20px]">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-1.5 border border-border-light dark:border-border-dark rounded bg-background-light dark:bg-background-dark text-sm placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all" placeholder="Search resources, alerts, or docs (Ctrl+/)" type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-text-muted hover:text-primary transition-colors rounded-full hover:bg-background-light dark:hover:bg-background-dark">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-surface-light dark:border-surface-dark"></span>
+</button>
+<button class="p-2 text-text-muted hover:text-primary transition-colors rounded-full hover:bg-background-light dark:hover:bg-background-dark">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+<button class="p-2 text-text-muted hover:text-primary transition-colors rounded-full hover:bg-background-light dark:hover:bg-background-dark">
+<span class="material-symbols-outlined text-[22px]">help</span>
+</button>
+<div class="h-6 w-px bg-border-light dark:bg-border-dark mx-1"></div>
+<div class="flex items-center gap-3 cursor-pointer">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-semibold">Alex Morgan</p>
+<p class="text-[10px] text-text-muted">Security Admin</p>
+</div>
+<div class="size-8 rounded-full bg-cover bg-center border border-border-light dark:border-border-dark" data-alt="User profile picture showing a man smiling" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC02RbrO0N_c2uPo1xmUht0_NS0FA49FOuPwqv0jPX5wda8EeW0iCs6aRudTx_4tOQwTsgZTED5K130pNxIJ6flqUPSbtSH7cDPVsYX92RXgn5PqlpWCh8SNvKNM-jsB2AY63Qr3XPM8ln6WF2EhBngwkRNUsdMtnhsqqEXcWU8_CUyZAyP52f4-YcYTf2qP0g7RdwH7qKj4iCF6dz8yNN_30x9ll6qJ45R-PH98wXLV0z2nAd6gfSQ4_dbCKAFnIhF-E6WZuqCKwY");'>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Side Navigation (Resource Tree) -->
+<nav class="w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex flex-col shrink-0 overflow-y-auto hidden md:flex">
+<div class="p-4">
+<h3 class="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Resource Tree</h3>
+<div class="flex flex-col gap-1">
+<!-- Active State -->
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-primary/10 border-l-4 border-primary text-primary" href="#">
+<span class="material-symbols-outlined text-[20px] icon-fill">dashboard</span>
+<span class="text-sm font-medium">Overview</span>
+</a>
+<div class="mt-4 mb-2 px-3 text-xs font-medium text-text-muted">Cloud Providers</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-text-main dark:text-gray-300 group" href="#">
+<span class="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors">cloud_circle</span>
+<span class="text-sm font-medium">All Resources</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-text-main dark:text-gray-300 group" href="#">
+<!-- Simulated AWS Icon -->
+<span class="material-symbols-outlined text-[20px] text-text-muted group-hover:text-[#FF9900] transition-colors">deployed_code</span>
+<span class="text-sm font-medium">AWS Accounts</span>
+<span class="ml-auto text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-1.5 py-0.5 rounded">12</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-text-main dark:text-gray-300 group" href="#">
+<!-- Simulated Azure Icon -->
+<span class="material-symbols-outlined text-[20px] text-text-muted group-hover:text-[#0078D4] transition-colors">grid_view</span>
+<span class="text-sm font-medium">Azure Subs</span>
+<span class="ml-auto text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-1.5 py-0.5 rounded">8</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-text-main dark:text-gray-300 group" href="#">
+<!-- Simulated GCP Icon -->
+<span class="material-symbols-outlined text-[20px] text-text-muted group-hover:text-[#4285F4] transition-colors">hexagon</span>
+<span class="text-sm font-medium">GCP Projects</span>
+<span class="ml-auto text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-1.5 py-0.5 rounded">5</span>
+</a>
+<div class="mt-6 mb-2 px-3 text-xs font-medium text-text-muted">Analysis Tools</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-text-main dark:text-gray-300 group" href="#">
+<span class="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors">policy</span>
+<span class="text-sm font-medium">Compliance</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-background-light dark:hover:bg-background-dark text-text-main dark:text-gray-300 group" href="#">
+<span class="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors">rule</span>
+<span class="text-sm font-medium">Remediation</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark p-6 md:p-8">
+<div class="max-w-[1400px] mx-auto flex flex-col gap-6">
+<!-- Page Heading -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="text-2xl md:text-3xl font-bold text-text-main dark:text-white tracking-tight">Security Posture</h1>
+<p class="text-text-muted mt-1 text-sm">Real-time analysis across AWS, Azure, and GCP environments.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center gap-2 h-9 px-4 rounded bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-sm font-medium text-text-main dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                            Export Report
+                        </button>
+<button class="flex items-center justify-center gap-2 h-9 px-4 rounded bg-primary hover:bg-primary-dark text-white text-sm font-medium transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+                            Scan Now
+                        </button>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Score Card -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-border-light dark:border-border-dark shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-primary">security</span>
+</div>
+<p class="text-sm font-medium text-text-muted">Overall Security Score</p>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="text-3xl font-bold text-text-main dark:text-white">78</span>
+<span class="text-sm text-text-muted">/ 100</span>
+</div>
+<div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+<div class="bg-primary h-1.5 rounded-full" style="width: 78%"></div>
+</div>
+<p class="mt-2 text-xs text-green-600 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                            +2% since last week
+                        </p>
+</div>
+<!-- Critical Alerts -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-border-light dark:border-border-dark shadow-sm border-l-4 border-l-red-500">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-sm font-medium text-text-muted">Critical Alerts</p>
+<span class="text-3xl font-bold text-text-main dark:text-white mt-2 block">12</span>
+</div>
+<span class="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs px-2 py-1 rounded-full font-bold">Action Needed</span>
+</div>
+<p class="mt-4 text-xs text-text-muted">
+                            Across 4 resource groups
+                        </p>
+</div>
+<!-- Open Vulnerabilities -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-border-light dark:border-border-dark shadow-sm">
+<p class="text-sm font-medium text-text-muted">High Vulnerabilities</p>
+<span class="text-3xl font-bold text-text-main dark:text-white mt-2 block">45</span>
+<p class="mt-4 text-xs text-red-500 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">arrow_upward</span>
+                            +5 new today
+                        </p>
+</div>
+<!-- Compliance -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-border-light dark:border-border-dark shadow-sm">
+<p class="text-sm font-medium text-text-muted">Compliance Status</p>
+<div class="flex items-center gap-4 mt-2">
+<div class="relative size-12 shrink-0">
+<svg class="size-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-gray-200 dark:text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="92, 100" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold">92%</div>
+</div>
+<div>
+<p class="text-sm font-bold text-text-main dark:text-white">SOC 2 Type II</p>
+<p class="text-xs text-text-muted">Passing</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+<!-- Alerts by Severity -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-border-light dark:border-border-dark shadow-sm">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-sm font-bold text-text-main dark:text-white">Alerts by Severity</h3>
+<button class="text-text-muted hover:text-primary"><span class="material-symbols-outlined text-lg">more_horiz</span></button>
+</div>
+<div class="flex gap-4 items-end h-32 px-2">
+<!-- Low -->
+<div class="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-full bg-blue-100 dark:bg-blue-900/30 rounded-t h-full relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-blue-500 h-[30%] transition-all group-hover:bg-blue-600"></div>
+</div>
+<span class="text-xs font-medium text-text-muted">Low</span>
+</div>
+<!-- Medium -->
+<div class="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-full bg-yellow-100 dark:bg-yellow-900/30 rounded-t h-full relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-yellow-500 h-[55%] transition-all group-hover:bg-yellow-600"></div>
+</div>
+<span class="text-xs font-medium text-text-muted">Med</span>
+</div>
+<!-- High -->
+<div class="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-full bg-orange-100 dark:bg-orange-900/30 rounded-t h-full relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-primary h-[45%] transition-all group-hover:bg-primary-dark"></div>
+</div>
+<span class="text-xs font-medium text-text-muted">High</span>
+</div>
+<!-- Critical -->
+<div class="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-full bg-red-100 dark:bg-red-900/30 rounded-t h-full relative overflow-hidden">
+<div class="absolute bottom-0 w-full bg-red-600 h-[15%] transition-all group-hover:bg-red-700"></div>
+</div>
+<span class="text-xs font-medium text-text-muted">Crit</span>
+</div>
+</div>
+</div>
+<!-- Alerts by Provider -->
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-border-light dark:border-border-dark shadow-sm lg:col-span-2">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-sm font-bold text-text-main dark:text-white">Resources at Risk by Provider</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-[10px] text-text-muted"><div class="size-2 rounded-full bg-primary"></div> Critical</span>
+<span class="flex items-center gap-1 text-[10px] text-text-muted"><div class="size-2 rounded-full bg-gray-300"></div> Healthy</span>
+</div>
+</div>
+<div class="flex flex-col justify-between h-32 gap-3">
+<!-- AWS Row -->
+<div class="flex items-center gap-3">
+<span class="w-12 text-xs font-bold text-text-muted">AWS</span>
+<div class="flex-1 h-6 bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden flex">
+<div class="bg-primary h-full" style="width: 25%"></div>
+<div class="bg-yellow-500 h-full" style="width: 15%"></div>
+<div class="bg-blue-400 h-full" style="width: 10%"></div>
+</div>
+<span class="text-xs font-medium w-8 text-right">342</span>
+</div>
+<!-- Azure Row -->
+<div class="flex items-center gap-3">
+<span class="w-12 text-xs font-bold text-text-muted">Azure</span>
+<div class="flex-1 h-6 bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden flex">
+<div class="bg-primary h-full" style="width: 12%"></div>
+<div class="bg-yellow-500 h-full" style="width: 8%"></div>
+<div class="bg-blue-400 h-full" style="width: 20%"></div>
+</div>
+<span class="text-xs font-medium w-8 text-right">189</span>
+</div>
+<!-- GCP Row -->
+<div class="flex items-center gap-3">
+<span class="w-12 text-xs font-bold text-text-muted">GCP</span>
+<div class="flex-1 h-6 bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden flex">
+<div class="bg-primary h-full" style="width: 5%"></div>
+<div class="bg-yellow-500 h-full" style="width: 5%"></div>
+<div class="bg-blue-400 h-full" style="width: 5%"></div>
+</div>
+<span class="text-xs font-medium w-8 text-right">56</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Data Grid (Recommendations) -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark shadow-sm flex-1 flex flex-col min-h-[400px]">
+<div class="p-4 border-b border-border-light dark:border-border-dark flex flex-wrap gap-4 items-center justify-between">
+<div class="flex items-center gap-2">
+<h3 class="text-lg font-bold text-text-main dark:text-white">Active Recommendations</h3>
+<span class="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">142</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-text-muted">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+</span>
+<select class="pl-8 pr-8 py-1.5 h-9 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-sm text-text-main dark:text-white focus:ring-primary focus:border-primary">
+<option>Filter by Severity</option>
+<option>Critical</option>
+<option>High</option>
+<option>Medium</option>
+</select>
+</div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-text-muted">
+<span class="material-symbols-outlined text-[18px]">cloud</span>
+</span>
+<select class="pl-8 pr-8 py-1.5 h-9 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-sm text-text-main dark:text-white focus:ring-primary focus:border-primary">
+<option>All Providers</option>
+<option>AWS</option>
+<option>Azure</option>
+<option>GCP</option>
+</select>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left text-sm whitespace-nowrap">
+<thead class="bg-background-light dark:bg-background-dark text-text-muted font-semibold border-b border-border-light dark:border-border-dark">
+<tr>
+<th class="px-6 py-3 w-10"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="px-6 py-3">Severity</th>
+<th class="px-6 py-3">Recommendation</th>
+<th class="px-6 py-3">Resource</th>
+<th class="px-6 py-3">Provider</th>
+<th class="px-6 py-3">Age</th>
+<th class="px-6 py-3 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-border-dark">
+<!-- Row 1: Critical -->
+<tr class="group hover:bg-background-light dark:hover:bg-gray-800 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+<span class="material-symbols-outlined text-[14px] icon-fill">dangerous</span> Critical
+                                        </span>
+</td>
+<td class="px-6 py-4 font-medium text-text-main dark:text-white">
+                                        S3 Bucket allows public read access
+                                    </td>
+<td class="px-6 py-4 text-text-muted font-mono text-xs">prod-assets-bucket</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-[#FF9900]">AWS</div>
+<span class="text-text-muted">US-East-1</span>
+</div>
+</td>
+<td class="px-6 py-4 text-text-muted">2 hours</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary-dark font-medium text-sm flex items-center justify-end gap-1 ml-auto">
+                                            Fix <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: High -->
+<tr class="group hover:bg-background-light dark:hover:bg-gray-800 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">
+<span class="material-symbols-outlined text-[14px] icon-fill">warning</span> High
+                                        </span>
+</td>
+<td class="px-6 py-4 font-medium text-text-main dark:text-white">
+                                        SQL Server Firewall rules allow all IPs
+                                    </td>
+<td class="px-6 py-4 text-text-muted font-mono text-xs">customer-db-primary</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-[#0078D4]">AZ</div>
+<span class="text-text-muted">East US 2</span>
+</div>
+</td>
+<td class="px-6 py-4 text-text-muted">1 day</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary-dark font-medium text-sm flex items-center justify-end gap-1 ml-auto">
+                                            Fix <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Medium -->
+<tr class="group hover:bg-background-light dark:hover:bg-gray-800 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">
+<span class="material-symbols-outlined text-[14px] icon-fill">info</span> Medium
+                                        </span>
+</td>
+<td class="px-6 py-4 font-medium text-text-main dark:text-white">
+                                        VM disk encryption disabled
+                                    </td>
+<td class="px-6 py-4 text-text-muted font-mono text-xs">internal-tools-vm</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-[#4285F4]">GCP</div>
+<span class="text-text-muted">us-central1</span>
+</div>
+</td>
+<td class="px-6 py-4 text-text-muted">5 days</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary-dark font-medium text-sm flex items-center justify-end gap-1 ml-auto">
+                                            Fix <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: High -->
+<tr class="group hover:bg-background-light dark:hover:bg-gray-800 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">
+<span class="material-symbols-outlined text-[14px] icon-fill">warning</span> High
+                                        </span>
+</td>
+<td class="px-6 py-4 font-medium text-text-main dark:text-white">
+                                        MFA not enabled for root account
+                                    </td>
+<td class="px-6 py-4 text-text-muted font-mono text-xs">Root Account</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-[#FF9900]">AWS</div>
+<span class="text-text-muted">Global</span>
+</div>
+</td>
+<td class="px-6 py-4 text-text-muted">2 weeks</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary-dark font-medium text-sm flex items-center justify-end gap-1 ml-auto">
+                                            Fix <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</td>
+</tr>
+<!-- Row 5: Medium -->
+<tr class="group hover:bg-background-light dark:hover:bg-gray-800 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">
+<span class="material-symbols-outlined text-[14px] icon-fill">info</span> Medium
+                                        </span>
+</td>
+<td class="px-6 py-4 font-medium text-text-main dark:text-white">
+                                        Storage account key rotation &gt; 90 days
+                                    </td>
+<td class="px-6 py-4 text-text-muted font-mono text-xs">legacy-logs-blob</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-[#0078D4]">AZ</div>
+<span class="text-text-muted">West Europe</span>
+</div>
+</td>
+<td class="px-6 py-4 text-text-muted">3 weeks</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary-dark font-medium text-sm flex items-center justify-end gap-1 ml-auto">
+                                            Fix <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-border-light dark:border-border-dark flex justify-between items-center text-sm text-text-muted">
+<span>Showing 5 of 142 alerts</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-gray-700 disabled:opacity-50">Previous</button>
+<button class="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-gray-700 bg-primary text-white border-primary">1</button>
+<button class="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-gray-700">2</button>
+<button class="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-gray-700">3</button>
+<button class="px-3 py-1 rounded border border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-gray-700">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

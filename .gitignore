@@ -106,3 +106,6 @@ test-results/
 
 # Test metadata
 .last-run.json
+
+*storybook.log
+storybook-static

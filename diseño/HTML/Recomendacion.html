@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Recomendaciones Personalizadas - CloudOptimizer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2780d",
+                        "primary-hover": "#d96500",
+                        "primary-light": "#fff5eb",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221810",
+                        "azure-blue": "#0078d4",
+                        "aws-orange": "#FF9900",
+                        "gcp-green": "#34A853",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    boxShadow: {
+                        'card': '0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1)',
+                        'hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#181411] font-display antialiased overflow-hidden flex h-screen w-full">
+<!-- Sidebar Navigation -->
+<aside class="hidden md:flex flex-col w-64 bg-white border-r border-[#f5f2f0] h-full flex-shrink-0">
+<div class="p-6 flex items-center gap-3 border-b border-[#f5f2f0] h-[72px]">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M39.475 21.6262C40.358 21.4363 40.6863 21.5589 40.7581 21.5934C40.7876 21.655 40.8547 21.857 40.8082 22.3336C40.7408 23.0255 40.4502 24.0046 39.8572 25.2301C38.6799 27.6631 36.5085 30.6631 33.5858 33.5858C30.6631 36.5085 27.6632 38.6799 25.2301 39.8572C24.0046 40.4502 23.0255 40.7407 22.3336 40.8082C21.8571 40.8547 21.6551 40.7875 21.5934 40.7581C21.5589 40.6863 21.4363 40.358 21.6262 39.475C21.8562 38.4054 22.4689 36.9657 23.5038 35.2817C24.7575 33.2417 26.5497 30.9744 28.7621 28.762C30.9744 26.5497 33.2417 24.7574 35.2817 23.5037C36.9657 22.4689 38.4054 21.8562 39.475 21.6262ZM4.41189 29.2403L18.7597 43.5881C19.8813 44.7097 21.4027 44.9179 22.7217 44.7893C24.0585 44.659 25.5148 44.1631 26.9723 43.4579C29.9052 42.0387 33.2618 39.5667 36.4142 36.4142C39.5667 33.2618 42.0387 29.9052 43.4579 26.9723C44.1631 25.5148 44.659 24.0585 44.7893 22.7217C44.9179 21.4027 44.7097 19.8813 43.5881 18.7597L29.2403 4.41187C27.8527 3.02428 25.8765 3.02573 24.2861 3.36776C22.6081 3.72863 20.7334 4.58419 18.8396 5.74801C16.4978 7.18716 13.9881 9.18353 11.5858 11.5858C9.18354 13.988 7.18717 16.4978 5.74802 18.8396C4.58421 20.7334 3.72865 22.6081 3.36778 24.2861C3.02574 25.8765 3.02429 27.8527 4.41189 29.2403Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h1 class="text-[#181411] text-lg font-bold tracking-tight">CloudOptimizer</h1>
+</div>
+<div class="flex flex-col gap-1 p-4 flex-1 overflow-y-auto">
+<div class="px-3 py-2">
+<p class="text-[#8a7460] text-xs font-semibold uppercase tracking-wider mb-2">Principal</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary-light text-primary mt-1" href="#">
+<span class="material-symbols-outlined text-[20px] fill-1">lightbulb</span>
+<span class="text-sm font-medium">Recomendaciones</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors mt-1" href="#">
+<span class="material-symbols-outlined text-[20px]">attach_money</span>
+<span class="text-sm font-medium">Costos</span>
+</a>
+</div>
+<div class="px-3 py-2 mt-2">
+<p class="text-[#8a7460] text-xs font-semibold uppercase tracking-wider mb-2">Seguridad</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">security</span>
+<span class="text-sm font-medium">Alertas</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors mt-1" href="#">
+<span class="material-symbols-outlined text-[20px]">policy</span>
+<span class="text-sm font-medium">Compliance</span>
+</a>
+</div>
+<div class="px-3 py-2 mt-2">
+<p class="text-[#8a7460] text-xs font-semibold uppercase tracking-wider mb-2">Conectores</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">cloud_queue</span>
+<span class="text-sm font-medium">AWS</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors mt-1" href="#">
+<span class="material-symbols-outlined text-[20px]">cloud</span>
+<span class="text-sm font-medium">Azure</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#5c5c5c] hover:bg-background-light hover:text-primary transition-colors mt-1" href="#">
+<span class="material-symbols-outlined text-[20px]">wb_cloudy</span>
+<span class="text-sm font-medium">GCP</span>
+</a>
+</div>
+</div>
+<div class="p-4 border-t border-[#f5f2f0]">
+<button class="flex w-full items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold shadow-sm hover:bg-primary-hover transition-colors">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Nuevo Análisis
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-[#f9fafb]">
+<!-- Top Header -->
+<header class="h-[72px] bg-white border-b border-[#f5f2f0] flex items-center justify-between px-8 flex-shrink-0 z-10">
+<div class="flex items-center gap-4">
+<!-- Mobile Menu Button -->
+<button class="md:hidden p-2 text-[#5c5c5c]">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex items-center bg-[#f5f2f0] rounded-lg h-10 w-80 px-3 gap-2 group focus-within:ring-2 focus-within:ring-primary/20">
+<span class="material-symbols-outlined text-[#8a7460]">search</span>
+<input class="bg-transparent border-none outline-none text-sm w-full placeholder-[#8a7460] focus:ring-0 p-0 text-[#181411]" placeholder="Buscar recurso, servicio o ID..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-[#5c5c5c] hover:bg-[#f5f2f0] rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white"></span>
+</button>
+<button class="p-2 text-[#5c5c5c] hover:bg-[#f5f2f0] rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-[1px] bg-[#f5f2f0]"></div>
+<div class="flex items-center gap-3 cursor-pointer">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold text-[#181411]">Carlos M.</p>
+<p class="text-xs text-[#8a7460]">DevOps Lead</p>
+</div>
+<div class="size-10 rounded-full bg-cover bg-center border border-[#f5f2f0]" data-alt="User profile photo showing a smiling professional man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBx_wgl244H3280l5ppIYh1vTKaFHtyKwvT2Ph_QLBEdVXaSfo8SaU1BcvfQKg0agep9IisGbA6gsHBIfjMu6HouEnKAZq-eh64kLVAwFQN-PEV0XYwM4yvmYyds-ZiCbXiNRy5zdnml6MmoQcd-RhAG_0vBqA5ZWKhT5he8WicLDGSjnwhRYxcxH7KNdM6ualN7iUzmiA9RZso-0H1DXq-IkgvYJeiIRgsrHjQBp-Rdn4l_0pHGF3Cty-oO9I26DsEfsrfFtoKgzo');"></div>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-8 scroll-smooth">
+<div class="max-w-[1200px] mx-auto flex flex-col gap-6 pb-12">
+<!-- Page Title Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-2xl font-bold text-[#181411] tracking-tight">Recomendaciones de Optimización</h2>
+<p class="text-[#8a7460] mt-1">Insights accionables para mejorar rendimiento, reducir costos y fortalecer seguridad.</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 h-9 rounded-md border border-[#e5e7eb] bg-white text-sm font-medium text-[#374151] hover:bg-[#f9fafb]">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                            Exportar
+                        </button>
+<button class="flex items-center gap-2 px-4 h-9 rounded-md border border-[#e5e7eb] bg-white text-sm font-medium text-[#374151] hover:bg-[#f9fafb]">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+                            Actualizar
+                        </button>
+</div>
+</div>
+<!-- KPI Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-white p-5 rounded-lg border border-[#e5e7eb] shadow-card flex flex-col relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-primary">savings</span>
+</div>
+<p class="text-[#6b7280] text-sm font-medium">Ahorro Mensual Potencial</p>
+<div class="flex items-end gap-2 mt-1">
+<span class="text-3xl font-bold text-[#181411]">$1,240 USD</span>
+<span class="text-sm font-medium text-green-600 mb-1 flex items-center bg-green-50 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> 12%
+                            </span>
+</div>
+<div class="w-full bg-[#f3f4f6] h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 65%"></div>
+</div>
+</div>
+<div class="bg-white p-5 rounded-lg border border-[#e5e7eb] shadow-card flex flex-col relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-red-600">gpp_maybe</span>
+</div>
+<p class="text-[#6b7280] text-sm font-medium">Riesgos Críticos</p>
+<div class="flex items-end gap-2 mt-1">
+<span class="text-3xl font-bold text-[#181411]">3 Alertas</span>
+<span class="text-sm font-medium text-red-600 mb-1 flex items-center bg-red-50 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> Urgente
+                            </span>
+</div>
+<div class="w-full bg-[#f3f4f6] h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-red-500 h-full rounded-full" style="width: 20%"></div>
+</div>
+</div>
+<div class="bg-white p-5 rounded-lg border border-[#e5e7eb] shadow-card flex flex-col relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-blue-600">playlist_add_check</span>
+</div>
+<p class="text-[#6b7280] text-sm font-medium">Recomendaciones Activas</p>
+<div class="flex items-end gap-2 mt-1">
+<span class="text-3xl font-bold text-[#181411]">24 Items</span>
+<span class="text-sm font-medium text-gray-500 mb-1 flex items-center px-1.5 py-0.5 rounded">
+                                Total
+                            </span>
+</div>
+<div class="w-full bg-[#f3f4f6] h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-blue-500 h-full rounded-full" style="width: 45%"></div>
+</div>
+</div>
+</div>
+<!-- Filters Toolbar -->
+<div class="flex flex-wrap items-center gap-3 bg-white p-2 rounded-lg border border-[#e5e7eb] shadow-sm">
+<div class="flex items-center px-3 border-r border-[#e5e7eb]">
+<span class="material-symbols-outlined text-[#8a7460]">filter_list</span>
+<span class="ml-2 text-sm font-semibold text-[#181411]">Filtros:</span>
+</div>
+<div class="flex gap-2 flex-wrap">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background-light hover:bg-[#eaeaea] text-sm font-medium text-[#374151] transition-colors">
+                            Proveedor: Todos
+                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background-light hover:bg-[#eaeaea] text-sm font-medium text-[#374151] transition-colors">
+                            Categoría: Todas
+                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background-light hover:bg-[#eaeaea] text-sm font-medium text-[#374151] transition-colors">
+                            Severidad: Alta
+                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+</div>
+<div class="flex-1"></div>
+<div class="flex items-center gap-2 px-2">
+<button class="p-1.5 rounded hover:bg-background-light text-primary">
+<span class="material-symbols-outlined text-[20px]">view_list</span>
+</button>
+<button class="p-1.5 rounded hover:bg-background-light text-[#8a7460]">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+</div>
+</div>
+<!-- Recommendations List -->
+<div class="flex flex-col gap-4">
+<!-- Card 1: AWS Critical -->
+<div class="bg-white rounded-lg border-l-4 border-l-primary border-y border-r border-[#e5e7eb] shadow-card hover:shadow-hover transition-all duration-200 group">
+<div class="p-5 flex flex-col md:flex-row md:items-center gap-5">
+<!-- Icon & Provider -->
+<div class="flex items-start md:items-center gap-4 min-w-[200px]">
+<div class="p-2 bg-[#fff5eb] rounded-full text-primary shrink-0">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold uppercase text-[#FF9900] bg-[#fff8e6] px-1.5 py-0.5 rounded border border-[#FF9900]/20">AWS</span>
+<span class="text-xs font-medium text-gray-500">us-east-1</span>
+</div>
+<h3 class="font-bold text-[#181411]">Instancias EC2 Subutilizadas</h3>
+</div>
+</div>
+<!-- Details -->
+<div class="flex-1 border-t md:border-t-0 md:border-l border-[#f5f2f0] pt-4 md:pt-0 md:pl-6">
+<p class="text-sm text-[#4b5563] mb-2">3 instancias t3.xlarge tienen un uso de CPU &lt; 5% en los últimos 7 días. Se recomienda cambiar a t3.medium.</p>
+<div class="flex items-center gap-4 text-sm">
+<div class="flex items-center gap-1 text-[#6b7280]">
+<span class="material-symbols-outlined text-[16px]">schedule</span> Hace 2 horas
+                                    </div>
+<div class="flex items-center gap-1 font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                        Ahorro: $145/mes
+                                    </div>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex md:flex-col items-center gap-2 mt-2 md:mt-0 min-w-[140px]">
+<button class="w-full px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">handyman</span>
+                                    Optimizar
+                                </button>
+<button class="w-full px-4 py-2 bg-transparent hover:bg-[#f9fafb] text-[#5c5c5c] text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2">
+                                    Detalles
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 2: Azure Security -->
+<div class="bg-white rounded-lg border-l-4 border-l-red-500 border-y border-r border-[#e5e7eb] shadow-card hover:shadow-hover transition-all duration-200 group">
+<div class="p-5 flex flex-col md:flex-row md:items-center gap-5">
+<div class="flex items-start md:items-center gap-4 min-w-[200px]">
+<div class="p-2 bg-red-50 rounded-full text-red-500 shrink-0">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold uppercase text-[#0078d4] bg-[#e6f2fa] px-1.5 py-0.5 rounded border border-[#0078d4]/20">Azure</span>
+<span class="text-xs font-medium text-gray-500">East US 2</span>
+</div>
+<h3 class="font-bold text-[#181411]">Puerto RDP Abierto</h3>
+</div>
+</div>
+<div class="flex-1 border-t md:border-t-0 md:border-l border-[#f5f2f0] pt-4 md:pt-0 md:pl-6">
+<p class="text-sm text-[#4b5563] mb-2">El grupo de seguridad 'vm-backend-nsg' permite tráfico RDP (3389) desde 0.0.0.0/0. Alto riesgo de intrusión.</p>
+<div class="flex items-center gap-4 text-sm">
+<div class="flex items-center gap-1 text-[#6b7280]">
+<span class="material-symbols-outlined text-[16px]">schedule</span> Hace 45 min
+                                    </div>
+<div class="flex items-center gap-1 font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                        Crítico
+                                    </div>
+</div>
+</div>
+<div class="flex md:flex-col items-center gap-2 mt-2 md:mt-0 min-w-[140px]">
+<button class="w-full px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+                                    Restringir
+                                </button>
+<button class="w-full px-4 py-2 bg-transparent hover:bg-[#f9fafb] text-[#5c5c5c] text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2">
+                                    Ignorar
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 3: GCP Orphaned Disk -->
+<div class="bg-white rounded-lg border-l-4 border-l-yellow-500 border-y border-r border-[#e5e7eb] shadow-card hover:shadow-hover transition-all duration-200 group">
+<div class="p-5 flex flex-col md:flex-row md:items-center gap-5">
+<div class="flex items-start md:items-center gap-4 min-w-[200px]">
+<div class="p-2 bg-yellow-50 rounded-full text-yellow-600 shrink-0">
+<span class="material-symbols-outlined">hard_drive</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold uppercase text-[#34A853] bg-[#e6f4ea] px-1.5 py-0.5 rounded border border-[#34A853]/20">GCP</span>
+<span class="text-xs font-medium text-gray-500">us-central1</span>
+</div>
+<h3 class="font-bold text-[#181411]">Discos Persistentes Huérfanos</h3>
+</div>
+</div>
+<div class="flex-1 border-t md:border-t-0 md:border-l border-[#f5f2f0] pt-4 md:pt-0 md:pl-6">
+<p class="text-sm text-[#4b5563] mb-2">2 discos de 500GB SSD no están adjuntos a ninguna instancia VM desde hace más de 30 días.</p>
+<div class="flex items-center gap-4 text-sm">
+<div class="flex items-center gap-1 text-[#6b7280]">
+<span class="material-symbols-outlined text-[16px]">schedule</span> Hace 1 día
+                                    </div>
+<div class="flex items-center gap-1 font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                        Ahorro: $85/mes
+                                    </div>
+</div>
+</div>
+<div class="flex md:flex-col items-center gap-2 mt-2 md:mt-0 min-w-[140px]">
+<button class="w-full px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+                                    Eliminar
+                                </button>
+<button class="w-full px-4 py-2 bg-transparent hover:bg-[#f9fafb] text-[#5c5c5c] text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2">
+                                    Snapshot
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 4: AWS Reserved Instances -->
+<div class="bg-white rounded-lg border-l-4 border-l-blue-500 border-y border-r border-[#e5e7eb] shadow-card hover:shadow-hover transition-all duration-200 group">
+<div class="p-5 flex flex-col md:flex-row md:items-center gap-5">
+<div class="flex items-start md:items-center gap-4 min-w-[200px]">
+<div class="p-2 bg-blue-50 rounded-full text-blue-600 shrink-0">
+<span class="material-symbols-outlined">bookmark</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-xs font-bold uppercase text-[#FF9900] bg-[#fff8e6] px-1.5 py-0.5 rounded border border-[#FF9900]/20">AWS</span>
+<span class="text-xs font-medium text-gray-500">Global</span>
+</div>
+<h3 class="font-bold text-[#181411]">Oportunidad de Reserved Instance</h3>
+</div>
+</div>
+<div class="flex-1 border-t md:border-t-0 md:border-l border-[#f5f2f0] pt-4 md:pt-0 md:pl-6">
+<p class="text-sm text-[#4b5563] mb-2">Basado en tu uso constante de m5.large, comprar una RI por 1 año reduciría el costo en un 40%.</p>
+<div class="flex items-center gap-4 text-sm">
+<div class="flex items-center gap-1 text-[#6b7280]">
+<span class="material-symbols-outlined text-[16px]">schedule</span> Hace 3 días
+                                    </div>
+<div class="flex items-center gap-1 font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                        Ahorro: $420/mes
+                                    </div>
+</div>
+</div>
+<div class="flex md:flex-col items-center gap-2 mt-2 md:mt-0 min-w-[140px]">
+<button class="w-full px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+                                    Comprar
+                                </button>
+<button class="w-full px-4 py-2 bg-transparent hover:bg-[#f9fafb] text-[#5c5c5c] text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2">
+                                    Calcular
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination / Load More -->
+<div class="flex justify-center mt-6">
+<button class="flex items-center gap-2 text-sm font-medium text-[#5c5c5c] hover:text-primary transition-colors px-4 py-2 bg-white border border-[#e5e7eb] rounded-lg shadow-sm hover:shadow">
+                        Cargar más recomendaciones
+                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Panel (Contextual details simulation) -->
+<aside class="hidden lg:flex w-[400px] flex-col bg-white border-l border-[#f5f2f0] h-full shadow-lg z-20 overflow-y-auto translate-x-0 transition-transform duration-300">
+<div class="p-6 border-b border-[#f5f2f0] flex items-center justify-between sticky top-0 bg-white z-10">
+<h3 class="font-bold text-lg text-[#181411]">Detalles del Recurso</h3>
+<button class="text-[#8a7460] hover:text-[#181411]">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<!-- Selected Resource Header -->
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-lg bg-[#fff5eb] flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">warning</span>
+</div>
+<div>
+<h4 class="font-bold text-[#181411]">i-0a1b2c3d4e5f6g7h8</h4>
+<p class="text-xs text-[#8a7460] font-mono">AWS • EC2 • us-east-1</p>
+</div>
+</div>
+<div class="p-4 bg-background-light rounded-lg border border-[#e5e7eb]">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-[#6b7280] uppercase">Métrica Clave</span>
+<span class="text-xs font-bold text-primary bg-[#fff5eb] px-2 py-0.5 rounded-full">CPU Usage</span>
+</div>
+<div class="h-24 w-full bg-white rounded border border-[#e5e7eb] flex items-end px-1 gap-0.5 overflow-hidden" data-alt="Bar chart showing low CPU usage">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[10%]" title="Day 1: 5%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[12%]" title="Day 2: 6%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[8%]" title="Day 3: 4%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[5%]" title="Day 4: 2%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[15%]" title="Day 5: 7%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[4%]" title="Day 6: 2%"></div>
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[6%]" title="Day 7: 3%"></div>
+</div>
+<p class="text-xs text-[#6b7280] mt-2 text-center">Promedio de uso 7 días: <strong>4.2%</strong></p>
+</div>
+<!-- Suggestion Detail -->
+<div>
+<h5 class="text-sm font-bold text-[#181411] mb-2">Acción Sugerida</h5>
+<p class="text-sm text-[#4b5563] leading-relaxed mb-4">
+                    Cambiar el tipo de instancia de <strong>t3.xlarge</strong> a <strong>t3.medium</strong>. Esto reducirá la capacidad de vCPU de 4 a 2 y la memoria de 16GB a 4GB, lo cual es suficiente basado en el histórico.
+                </p>
+<div class="bg-[#221810] rounded-lg p-3 text-white font-mono text-xs overflow-x-auto">
+<div class="flex justify-between items-center mb-2 border-b border-white/10 pb-1">
+<span class="text-gray-400">AWS CLI Command</span>
+<span class="material-symbols-outlined text-[14px] cursor-pointer hover:text-primary">content_copy</span>
+</div>
+<code>aws ec2 modify-instance-attribute \<br/>
+  --instance-id i-0a1b2c3d4e5f6g7h8 \<br/>
+  --instance-type "{\"Value\": \"t3.medium\"}"</code>
+</div>
+</div>
+<div class="border-t border-[#f5f2f0] pt-4 mt-auto">
+<button class="w-full h-10 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg shadow-sm transition-colors mb-3">
+                    Aplicar Fix Ahora
+                </button>
+<button class="w-full h-10 bg-white border border-[#e5e7eb] text-[#374151] hover:bg-background-light text-sm font-medium rounded-lg transition-colors">
+                    Programar para ventana de Mtto.
+                </button>
+</div>
+</div>
+</aside>
+</body></html>

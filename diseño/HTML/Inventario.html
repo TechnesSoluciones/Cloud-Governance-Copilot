@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Inventario de Recursos - CloudAnalytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2780d",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221810",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#2d241b",
+                        "border-light": "#e5e7eb",
+                        "border-dark": "#403630",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-[#181411] dark:text-[#e8e6e3] overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex-none flex items-center justify-between whitespace-nowrap border-b border-solid border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-6 py-3 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-[#181411] dark:text-white">
+<div class="size-8 flex items-center justify-center bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">cloud_circle</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">CloudAnalytics</h2>
+</div>
+<!-- Global Search -->
+<label class="hidden md:flex flex-col min-w-64 h-9">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-[#f3f4f6] dark:bg-[#382f28] border border-transparent focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+<div class="text-[#8a7460] flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-[#181411] dark:text-white focus:outline-0 border-none bg-transparent h-full placeholder:text-[#8a7460] px-3 text-sm font-normal leading-normal" placeholder="Buscar recursos, servicios y documentos" value=""/>
+</div>
+</label>
+</div>
+<div class="flex items-center gap-4">
+<!-- Quick Links -->
+<nav class="hidden lg:flex items-center gap-6 text-sm font-medium">
+<a class="text-primary hover:text-primary/80 transition-colors" href="#">Dashboard</a>
+<a class="text-[#181411] dark:text-gray-300 hover:text-primary transition-colors" href="#">Costos</a>
+<a class="text-[#181411] dark:text-gray-300 hover:text-primary transition-colors" href="#">Seguridad</a>
+</nav>
+<div class="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block"></div>
+<!-- Actions -->
+<div class="flex gap-2">
+<button class="hidden sm:flex h-9 items-center justify-center rounded-lg px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold shadow-sm transition-colors">
+<span class="mr-2 material-symbols-outlined text-[18px]">add</span>
+<span class="truncate">Nuevo Recurso</span>
+</button>
+<button class="size-9 flex items-center justify-center rounded-lg bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-[#181411] dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+</button>
+<button class="size-9 flex items-center justify-center rounded-lg bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-[#181411] dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+<div class="ml-2 bg-center bg-no-repeat bg-cover rounded-full size-9 ring-2 ring-gray-100 dark:ring-gray-700 cursor-pointer" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDmBssirJT_GaBjSMdzQiiIqxRqzVUGtg7stY_MkXvCYPP39Ebc8gCFSMx4wKpJJkiq6mGeVfNtYrfINlyEAHd44Yw00IduPsc8vfQuiUsxw5QCty3ZFe-jwE-GuahoRWMlcW7Nfxt-9YGMXRTEZSRCufsvjKLowwrKDRPCIMnlxkSyVvR95Rnu8w-RSMioBzudpvqaGoJceQZhA1qVYsFwtpjiRCiaOILNOnJPqI7LToiPOrKFXmzN_z-hjzEmqT36IEM00xgB69E");'></div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 flex-none hidden md:flex flex-col border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark overflow-y-auto">
+<div class="flex flex-col gap-6 p-4">
+<!-- Inventory Group -->
+<div class="flex flex-col gap-1">
+<h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inventario</h3>
+<a class="flex items-center gap-3 px-3 py-2 text-primary bg-primary/10 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px] fill-1">list_alt</span>
+<span class="text-sm font-medium">Todos los recursos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#5c5e63] dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-[#181411] dark:hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+<span class="text-sm font-medium">Grupos de recursos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#5c5e63] dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-[#181411] dark:hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">credit_card</span>
+<span class="text-sm font-medium">Suscripciones</span>
+</a>
+</div>
+<div class="h-px bg-gray-100 dark:bg-gray-800 mx-3"></div>
+<!-- Analysis Group -->
+<div class="flex flex-col gap-1">
+<h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Análisis</h3>
+<a class="flex items-center gap-3 px-3 py-2 text-[#5c5e63] dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-[#181411] dark:hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">monitoring</span>
+<span class="text-sm font-medium">Métricas de uso</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#5c5e63] dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-[#181411] dark:hover:text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">security</span>
+<span class="text-sm font-medium">Recomendaciones</span>
+</a>
+</div>
+</div>
+<!-- Bottom Helper -->
+<div class="mt-auto p-4 border-t border-border-light dark:border-border-dark">
+<a class="flex items-center gap-3 px-3 py-2 text-[#5c5e63] dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="text-sm font-medium">Ayuda y Soporte</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-y-auto bg-background-light dark:bg-background-dark">
+<div class="p-6 md:p-8 max-w-[1600px] mx-auto w-full flex flex-col gap-6">
+<!-- Breadcrumbs & Heading -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-2 text-sm text-[#8a7460] dark:text-gray-400">
+<a class="hover:underline hover:text-primary" href="#">Home</a>
+<span class="text-gray-300">/</span>
+<a class="hover:underline hover:text-primary" href="#">Dashboard</a>
+<span class="text-gray-300">/</span>
+<span class="font-medium text-[#181411] dark:text-white">Inventario de Recursos</span>
+</div>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+<div>
+<h1 class="text-3xl font-bold tracking-tight text-[#181411] dark:text-white">Inventario de Recursos</h1>
+<p class="mt-1 text-[#5c5e63] dark:text-gray-400">Gestiona y analiza tus activos en AWS, Azure y GCP desde una vista unificada.</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                                Exportar
+                            </button>
+</div>
+</div>
+</div>
+<!-- KPI Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Recursos</p>
+<span class="material-symbols-outlined text-primary bg-primary/10 p-1 rounded">inventory_2</span>
+</div>
+<p class="text-2xl font-bold text-[#181411] dark:text-white">1,240</p>
+<div class="flex items-center gap-1 mt-1 text-xs text-green-600 font-medium">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+12% vs mes pasado</span>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">Costo Mensual</p>
+<span class="material-symbols-outlined text-green-600 bg-green-100 dark:bg-green-900/30 p-1 rounded">attach_money</span>
+</div>
+<p class="text-2xl font-bold text-[#181411] dark:text-white">$4,200</p>
+<div class="flex items-center gap-1 mt-1 text-xs text-red-500 font-medium">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+5% presupuesto excedido</span>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">Alertas Activas</p>
+<span class="material-symbols-outlined text-red-500 bg-red-100 dark:bg-red-900/30 p-1 rounded">warning</span>
+</div>
+<p class="text-2xl font-bold text-[#181411] dark:text-white">5</p>
+<p class="mt-1 text-xs text-gray-400">2 críticas, 3 advertencias</p>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400">VMs en Ejecución</p>
+<span class="material-symbols-outlined text-blue-500 bg-blue-100 dark:bg-blue-900/30 p-1 rounded">dns</span>
+</div>
+<p class="text-2xl font-bold text-[#181411] dark:text-white">850</p>
+<div class="flex items-center gap-1 mt-1 text-xs text-gray-400 font-medium">
+<span>68% Utilización prom.</span>
+</div>
+</div>
+</div>
+<!-- Filter & Actions Bar -->
+<div class="bg-surface-light dark:bg-surface-dark p-2 rounded-lg border border-border-light dark:border-border-dark flex flex-wrap gap-2 items-center justify-between">
+<div class="flex items-center gap-2 flex-1 min-w-[280px]">
+<div class="relative flex-1 max-w-sm">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</span>
+<input class="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 dark:bg-[#382f28] border border-gray-200 dark:border-gray-700 rounded-md focus:ring-1 focus:ring-primary focus:border-primary text-gray-800 dark:text-gray-200 placeholder-gray-400" placeholder="Filtrar por nombre, tipo o etiquetas..." type="text"/>
+</div>
+<div class="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
+<button class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+                            Filtros
+                        </button>
+</div>
+<div class="flex items-center gap-2">
+<select class="form-select block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-gray-700 dark:text-gray-200">
+<option>Todos los Proveedores</option>
+<option>AWS</option>
+<option>Azure</option>
+<option>GCP</option>
+</select>
+<select class="form-select block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-gray-700 dark:text-gray-200">
+<option>Todas las Ubicaciones</option>
+<option>US East</option>
+<option>EU West</option>
+</select>
+<button class="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Actualizar">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark overflow-hidden shadow-sm flex-1">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-gray-50 dark:bg-[#322a21] border-b border-border-light dark:border-border-dark text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold tracking-wider">
+<th class="p-4 w-10">
+<input class="rounded border-gray-300 text-primary focus:ring-primary bg-transparent" type="checkbox"/>
+</th>
+<th class="p-4 cursor-pointer hover:text-primary group">
+<div class="flex items-center gap-1">
+                                            Nombre
+                                            <span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100">arrow_downward</span>
+</div>
+</th>
+<th class="p-4">Tipo</th>
+<th class="p-4">Estado</th>
+<th class="p-4">Proveedor</th>
+<th class="p-4">Ubicación</th>
+<th class="p-4 text-right">Costo (Mes)</th>
+<th class="p-4 w-10"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-border-dark text-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+<td class="p-4">
+<input class="rounded border-gray-300 text-primary focus:ring-primary bg-transparent" type="checkbox"/>
+</td>
+<td class="p-4 font-medium text-primary hover:underline cursor-pointer">app-server-prod-01</td>
+<td class="p-4 text-[#181411] dark:text-gray-300">Virtual Machine</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                            Running
+                                        </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-[#181411] dark:text-gray-300">
+<span class="material-symbols-outlined text-blue-600 text-[20px]">grid_view</span>
+<span>Azure</span>
+</div>
+</td>
+<td class="p-4 text-gray-500 dark:text-gray-400">East US 2</td>
+<td class="p-4 text-right font-medium text-[#181411] dark:text-gray-200">$145.20</td>
+<td class="p-4 text-center">
+<button class="text-gray-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+<td class="p-4">
+<input class="rounded border-gray-300 text-primary focus:ring-primary bg-transparent" type="checkbox"/>
+</td>
+<td class="p-4 font-medium text-primary hover:underline cursor-pointer">db-cluster-main</td>
+<td class="p-4 text-[#181411] dark:text-gray-300">SQL Database</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                            Available
+                                        </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-[#181411] dark:text-gray-300">
+<span class="material-symbols-outlined text-orange-500 text-[20px]">cloud_queue</span>
+<span>AWS</span>
+</div>
+</td>
+<td class="p-4 text-gray-500 dark:text-gray-400">us-east-1</td>
+<td class="p-4 text-right font-medium text-[#181411] dark:text-gray-200">$850.00</td>
+<td class="p-4 text-center">
+<button class="text-gray-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group">
+<td class="p-4">
+<input class="rounded border-gray-300 text-primary focus:ring-primary bg-transparent" type="checkbox"/>
+</td>
+<td class="p-4 font-medium text-primary hover:underline cursor-pointer">legacy-api-gateway</td>
+<td class="p-4 text-[#181411] dark:text-gray-300">App Service</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800">
+<span class="size-1.5 rounded-full bg-red-500"></span>
+                                            Stopped
+                                        </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-[#181411] dark:text-gray-300">
+<span class="material-symbols-outlined text-green-600 text-[20px]">circle</span>
+<span>GCP</span>
+</div>
+</td>
+<td class="p-4 text-gray-500 dark:text-gray-400">europe-west3</td>
+<td class="p-4 text-right font-medium text-[#181411] dark:text-gray-200">$0.00</td>
+<td class="p-4 text-center">
+<button class="text-gray-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+<td class="p-4">
+<input class="rounded border-gray-300 text-primary focus:ring-primary bg-transparent" type="checkbox"/>
+</td>
+<td class="p-4 font-medium text-primary hover:underline cursor-pointer">storage-logs-archived</td>
+<td class="p-4 text-[#181411] dark:text-gray-300">Blob Storage</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                            Active
+                                        </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-[#181411] dark:text-gray-300">
+<span class="material-symbols-outlined text-blue-600 text-[20px]">grid_view</span>
+<span>Azure</span>
+</div>
+</td>
+<td class="p-4 text-gray-500 dark:text-gray-400">East US</td>
+<td class="p-4 text-right font-medium text-[#181411] dark:text-gray-200">$45.10</td>
+<td class="p-4 text-center">
+<button class="text-gray-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+<td class="p-4">
+<input class="rounded border-gray-300 text-primary focus:ring-primary bg-transparent" type="checkbox"/>
+</td>
+<td class="p-4 font-medium text-primary hover:underline cursor-pointer">k8s-cluster-dev</td>
+<td class="p-4 text-[#181411] dark:text-gray-300">Kubernetes Service</td>
+<td class="p-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800">
+<span class="size-1.5 rounded-full bg-yellow-500"></span>
+                                            Updating
+                                        </span>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-[#181411] dark:text-gray-300">
+<span class="material-symbols-outlined text-orange-500 text-[20px]">cloud_queue</span>
+<span>AWS</span>
+</div>
+</td>
+<td class="p-4 text-gray-500 dark:text-gray-400">us-west-2</td>
+<td class="p-4 text-right font-medium text-[#181411] dark:text-gray-200">$320.50</td>
+<td class="p-4 text-center">
+<button class="text-gray-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="bg-surface-light dark:bg-surface-dark px-4 py-3 flex items-center justify-between border-t border-border-light dark:border-border-dark">
+<div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+<div>
+<p class="text-sm text-gray-700 dark:text-gray-400">
+                                    Mostrando <span class="font-medium">1</span> a <span class="font-medium">5</span> de <span class="font-medium">1240</span> resultados
+                                </p>
+</div>
+<div>
+<nav aria-label="Pagination" class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+<a class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800" href="#">
+<span class="sr-only">Previous</span>
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</a>
+<a aria-current="page" class="z-10 bg-primary/10 border-primary text-primary relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">1</a>
+<a class="bg-white dark:bg-surface-dark border-gray-300 dark:border-gray-600 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">2</a>
+<a class="bg-white dark:bg-surface-dark border-gray-300 dark:border-gray-600 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">3</a>
+<span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark text-sm font-medium text-gray-700">...</span>
+<a class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800" href="#">
+<span class="sr-only">Next</span>
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</a>
+</nav>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

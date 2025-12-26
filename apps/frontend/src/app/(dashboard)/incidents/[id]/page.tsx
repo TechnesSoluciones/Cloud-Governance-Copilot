@@ -1,554 +1,580 @@
 /**
- * Incident Detail Page
- * Displays detailed information about a specific incident with tabs
+ * Incident Detail V2 Page
+ * CloudNexus Design - Individual Incident Details
  */
 
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import {
-  useIncidentById,
-  useUpdateIncidentStatus,
-  useAddIncidentComment,
-  extractIncidentData,
-} from '@/hooks/useIncidents';
-import { useAlertById } from '@/hooks/useIncidents';
-import { IncidentStatusBadge } from '@/components/incidents/IncidentStatusBadge';
-import { SeverityIndicator } from '@/components/incidents/SeverityIndicator';
-import { IncidentTimeline } from '@/components/incidents/IncidentTimeline';
-import { AlertDetailModal } from '@/components/incidents/AlertDetailModal';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow, format } from 'date-fns';
-import {
-  ArrowLeft,
-  CheckCircle,
-  AlertTriangle,
-  UserCheck,
-  TrendingUp,
-  MessageCircle,
-  Server,
-  Bell,
-  Clock,
-  ExternalLink,
-} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { DashboardLayoutV2 } from '@/components/layout/DashboardLayoutV2';
+import { BadgeV2 } from '@/components/ui/BadgeV2';
+import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { cn } from '@/lib/utils';
-import { IncidentStatus } from '@/lib/api/incidents';
 
-// Premium Design System
-import {
-  PremiumSectionHeader,
-  PREMIUM_GRADIENTS,
-  PREMIUM_TRANSITIONS,
-  PREMIUM_HOVER_EFFECTS,
-} from '@/components/shared/premium';
+interface TimelineEvent {
+  id: string;
+  timestamp: string;
+  type: 'created' | 'updated' | 'comment' | 'status_change' | 'assignment' | 'resolved';
+  user: string;
+  title: string;
+  description?: string;
+}
 
-export default function IncidentDetailPage() {
-  const params = useParams();
+interface AffectedResource {
+  id: string;
+  name: string;
+  type: string;
+  status: 'healthy' | 'degraded' | 'down';
+  region: string;
+}
+
+interface RemediationStep {
+  id: string;
+  step: number;
+  title: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  assignee?: string;
+}
+
+export default function IncidentDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const incidentId = params.id as string;
-
-  const [activeTab, setActiveTab] = useState('overview');
-  const [commentText, setCommentText] = useState('');
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
-
-  // Fetch incident details
-  const {
-    data: incidentResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useIncidentById(incidentId);
-
-  const incident = extractIncidentData(incidentResponse);
-
-  // Fetch selected alert details
-  const { data: alertResponse, isLoading: isAlertLoading } = useAlertById(
-    selectedAlertId || '',
-    { enabled: !!selectedAlertId }
+  const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'resources' | 'remediation'>(
+    'overview'
   );
 
-  const selectedAlert = alertResponse?.data?.data;
-
-  // Mutations
-  const { mutate: updateStatus, isPending: isUpdatingStatus } = useUpdateIncidentStatus();
-  const { mutate: addComment, isPending: isAddingComment } = useAddIncidentComment();
-
-  const handleBack = () => {
-    router.push('/incidents');
+  // Mock data - in real app, fetch based on params.id
+  const incident = {
+    id: params.id,
+    title: 'High CPU utilization on production EC2 instances',
+    description:
+      'Multiple EC2 instances in the production environment are experiencing sustained high CPU utilization above 90%, causing performance degradation and application slowdowns. This issue was first detected by CloudWatch alarms and has affected customer-facing services.',
+    severity: 'critical' as const,
+    status: 'investigating' as const,
+    provider: 'AWS' as const,
+    affectedResources: 8,
+    createdAt: '2024-12-26T09:30:00Z',
+    updatedAt: '2024-12-26T10:15:00Z',
+    assignee: {
+      name: 'John Doe',
+      email: 'john.doe@company.com',
+    },
+    tags: ['performance', 'production', 'compute'],
+    priority: 'P1',
+    region: 'us-east-1',
   };
 
-  const handleStatusChange = (status: IncidentStatus) => {
-    updateStatus(
-      {
-        id: incidentId,
-        data: { status },
-      },
-      {
-        onSuccess: () => {
-          refetch();
-        },
-      }
-    );
+  const timelineEvents: TimelineEvent[] = [
+    {
+      id: '1',
+      timestamp: '2024-12-26T10:15:00Z',
+      type: 'comment',
+      user: 'John Doe',
+      title: 'Added comment',
+      description: 'Investigating CPU spike. Analyzing CloudWatch metrics and application logs.',
+    },
+    {
+      id: '2',
+      timestamp: '2024-12-26T10:00:00Z',
+      type: 'assignment',
+      user: 'System',
+      title: 'Incident assigned',
+      description: 'Assigned to John Doe based on on-call rotation.',
+    },
+    {
+      id: '3',
+      timestamp: '2024-12-26T09:45:00Z',
+      type: 'status_change',
+      user: 'Jane Smith',
+      title: 'Status changed to Investigating',
+      description: 'Team notified and investigation started.',
+    },
+    {
+      id: '4',
+      timestamp: '2024-12-26T09:30:00Z',
+      type: 'created',
+      user: 'CloudWatch Alarm',
+      title: 'Incident created',
+      description: 'Auto-created from CloudWatch alarm: HighCPUUtilization-prod',
+    },
+  ];
+
+  const affectedResources: AffectedResource[] = [
+    {
+      id: '1',
+      name: 'i-0abc123def456',
+      type: 'EC2 Instance',
+      status: 'degraded',
+      region: 'us-east-1a',
+    },
+    {
+      id: '2',
+      name: 'i-0def456ghi789',
+      type: 'EC2 Instance',
+      status: 'degraded',
+      region: 'us-east-1a',
+    },
+    {
+      id: '3',
+      name: 'i-0ghi789jkl012',
+      type: 'EC2 Instance',
+      status: 'degraded',
+      region: 'us-east-1b',
+    },
+    {
+      id: '4',
+      name: 'prod-web-asg',
+      type: 'Auto Scaling Group',
+      status: 'healthy',
+      region: 'us-east-1',
+    },
+    {
+      id: '5',
+      name: 'prod-alb',
+      type: 'Application Load Balancer',
+      status: 'healthy',
+      region: 'us-east-1',
+    },
+  ];
+
+  const remediationSteps: RemediationStep[] = [
+    {
+      id: '1',
+      step: 1,
+      title: 'Identify root cause',
+      description: 'Review CloudWatch metrics, application logs, and recent deployments',
+      status: 'completed',
+      assignee: 'John Doe',
+    },
+    {
+      id: '2',
+      step: 2,
+      title: 'Implement temporary mitigation',
+      description: 'Scale up Auto Scaling Group to distribute load',
+      status: 'in_progress',
+      assignee: 'John Doe',
+    },
+    {
+      id: '3',
+      step: 3,
+      title: 'Deploy fix',
+      description: 'Deploy application patch to optimize resource usage',
+      status: 'pending',
+    },
+    {
+      id: '4',
+      step: 4,
+      title: 'Monitor and verify',
+      description: 'Monitor CPU metrics for 30 minutes to confirm resolution',
+      status: 'pending',
+    },
+    {
+      id: '5',
+      step: 5,
+      title: 'Post-incident review',
+      description: 'Schedule post-mortem meeting and document lessons learned',
+      status: 'pending',
+    },
+  ];
+
+  const getTimelineIcon = (type: TimelineEvent['type']) => {
+    switch (type) {
+      case 'created':
+        return 'add_circle';
+      case 'updated':
+        return 'edit';
+      case 'comment':
+        return 'comment';
+      case 'status_change':
+        return 'sync_alt';
+      case 'assignment':
+        return 'person_add';
+      case 'resolved':
+        return 'check_circle';
+      default:
+        return 'circle';
+    }
   };
 
-  const handleAddComment = () => {
-    if (!commentText.trim()) return;
-
-    addComment(
-      {
-        incidentId,
-        data: { content: commentText },
-      },
-      {
-        onSuccess: () => {
-          setCommentText('');
-          refetch();
-        },
-      }
-    );
+  const getResourceStatusColor = (status: AffectedResource['status']) => {
+    switch (status) {
+      case 'healthy':
+        return 'operational';
+      case 'degraded':
+        return 'warning';
+      case 'down':
+        return 'critical';
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-          <Skeleton className="h-10 w-64" />
-          <div className="grid gap-6">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-96 w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !incident) {
-    return (
-      <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-        <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-          <Alert variant="error">
-            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-            <AlertDescription>
-              Failed to load incident details. Please try again later.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={handleBack} variant="outline" size="lg" className="gap-2 shadow-lg">
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-            Back to Incidents
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const canAcknowledge = incident.status === 'new';
-  const canResolve = incident.status !== 'resolved' && incident.status !== 'closed';
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
-    <div className={`min-h-screen ${PREMIUM_GRADIENTS.page}`}>
-      <div className="max-w-7xl mx-auto space-y-8 p-6 sm:p-8 lg:p-10">
-      {/* Back Button */}
-      <Button
-        onClick={handleBack}
-        variant="ghost"
-        className="gap-2"
-        aria-label="Back to incidents list"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Back to Incidents
-      </Button>
+    <DashboardLayoutV2>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div>
+          <button
+            onClick={() => router.back()}
+            className="mb-4 text-sm text-slate-600 dark:text-slate-400 hover:text-brand-primary-400 transition-colors flex items-center gap-1"
+          >
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            Back to Incidents
+          </button>
 
-      {/* Premium Header with Incident Details */}
-      <PremiumSectionHeader
-        title={
-          <div className="flex items-center gap-3">
-            <SeverityIndicator severity={incident.severity} />
-            <span>{incident.title || 'Incident Details'}</span>
-          </div>
-        }
-        subtitle={
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span>ID: {incidentId}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>Status:</span>
-              <IncidentStatusBadge status={incident.status} />
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" aria-hidden="true" />
-              <time dateTime={incident.createdAt}>
-                Created {formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true })}
-              </time>
-            </div>
-            {incident.assignedTo && (
-              <div className="flex items-center gap-2">
-                <UserCheck className="h-4 w-4" aria-hidden="true" />
-                <span>Assigned to {incident.assignedTo}</span>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <BadgeV2 variant={incident.severity} size="lg">
+                  {incident.severity}
+                </BadgeV2>
+                <BadgeV2 variant={incident.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}>
+                  {incident.provider}
+                </BadgeV2>
+                <BadgeV2 variant="default">{incident.priority}</BadgeV2>
+                <StatusIndicatorV2
+                  status={
+                    incident.status === 'investigating' ? 'warning' :
+                    incident.status === 'open' ? 'critical' : 'operational'
+                  }
+                  label={incident.status}
+                />
               </div>
-            )}
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                {incident.title}
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                Incident #{incident.id} • Created {formatTimestamp(incident.createdAt)}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">edit</span>
+                Edit
+              </button>
+              <button className="px-4 py-2 bg-success text-white rounded-lg text-sm font-semibold hover:bg-success/90 transition-colors flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">check_circle</span>
+                Mark as Resolved
+              </button>
+            </div>
           </div>
-        }
-        actions={
-          <>
-            {canAcknowledge && (
-              <Button
-                onClick={() => handleStatusChange('acknowledged')}
-                disabled={isUpdatingStatus}
-                className="gap-2 shadow-lg"
-                aria-label="Acknowledge incident"
-              >
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                Acknowledge
-              </Button>
-            )}
-            {canResolve && (
-              <Button
-                onClick={() => handleStatusChange('resolved')}
-                disabled={isUpdatingStatus}
-                variant="outline"
-                className="gap-2 shadow-lg"
-                aria-label="Resolve incident"
-              >
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                Resolve
-              </Button>
-            )}
-            <Button
-              onClick={() => handleStatusChange('investigating')}
-              disabled={isUpdatingStatus || incident.status === 'investigating'}
-              variant="outline"
-              className="gap-2 shadow-lg"
-              aria-label="Mark as investigating"
-            >
-              <TrendingUp className="h-4 w-4" aria-hidden="true" />
-              Investigating
-            </Button>
-          </>
-        }
-      />
+        </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="alerts">
-            Alerts
-            <Badge variant="secondary" className="ml-2">
-              {incident.alerts.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="resources">
-            Resources
-            <Badge variant="secondary" className="ml-2">
-              {incident.resources.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
-            <CardHeader>
-              <CardTitle>Incident Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-indigo-500">dns</span>
+              </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Description
-                </h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {incident.description}
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {incident.affectedResources}
                 </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Affected Resources</p>
               </div>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Severity
-                  </h3>
-                  <div className="mt-1">
-                    <SeverityIndicator severity={incident.severity} size="sm" />
-                  </div>
-                </div>
+          <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-blue-500">schedule</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">45m</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Duration</p>
+              </div>
+            </div>
+          </div>
 
-                <div>
-                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Status
-                  </h3>
-                  <div className="mt-1">
-                    <IncidentStatusBadge status={incident.status} />
-                  </div>
-                </div>
+          <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-purple-500">person</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {incident.assignee.name}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Assigned To</p>
+              </div>
+            </div>
+          </div>
 
+          <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-orange-500">public</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {incident.region}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Region</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="border-b border-slate-200 dark:border-slate-800">
+            <div className="flex">
+              {[
+                { id: 'overview', label: 'Overview', icon: 'info' },
+                { id: 'timeline', label: 'Timeline', icon: 'history' },
+                { id: 'resources', label: 'Affected Resources', icon: 'dns' },
+                { id: 'remediation', label: 'Remediation Steps', icon: 'checklist' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={cn(
+                    'px-6 py-3 text-sm font-medium transition-colors flex items-center gap-2',
+                    activeTab === tab.id
+                      ? 'text-brand-primary-400 border-b-2 border-brand-primary-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  )}
+                >
+                  <span className="material-symbols-outlined text-lg">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-6">
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Affected Resources
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                    Description
                   </h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {incident.affectedResourcesCount} resources
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {incident.description}
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Created At
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                    Impact Assessment
                   </h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {format(new Date(incident.createdAt), 'PPpp')}
-                  </p>
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <ul className="space-y-2 text-slate-600 dark:text-slate-400">
+                      <li className="flex items-start gap-2">
+                        <span className="material-symbols-outlined text-warning text-lg mt-0.5">
+                          warning
+                        </span>
+                        <span>Customer-facing services experiencing degraded performance</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="material-symbols-outlined text-warning text-lg mt-0.5">
+                          warning
+                        </span>
+                        <span>API response times increased by 200%</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="material-symbols-outlined text-warning text-lg mt-0.5">
+                          warning
+                        </span>
+                        <span>8 EC2 instances affected across 2 availability zones</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
 
-                {incident.acknowledgedAt && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Acknowledged At
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      {format(new Date(incident.acknowledgedAt), 'PPpp')}
-                    </p>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                    Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {incident.tags.map((tag) => (
+                      <BadgeV2 key={tag} variant="default">
+                        {tag}
+                      </BadgeV2>
+                    ))}
                   </div>
-                )}
-
-                {incident.resolvedAt && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Resolved At
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      {format(new Date(incident.resolvedAt), 'PPpp')}
-                    </p>
-                  </div>
-                )}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          {/* Comments Section */}
-          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                Comments ({incident.comments.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Existing Comments */}
-              {incident.comments.length > 0 ? (
-                <div className="space-y-4">
-                  {incident.comments.map(comment => (
-                    <div
-                      key={comment.id}
-                      className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/50"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {comment.author}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                            {comment.content}
-                          </p>
-                        </div>
-                        <time
-                          dateTime={comment.createdAt}
-                          className="text-xs text-gray-600 dark:text-gray-400"
+            {/* Timeline Tab */}
+            {activeTab === 'timeline' && (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                  Activity Timeline
+                </h3>
+                <div className="space-y-6">
+                  {timelineEvents.map((event, index) => (
+                    <div key={event.id} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={cn(
+                            'w-10 h-10 rounded-full flex items-center justify-center',
+                            event.type === 'created' && 'bg-blue-500/10',
+                            event.type === 'status_change' && 'bg-purple-500/10',
+                            event.type === 'assignment' && 'bg-indigo-500/10',
+                            event.type === 'comment' && 'bg-slate-100 dark:bg-slate-800',
+                            event.type === 'resolved' && 'bg-success/10'
+                          )}
                         >
-                          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                        </time>
+                          <span
+                            className={cn(
+                              'material-symbols-outlined text-lg',
+                              event.type === 'created' && 'text-blue-500',
+                              event.type === 'status_change' && 'text-purple-500',
+                              event.type === 'assignment' && 'text-indigo-500',
+                              event.type === 'comment' && 'text-slate-500',
+                              event.type === 'resolved' && 'text-success'
+                            )}
+                          >
+                            {getTimelineIcon(event.type)}
+                          </span>
+                        </div>
+                        {index < timelineEvents.length - 1 && (
+                          <div className="w-0.5 h-16 bg-slate-200 dark:bg-slate-800 my-2" />
+                        )}
+                      </div>
+                      <div className="flex-1 pb-8">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            {event.title}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatTimestamp(event.timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                          by {event.user}
+                        </p>
+                        {event.description && (
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {event.description}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400">No comments yet</p>
-              )}
-
-              {/* Add Comment Form */}
-              <div className="space-y-2 border-t border-gray-200 pt-4 dark:border-gray-800">
-                <label htmlFor="comment" className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Add Comment
-                </label>
-                <Textarea
-                  id="comment"
-                  placeholder="Share updates, findings, or notes about this incident..."
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                  rows={3}
-                  aria-label="Comment text"
-                />
-                <Button
-                  onClick={handleAddComment}
-                  disabled={!commentText.trim() || isAddingComment}
-                  className="w-full sm:w-auto"
-                  aria-label="Add comment"
-                >
-                  Add Comment
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
 
-        {/* Alerts Tab */}
-        <TabsContent value="alerts">
-          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" aria-hidden="true" />
-                Related Alerts ({incident.alerts.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {incident.alerts.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Alert Name</TableHead>
-                      <TableHead>Severity</TableHead>
-                      <TableHead>Resource</TableHead>
-                      <TableHead>Fired At</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {incident.alerts.map(alert => (
-                      <TableRow key={alert.id}>
-                        <TableCell className="font-medium">{alert.name}</TableCell>
-                        <TableCell>
-                          <SeverityIndicator severity={alert.severity} showText={false} />
-                        </TableCell>
-                        <TableCell>{alert.resourceName}</TableCell>
-                        <TableCell>
-                          <time dateTime={alert.firedAt}>
-                            {formatDistanceToNow(new Date(alert.firedAt), { addSuffix: true })}
-                          </time>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={cn(
-                              alert.status === 'active' && 'bg-red-500 hover:bg-red-600 text-white',
-                              alert.status === 'resolved' && 'bg-green-500 hover:bg-green-600 text-white',
-                              alert.status === 'suppressed' && 'bg-gray-500 hover:bg-gray-600 text-white'
-                            )}
-                          >
-                            {alert.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedAlertId(alert.id)}
-                            aria-label={`View details for ${alert.name}`}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400">No alerts found</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            {/* Affected Resources Tab */}
+            {activeTab === 'resources' && (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                  Affected Resources ({affectedResources.length})
+                </h3>
+                <div className="space-y-3">
+                  {affectedResources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="material-symbols-outlined text-2xl text-indigo-500">
+                          dns
+                        </span>
+                        <div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {resource.name}
+                          </div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            {resource.type} • {resource.region}
+                          </div>
+                        </div>
+                      </div>
+                      <StatusIndicatorV2
+                        status={getResourceStatusColor(resource.status)}
+                        label={resource.status}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* Resources Tab */}
-        <TabsContent value="resources">
-          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" aria-hidden="true" />
-                Affected Resources ({incident.resources.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {incident.resources.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Resource Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Provider</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {incident.resources.map(resource => (
-                      <TableRow key={resource.id}>
-                        <TableCell className="font-medium">{resource.name}</TableCell>
-                        <TableCell>{resource.type}</TableCell>
-                        <TableCell>{resource.location}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{resource.provider.toUpperCase()}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={cn(
-                              resource.status === 'running' && 'bg-green-500 hover:bg-green-600 text-white',
-                              resource.status === 'stopped' && 'bg-gray-500 hover:bg-gray-600 text-white',
-                              resource.status === 'error' && 'bg-red-500 hover:bg-red-600 text-white'
-                            )}
-                          >
-                            {resource.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400">No resources found</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Timeline Tab */}
-        <TabsContent value="timeline">
-          <Card className={cn(PREMIUM_TRANSITIONS.card, PREMIUM_HOVER_EFFECTS.card)}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" aria-hidden="true" />
-                Incident Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <IncidentTimeline events={incident.timeline} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Alert Detail Modal */}
-      <AlertDetailModal
-        alert={selectedAlert || null}
-        isLoading={isAlertLoading}
-        isOpen={!!selectedAlertId}
-        onClose={() => setSelectedAlertId(null)}
-      />
+            {/* Remediation Steps Tab */}
+            {activeTab === 'remediation' && (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                  Remediation Plan
+                </h3>
+                <div className="space-y-4">
+                  {remediationSteps.map((step) => (
+                    <div
+                      key={step.id}
+                      className={cn(
+                        'flex gap-4 p-4 rounded-lg border-2 transition-all',
+                        step.status === 'completed' &&
+                          'bg-success/5 border-success/20',
+                        step.status === 'in_progress' &&
+                          'bg-blue-500/5 border-blue-500/20',
+                        step.status === 'pending' &&
+                          'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
+                          step.status === 'completed' && 'bg-success text-white',
+                          step.status === 'in_progress' &&
+                            'bg-blue-500 text-white animate-pulse',
+                          step.status === 'pending' &&
+                            'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        )}
+                      >
+                        {step.status === 'completed' ? (
+                          <span className="material-symbols-outlined text-lg">check</span>
+                        ) : (
+                          step.step
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-slate-900 dark:text-white">
+                            {step.title}
+                          </h4>
+                          {step.status === 'in_progress' && (
+                            <BadgeV2 variant="info" size="sm">
+                              In Progress
+                            </BadgeV2>
+                          )}
+                          {step.status === 'completed' && (
+                            <BadgeV2 variant="success" size="sm" icon="check">
+                              Completed
+                            </BadgeV2>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                          {step.description}
+                        </p>
+                        {step.assignee && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Assigned to: {step.assignee}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </DashboardLayoutV2>
   );
 }
