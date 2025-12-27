@@ -202,33 +202,42 @@ jobs:
 
       - name: Copy files to server
         run: |
-          # Create caddy directory on server
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} "mkdir -p /opt/copilot-app/caddy"
+          # Create directories on server
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} "mkdir -p /opt/copilot-app"
 
           # Copy configuration files
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
-          scp caddy/Caddyfile ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/caddy/Caddyfile
 
-      - name: Reload Caddy configuration
+          # Copy Caddy configuration to correct location (Caddy is standalone, not in copilot-app)
+          scp caddy/copilot.caddy ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/caddy-proxy/caddy/copilot.caddy
+
+      - name: Restart Caddy to apply configuration
         run: |
           ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'CADDY_EOF'
-            echo "🔄 Reloading Caddy configuration..."
+            echo "🔄 Restarting Caddy to apply configuration changes..."
 
-            # Check if Caddy container is running
-            if docker ps --format '{{.Names}}' | grep -q caddy; then
-              CADDY_CONTAINER=$(docker ps --format '{{.Names}}' | grep caddy | head -1)
+            # Check if Caddy container exists
+            if docker ps -a --format '{{.Names}}' | grep -q caddy; then
+              CADDY_CONTAINER=$(docker ps -a --format '{{.Names}}' | grep caddy | head -1)
               echo "  → Found Caddy container: $CADDY_CONTAINER"
 
-              # Copy new Caddyfile to Caddy container
-              docker cp /opt/copilot-app/caddy/Caddyfile $CADDY_CONTAINER:/etc/caddy/Caddyfile
+              # Restart Caddy (admin API is disabled, so we restart instead of reload)
+              docker restart $CADDY_CONTAINER
+              echo "  → Waiting for Caddy to start..."
+              sleep 10
 
-              # Reload Caddy to apply new configuration (CSP fix)
-              docker exec $CADDY_CONTAINER caddy reload --config /etc/caddy/Caddyfile
-              echo "  ✅ Caddy configuration reloaded (CSP updated)"
+              # Verify Caddy is running
+              if docker ps | grep -q $CADDY_CONTAINER; then
+                echo "  ✅ Caddy restarted successfully (CSP configuration applied)"
+              else
+                echo "  ❌ Caddy failed to start"
+                docker logs $CADDY_CONTAINER --tail=20
+                exit 1
+              fi
             else
-              echo "  ⚠️  Caddy container not found - skipping reload"
-              echo "  (CSP fix will apply on next Caddy restart)"
+              echo "  ⚠️  Caddy container not found - skipping restart"
+              echo "  (Configuration will apply when Caddy is started)"
             fi
           CADDY_EOF
 

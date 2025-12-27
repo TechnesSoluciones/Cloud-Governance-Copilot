@@ -116,4 +116,5 @@ jobs:
             GIT_COMMIT_SHA=${{ github.sha }}
             BUILD_TIMESTAMP=${{ github.run_number }}
             VERSION_TAG=latest
+            NEXT_PUBLIC_BUILD_ID=${{ github.sha }}
             CACHE_BUST=${{ github.run_number }}-${{ github.sha }}

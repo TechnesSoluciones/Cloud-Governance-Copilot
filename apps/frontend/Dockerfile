@@ -36,13 +36,15 @@ COPY apps/frontend/ .
 ARG GIT_COMMIT_SHA=unknown
 ARG BUILD_TIMESTAMP
 ARG VERSION_TAG
+ARG NEXT_PUBLIC_BUILD_ID
 
 # Set build-time environment variables for Next.js build
 # These will be embedded in the build and available at runtime
+# NEXT_PUBLIC_BUILD_ID must be set before npm run build for generateBuildId()
 ENV NEXT_TELEMETRY_DISABLED=1 \
     GIT_COMMIT_SHA=${GIT_COMMIT_SHA} \
     BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
-    NEXT_PUBLIC_BUILD_ID=${GIT_COMMIT_SHA}
+    NEXT_PUBLIC_BUILD_ID=${NEXT_PUBLIC_BUILD_ID:-${GIT_COMMIT_SHA}}
 
 # Build Next.js application
 # Clean cache before build to avoid stale files

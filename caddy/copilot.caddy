@@ -1,0 +1,95 @@
+# ============================================================
+# Cloud Governance Copilot - Caddy Configuration
+# Domain: cloudgov.app
+# ============================================================
+
+cloudgov.app {
+    # Logging
+    log {
+        output file /data/copilot-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self';"
+    }
+
+    # Health check endpoint
+    handle /health {
+        respond "OK - Copilot" 200
+    }
+
+    # NextAuth routes → Frontend
+    handle /api/auth/* {
+        reverse_proxy copilot-app-frontend-1:3000 {
+            health_uri /api/health
+            health_interval 30s
+            health_timeout 10s
+
+            header_up Host {upstream_hostport}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 30s
+            }
+        }
+    }
+
+    # API Gateway routes → Backend
+    handle /api/v1/* {
+        reverse_proxy copilot-app-api-gateway-1:3010 {
+            health_uri /health
+            health_interval 30s
+            health_timeout 10s
+
+            header_up Host {upstream_hostport}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 30s
+            }
+        }
+    }
+
+    # Next.js frontend (all other routes)
+    handle {
+        reverse_proxy copilot-app-frontend-1:3000 {
+            health_uri /api/health
+            health_interval 30s
+            health_timeout 10s
+
+            header_up Host {upstream_hostport}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    encode gzip zstd
+}
