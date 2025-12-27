@@ -23,6 +23,13 @@ COPY apps/api-gateway/package*.json ./
 RUN npm install --no-package-lock && \
     npm cache clean --force
 
+# Build arguments for version tracking (MUST be before COPY to invalidate cache)
+ARG CACHE_BUST=unknown
+
+# Force cache invalidation by using the CACHE_BUST arg in a RUN command
+# This ensures Docker rebuilds subsequent layers when CACHE_BUST changes
+RUN echo "Cache invalidation: ${CACHE_BUST}" > /tmp/cache-bust.txt
+
 # Copy Prisma files and generate client
 COPY apps/api-gateway/prisma ./prisma/
 RUN npx prisma generate

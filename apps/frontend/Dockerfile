@@ -26,6 +26,10 @@ RUN npm install --no-package-lock && \
 # Build arguments for version tracking (MUST be before COPY to invalidate cache)
 ARG CACHE_BUST=unknown
 
+# Force cache invalidation by using the CACHE_BUST arg in a RUN command
+# This ensures Docker rebuilds subsequent layers when CACHE_BUST changes
+RUN echo "Cache invalidation: ${CACHE_BUST}" > /tmp/cache-bust.txt
+
 # Copy application source (context is project root, so copy only frontend app)
 # This layer will be invalidated when CACHE_BUST changes
 COPY apps/frontend/ .
