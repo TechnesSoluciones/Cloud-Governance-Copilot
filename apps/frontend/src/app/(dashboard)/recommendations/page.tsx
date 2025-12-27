@@ -254,6 +254,33 @@ export default function RecommendationsV2Page() {
     return recommendationsData.data.data || [];
   }, [recommendationsData]);
 
+  // Apply filters to recommendations (must be before early returns)
+  const filteredRecommendations = useMemo(() => {
+    let filtered = recommendations;
+
+    // Apply provider filter
+    if (activeFilters.provider && activeFilters.provider.length > 0) {
+      filtered = filtered.filter((rec) => activeFilters.provider.includes(rec.provider));
+    }
+
+    // Apply category filter
+    if (activeFilters.category && activeFilters.category.length > 0) {
+      filtered = filtered.filter((rec) => activeFilters.category.includes(rec.category));
+    }
+
+    // Apply severity filter
+    if (activeFilters.severity && activeFilters.severity.length > 0) {
+      filtered = filtered.filter((rec) => activeFilters.severity.includes(rec.severity));
+    }
+
+    // Apply effort filter
+    if (activeFilters.effort && activeFilters.effort.length > 0) {
+      filtered = filtered.filter((rec) => activeFilters.effort.includes(rec.effort));
+    }
+
+    return filtered;
+  }, [recommendations, activeFilters]);
+
   // Loading state
   if (isLoading && recommendations.length === 0) {
     return (
@@ -297,33 +324,6 @@ export default function RecommendationsV2Page() {
   const handleFilterChange = (filterId: string, selectedValues: string[]) => {
     setActiveFilters(prev => ({ ...prev, [filterId]: selectedValues }));
   };
-
-  // Apply filters to recommendations
-  const filteredRecommendations = useMemo(() => {
-    let filtered = recommendations;
-
-    // Apply provider filter
-    if (activeFilters.provider && activeFilters.provider.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.provider.includes(rec.provider));
-    }
-
-    // Apply category filter
-    if (activeFilters.category && activeFilters.category.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.category.includes(rec.category));
-    }
-
-    // Apply severity filter
-    if (activeFilters.severity && activeFilters.severity.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.severity.includes(rec.severity));
-    }
-
-    // Apply effort filter
-    if (activeFilters.effort && activeFilters.effort.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.effort.includes(rec.effort));
-    }
-
-    return filtered;
-  }, [recommendations, activeFilters]);
 
   const totalSavings = recommendations
     .filter((rec) => rec.savings)
