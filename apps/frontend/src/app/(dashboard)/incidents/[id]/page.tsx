@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
@@ -37,15 +37,16 @@ interface RemediationStep {
   assignee?: string;
 }
 
-export default function IncidentDetailPage({ params }: { params: { id: string } }) {
+export default function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { id } = use(params);
   const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'resources' | 'remediation'>(
     'overview'
   );
 
   // Mock data - in real app, fetch based on params.id
   const incident = {
-    id: params.id,
+    id: id,
     title: 'High CPU utilization on production EC2 instances',
     description:
       'Multiple EC2 instances in the production environment are experiencing sustained high CPU utilization above 90%, causing performance degradation and application slowdowns. This issue was first detected by CloudWatch alarms and has affected customer-facing services.',
