@@ -23,10 +23,12 @@ COPY apps/frontend/package*.json ./
 RUN npm install --no-package-lock && \
     npm cache clean --force
 
-# Copy application source (context is project root, so copy only frontend app)
-COPY apps/frontend/ .
+# Build arguments for version tracking (MUST be before COPY to invalidate cache)
+ARG CACHE_BUST=unknown
 
-# Build arguments for version tracking
+# Copy application source (context is project root, so copy only frontend app)
+# This layer will be invalidated when CACHE_BUST changes
+COPY apps/frontend/ .
 ARG GIT_COMMIT_SHA=unknown
 ARG BUILD_TIMESTAMP
 ARG VERSION_TAG

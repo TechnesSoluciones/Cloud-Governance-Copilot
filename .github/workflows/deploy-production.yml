@@ -186,6 +186,7 @@ jobs:
             BUILD_TIMESTAMP=${{ github.run_number }}
             VERSION_TAG=${{ steps.version.outputs.tag }}
             NEXT_PUBLIC_API_URL=/api/v1
+            CACHE_BUST=${{ github.run_number }}-${{ github.sha }}
 
       - name: Run Trivy vulnerability scanner (image)
         uses: aquasecurity/trivy-action@master
