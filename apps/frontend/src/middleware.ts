@@ -18,7 +18,7 @@ export const config = {
     '/audit-logs/:path*',
     '/incidents/:path*',
     '/settings/:path*',
-    // Protect API routes except health check and auth endpoints
-    '/api/((?!health|auth).*)',
+    // Protect API routes except health check, auth, and version endpoints
+    '/api/((?!health|auth|version).*)',
   ],
 };
