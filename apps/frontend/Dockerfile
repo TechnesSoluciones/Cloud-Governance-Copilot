@@ -41,8 +41,10 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_BUILD_ID=${GIT_COMMIT_SHA}
 
 # Build Next.js application
+# Clean cache before build to avoid stale files
 # Next.js will create .next/standalone directory with minimal dependencies
-RUN npm run build
+RUN rm -rf .next .next/cache node_modules/.cache && \
+    npm run build
 
 # ============================================================
 # Stage 2: Production Runtime
