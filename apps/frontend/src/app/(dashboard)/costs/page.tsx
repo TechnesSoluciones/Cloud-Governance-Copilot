@@ -70,7 +70,7 @@ export default function CostsV2Page() {
 
   // Calculate KPI metrics from real data
   const totalCost = costData?.total || 0;
-  const currency = costData?.currency || 'USD';
+  const currency = 'USD'; // Hardcoded for now until backend provides currency
 
   // For demo purposes, calculate potential savings as 15% of total
   const potentialSavings = totalCost * 0.15;
