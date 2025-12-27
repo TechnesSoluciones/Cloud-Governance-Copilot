@@ -5,10 +5,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { FilterToolbar, FilterGroup } from '@/components/ui/FilterToolbar';
 import { RecommendationCard, Recommendation } from '@/components/dashboard/RecommendationCard';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
+import { useRecommendations } from '@/hooks/useRecommendations';
 import { cn } from '@/lib/utils';
 
 const filterGroups: FilterGroup[] = [
@@ -239,20 +240,67 @@ export default function RecommendationsV2Page() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(
     null
   );
-  const [filteredRecommendations, setFilteredRecommendations] =
-    useState<Recommendation[]>(mockRecommendations);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+
+  // Fetch recommendations from backend
+  const { data: recommendationsData, isLoading, error, refetch } = useRecommendations({
+    page: 1,
+    limit: 100,
+  });
+
+  // Extract recommendations from API response
+  const recommendations = useMemo(() => {
+    if (!recommendationsData?.success || !recommendationsData.data) return [];
+    return recommendationsData.data.data || [];
+  }, [recommendationsData]);
+
+  // Loading state
+  if (isLoading && recommendations.length === 0) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-brand-primary-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Loading recommendations...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-6xl text-red-400 mb-4">error</span>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+              Failed to Load Recommendations
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {error instanceof Error ? error.message : 'Unable to fetch recommendations data'}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="px-6 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">refresh</span>
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleFilterChange = (filterId: string, selectedValues: string[]) => {
-    // Apply filters
-    let filtered = mockRecommendations;
+    setActiveFilters(prev => ({ ...prev, [filterId]: selectedValues }));
+  };
 
-    // Get all active filters
-    const activeFilters: Record<string, string[]> = {};
-    filterGroups.forEach((group) => {
-      if (group.id === filterId) {
-        activeFilters[filterId] = selectedValues;
-      }
-    });
+  // Apply filters to recommendations
+  const filteredRecommendations = useMemo(() => {
+    let filtered = recommendations;
 
     // Apply provider filter
     if (activeFilters.provider && activeFilters.provider.length > 0) {
@@ -274,10 +322,10 @@ export default function RecommendationsV2Page() {
       filtered = filtered.filter((rec) => activeFilters.effort.includes(rec.effort));
     }
 
-    setFilteredRecommendations(filtered);
-  };
+    return filtered;
+  }, [recommendations, activeFilters]);
 
-  const totalSavings = mockRecommendations
+  const totalSavings = recommendations
     .filter((rec) => rec.savings)
     .reduce((sum, rec) => {
       const amount = parseInt(rec.savings!.replace(/[^0-9]/g, ''));

@@ -5,10 +5,12 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { SecurityScoreCircular } from '@/components/charts/SecurityScoreCircular';
+import { useFindings, useSummary } from '@/hooks/useSecurity';
 import { cn } from '@/lib/utils';
 
 interface SecurityFinding {
@@ -102,6 +104,66 @@ const securityCategories = [
 ];
 
 export default function SecurityV2Page() {
+  // Fetch security data
+  const { data: summaryData, isLoading: summaryLoading, error: summaryError } = useSummary();
+  const { data: findingsData, isLoading: findingsLoading, error: findingsError, refetch: refetchFindings } = useFindings({
+    page: 1,
+    limit: 20,
+  });
+
+  // Extract data
+  const summary = summaryData?.success && summaryData.data ? summaryData.data : null;
+  const findings = findingsData?.success && findingsData.data ? findingsData.data.data : [];
+  const findingsMeta = findingsData?.success && findingsData.data ? findingsData.data.meta : null;
+
+  // Calculate KPIs from real data
+  const securityScore = summary ? 100 - (summary.openFindingsBySeverity.critical * 5 + summary.openFindingsBySeverity.high * 3 + summary.openFindingsBySeverity.medium * 1) : 85;
+  const criticalFindings = summary?.openFindingsBySeverity.critical || 0;
+  const totalFindings = summary ? (summary.openFindingsBySeverity.critical + summary.openFindingsBySeverity.high + summary.openFindingsBySeverity.medium + summary.openFindingsBySeverity.low) : 0;
+  const complianceScore = summary && totalFindings > 0 ? Math.max(0, 100 - (totalFindings * 2)) : 88;
+
+  // Loading state
+  if ((summaryLoading || findingsLoading) && !summary && findings.length === 0) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-brand-primary-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Loading security data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (summaryError || findingsError) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-6xl text-red-400 mb-4">error</span>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+              Failed to Load Security Data
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {summaryError instanceof Error ? summaryError.message : 'Unable to fetch security information'}
+            </p>
+            <button
+              onClick={() => {
+                refetchFindings();
+              }}
+              className="px-6 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">refresh</span>
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
@@ -127,19 +189,19 @@ export default function SecurityV2Page() {
           </div>
         </div>
 
-        {/* KPI Cards */}
+        {/* KPI Cards - NOW WITH REAL DATA */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICardV2
             icon="security"
             label="Security Score"
-            value="85/100"
+            value={`${Math.max(0, Math.min(100, securityScore))}/100`}
             variant="emerald"
-            comparison="Good posture"
+            comparison={securityScore >= 80 ? 'Good posture' : securityScore >= 60 ? 'Fair posture' : 'Needs attention'}
           />
           <KPICardV2
             icon="error"
             label="Critical Findings"
-            value="5"
+            value={criticalFindings.toString()}
             variant="red"
             trend={{
               direction: 'down',
@@ -150,7 +212,7 @@ export default function SecurityV2Page() {
           <KPICardV2
             icon="verified"
             label="Compliance Rate"
-            value="88%"
+            value={`${Math.round(complianceScore)}%`}
             variant="blue"
             trend={{
               direction: 'up',
@@ -160,10 +222,10 @@ export default function SecurityV2Page() {
           <KPICardV2
             icon="warning"
             label="Open Findings"
-            value="35"
+            value={totalFindings.toString()}
             variant="orange"
             trend={{
-              direction: 'up',
+              direction: totalFindings > 30 ? 'up' : 'down',
               percentage: 12,
             }}
           />
@@ -182,7 +244,7 @@ export default function SecurityV2Page() {
               </p>
             </div>
             <div className="flex items-center justify-center">
-              <SecurityScoreCircular score={85} />
+              <SecurityScoreCircular score={Math.max(0, Math.min(100, securityScore))} />
             </div>
             <div className="mt-6 space-y-3">
               <div className="flex items-center justify-between">

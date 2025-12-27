@@ -8,47 +8,73 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ResourceTable, ResourceFilters, ResourceDetailModal } from '@/components/resources';
 import { Resource, ResourceFilters as IResourceFilters } from '@/types/resources';
-
-// Mock data - Replace with actual API call
-const mockResources: Resource[] = [
-  {
-    id: '1',
-    name: 'webapp-prod-001',
-    type: 'Microsoft.Web/sites',
-    location: 'East US',
-    resourceGroup: 'production-rg',
-    tags: { environment: 'production', 'cost-center': 'engineering' },
-    properties: {},
-  },
-  {
-    id: '2',
-    name: 'sqldb-prod-main',
-    type: 'Microsoft.Sql/servers/databases',
-    location: 'East US',
-    resourceGroup: 'production-rg',
-    tags: { environment: 'production', 'cost-center': 'engineering' },
-    properties: {},
-  },
-  {
-    id: '3',
-    name: 'storage-logs-001',
-    type: 'Microsoft.Storage/storageAccounts',
-    location: 'West US',
-    resourceGroup: 'logging-rg',
-    tags: { environment: 'production', 'cost-center': 'operations' },
-    properties: {},
-  },
-];
+import { useResources } from '@/hooks/useResources';
 
 export default function ResourcesPage() {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [filters, setFilters] = useState<IResourceFilters>({});
 
-  // Filter resources based on current filters
-  const filteredResources = mockResources.filter((resource) => {
+  // Fetch resources from backend with filters
+  const { data: resourcesData, isLoading, error, refetch } = useResources({
+    page: 1,
+    limit: 100,
+    search: filters.search,
+    resourceType: filters.resourceType,
+    location: filters.location,
+    resourceGroup: filters.resourceGroup,
+  });
+
+  // Extract resources from API response
+  const resources = useMemo(() => {
+    if (!resourcesData?.success || !resourcesData.data) return [];
+    return resourcesData.data.data || [];
+  }, [resourcesData]);
+
+  // Loading state
+  if (isLoading && resources.length === 0) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-brand-primary-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Loading resources...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-6xl text-red-400 mb-4">error</span>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+              Failed to Load Resources
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {error instanceof Error ? error.message : 'Unable to fetch resources data'}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="px-6 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">refresh</span>
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter resources based on current filters (client-side filtering for advanced cases)
+  const filteredResources = resources.filter((resource) => {
     const matchesSearch =
       !filters.search ||
       resource.name.toLowerCase().includes(filters.search.toLowerCase()) ||

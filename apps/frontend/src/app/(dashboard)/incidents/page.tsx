@@ -5,11 +5,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
+import { useIncidents, useAlerts } from '@/hooks/useIncidents';
 import { cn } from '@/lib/utils';
 
 interface Incident {
@@ -167,20 +168,72 @@ const mockIncidents: Incident[] = [
 
 export default function IncidentsV2Page() {
   const router = useRouter();
-  const [incidents, setIncidents] = useState<Incident[]>(mockIncidents);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterProvider, setFilterProvider] = useState<string>('all');
 
-  const openIncidents = incidents.filter((i) => i.status === 'open' || i.status === 'investigating').length;
-  const criticalIncidents = incidents.filter((i) => i.severity === 'critical').length;
+  // Fetch incidents from backend
+  const { data: incidentsData, isLoading, error, refetch } = useIncidents({
+    page: 1,
+    limit: 50,
+  });
+
+  // Extract incidents from API response
+  const incidents = useMemo(() => {
+    if (!incidentsData?.success || !incidentsData.data) return [];
+    return incidentsData.data.data || [];
+  }, [incidentsData]);
+
+  // Calculate KPIs from real data
+  const openIncidents = incidents.filter((i: any) => i.status === 'open' || i.status === 'investigating').length;
+  const criticalIncidents = incidents.filter((i: any) => i.severity === 'critical').length;
   const resolvedToday = incidents.filter(
-    (i) =>
+    (i: any) =>
       (i.status === 'resolved' || i.status === 'closed') &&
       new Date(i.updatedAt).toDateString() === new Date().toDateString()
   ).length;
   const avgResolutionTime = '2.5h';
+
+  // Loading state
+  if (isLoading && incidents.length === 0) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-brand-primary-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Loading incidents...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-6xl text-red-400 mb-4">error</span>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+              Failed to Load Incidents
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {error instanceof Error ? error.message : 'Unable to fetch incidents data'}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="px-6 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">refresh</span>
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredIncidents = incidents.filter((incident) => {
     const matchesSearch =
