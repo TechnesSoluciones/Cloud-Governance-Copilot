@@ -1,0 +1,310 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["Build Docker Images"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0, or latest)'
+        required: false
+        default: 'latest'
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: technessoluciones
+
+jobs:
+  # ========================================================
+  # Job 1: Verify Build Success
+  # ========================================================
+  check-build:
+    name: Verify Build Success
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Build verification
+        run: |
+          echo "✅ Build workflow completed successfully"
+          echo "Build workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Build workflow ID: ${{ github.event.workflow_run.id }}"
+
+  # ========================================================
+  # Job 2: Deploy to Production
+  # ========================================================
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: check-build
+    if: github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'v') || github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.APP_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create .env file
+        run: |
+          cat > deployment.env << 'EOF'
+          # Database Configuration
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+          # Redis Configuration
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+          REDIS_TLS=false
+
+          # JWT & Security
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+
+          # Application URLs
+          INTERNAL_API_URL=http://api-gateway:3010/api/v1
+          NEXT_PUBLIC_API_URL=/api/v1
+          NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+
+          # Caddy Configuration
+          DOMAIN=${{ secrets.DOMAIN }}
+          CADDY_EMAIL=${{ secrets.CADDY_EMAIL }}
+
+          # Application Configuration
+          NODE_ENV=production
+          LOG_LEVEL=info
+          PORT=3010
+          EOF
+
+      - name: Copy files to server
+        run: |
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} "mkdir -p /opt/copilot-app"
+          scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
+          scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
+          scp caddy/copilot.caddy ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/caddy-proxy/caddy/copilot.caddy
+
+      - name: Restart Caddy
+        run: |
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'CADDY_EOF'
+            if docker ps -a --format '{{.Names}}' | grep -q caddy; then
+              CADDY_CONTAINER=$(docker ps -a --format '{{.Names}}' | grep caddy | head -1)
+              docker restart $CADDY_CONTAINER
+              sleep 10
+              if docker ps | grep -q $CADDY_CONTAINER; then
+                echo "✅ Caddy restarted successfully"
+              else
+                echo "❌ Caddy failed to start"
+                docker logs $CADDY_CONTAINER --tail=20
+                exit 1
+              fi
+            fi
+          CADDY_EOF
+
+      - name: Determine version tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+            echo "semantic_version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "deployment_type=release" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.version }}" != "" ]]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "semantic_version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "deployment_type=manual" >> $GITHUB_OUTPUT
+          else
+            GIT_DESCRIBE=$(git describe --tags --always --dirty 2>/dev/null || echo "v0.0.0-${GITHUB_SHA:0:7}")
+            COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo "0")
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+            BASE_VERSION=$(echo "$GIT_DESCRIBE" | grep -oP 'v?\K[0-9]+\.[0-9]+\.[0-9]+' || echo "0.0.0")
+            SEMANTIC_VERSION="${BASE_VERSION}+${COMMIT_COUNT}.${SHORT_SHA}"
+
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "semantic_version=${SEMANTIC_VERSION}" >> $GITHUB_OUTPUT
+            echo "deployment_type=auto" >> $GITHUB_OUTPUT
+            echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "commit_count=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy on server
+        run: |
+          VERSION_TAG="${{ steps.version.outputs.tag }}"
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'DEPLOY_EOF'
+            set -e
+            cd /opt/copilot-app
+            VERSION_TAG="${{ steps.version.outputs.tag }}"
+
+            echo "=========================================="
+            echo "🚀 DEPLOYMENT v${VERSION_TAG} STARTED"
+            echo "=========================================="
+
+            # Login to registry
+            echo "🔐 Authenticating with registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull new images
+            echo "📥 Pulling version ${VERSION_TAG}..."
+            docker pull ghcr.io/technessoluciones/copilot-api-gateway:${VERSION_TAG}
+            docker pull ghcr.io/technessoluciones/copilot-frontend:${VERSION_TAG}
+
+            # Clear Redis cache
+            echo "🧹 Clearing application cache..."
+            REDIS_PASS=$(grep REDIS_PASSWORD .env | cut -d'=' -f2 | tr -d '\r')
+            if docker compose ps redis | grep -q "running"; then
+              docker compose exec -T redis redis-cli -a "$REDIS_PASS" --no-auth-warning FLUSHALL
+              echo "✓ Redis cache cleared"
+            fi
+
+            # Deploy services
+            echo "🔄 Deploying services..."
+            export IMAGE_TAG=${VERSION_TAG}
+            docker compose up -d --force-recreate api-gateway frontend
+            sleep 20
+
+            # Health checks
+            echo "🔄 Verifying services health..."
+            for i in {1..30}; do
+              if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/health > /dev/null 2>&1; then
+                echo "✓ API Gateway is healthy"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "❌ API Gateway health check failed"
+                docker compose logs --tail=50 api-gateway
+                exit 1
+              fi
+              sleep 3
+            done
+
+            for i in {1..30}; do
+              if docker compose exec -T frontend wget -q -O- http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "✓ Frontend is healthy"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "❌ Frontend health check failed"
+                docker compose logs --tail=50 frontend
+                exit 1
+              fi
+              sleep 3
+            done
+
+            # Cleanup
+            echo "🗑️  Cleaning up old images..."
+            docker image prune -af --filter "until=72h" > /dev/null 2>&1 || true
+
+            echo "=========================================="
+            echo "✨ DEPLOYMENT COMPLETED SUCCESSFULLY"
+            echo "=========================================="
+            echo "📦 Deployment Details:"
+            echo "   Docker Tag: ${VERSION_TAG}"
+            echo "   Semantic Version: ${{ steps.version.outputs.semantic_version }}"
+            echo "   Deployment Type: ${{ steps.version.outputs.deployment_type }}"
+            echo "   Commit SHA: ${{ github.sha }}"
+            echo "=========================================="
+          DEPLOY_EOF
+
+  # ========================================================
+  # Job 3: Post-Deployment Tests
+  # ========================================================
+  post-deployment-tests:
+    name: Post-Deployment Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.APP_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Wait for stabilization
+        run: sleep 30
+
+      - name: Smoke tests
+        run: |
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
+            echo "=========================================="
+            echo "🧪 SMOKE TESTS"
+            echo "=========================================="
+
+            TESTS_PASSED=0
+            TESTS_FAILED=0
+
+            # Test 1: API Health
+            api_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/api/health || echo "failed")
+            if [ "$api_health" = "200" ]; then
+              echo "✓ API Gateway health check passed"
+              ((TESTS_PASSED++))
+            else
+              echo "❌ API Gateway health check failed (HTTP $api_health)"
+              ((TESTS_FAILED++))
+            fi
+
+            # Test 2: Frontend Health
+            frontend_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
+            if [ "$frontend_health" = "200" ]; then
+              echo "✓ Frontend health check passed"
+              ((TESTS_PASSED++))
+            else
+              echo "❌ Frontend health check failed (HTTP $frontend_health)"
+              ((TESTS_FAILED++))
+            fi
+
+            # Test 3: Redis Connection
+            if docker compose exec -T redis redis-cli ping &> /dev/null; then
+              echo "✓ Redis connectivity test passed"
+              ((TESTS_PASSED++))
+            else
+              echo "❌ Redis connectivity test failed"
+              ((TESTS_FAILED++))
+            fi
+
+            echo "=========================================="
+            echo "Tests Passed: $TESTS_PASSED/3"
+            echo "Tests Failed: $TESTS_FAILED/3"
+            echo "=========================================="
+
+            if [ $TESTS_FAILED -eq 0 ]; then
+              echo "✅ ALL SMOKE TESTS PASSED"
+              exit 0
+            else
+              echo "❌ SOME TESTS FAILED"
+              exit 1
+            fi
+          EOF
+
+      - name: Deployment summary
+        run: |
+          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production (Hetzner)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: ${{ secrets.APP_SERVER_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

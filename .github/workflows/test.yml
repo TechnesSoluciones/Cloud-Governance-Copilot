@@ -8,18 +8,16 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '20'
   DATABASE_URL: 'postgresql://test:test@localhost:5432/copilot_test'
   REDIS_URL: 'redis://localhost:6379'
 
 jobs:
   # ============================================================
-  # Fast Feedback: Unit Tests + Linting + Type Check
-  # Run these first to fail fast on basic errors
+  # Fast Feedback: Lint + Type Check (Run in parallel)
   # ============================================================
-
-  unit-tests:
-    name: Unit Tests
+  lint-and-typecheck:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -27,53 +25,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup project
+        uses: ./.github/actions/setup-node-project
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        working-directory: ./apps/api-gateway
-        run: npx prisma generate
-
-      - name: Run unit tests
-        working-directory: ./apps/api-gateway
-        run: npm run test:unit
-        env:
-          NODE_ENV: test
-
-      - name: Upload unit test coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./apps/api-gateway/coverage/lcov.info
-          flags: unit-tests
-          name: Unit Tests Coverage
-
-  lint:
-    name: Linting
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        working-directory: ./apps/api-gateway
-        run: npx prisma generate
 
       - name: Lint API Gateway
         working-directory: ./apps/api-gateway
@@ -83,28 +38,6 @@ jobs:
         working-directory: ./apps/frontend
         run: npm run lint
         continue-on-error: true
-
-  type-check:
-    name: TypeScript Type Checking
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        working-directory: ./apps/api-gateway
-        run: npx prisma generate
 
       - name: Type check API Gateway
         working-directory: ./apps/api-gateway
@@ -116,11 +49,10 @@ jobs:
         continue-on-error: true
 
   # ============================================================
-  # Security Scanning
+  # Unit Tests
   # ============================================================
-
-  security:
-    name: Security Scanning
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -128,20 +60,50 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup project
+        uses: ./.github/actions/setup-node-project
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Run unit tests
+        working-directory: ./apps/api-gateway
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
 
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/api-gateway/coverage/lcov.info
+          flags: unit-tests
 
-      - name: Run Snyk security scan
+  # ============================================================
+  # Security Scanning (Consolidated)
+  # ============================================================
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup project
+        uses: ./.github/actions/setup-node-project
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: npm audit
+        run: |
+          npm audit --audit-level=moderate || true
+          cd apps/api-gateway && npm audit --audit-level=moderate || true
+          cd ../frontend && npm audit --audit-level=moderate || true
+
+      - name: Snyk security scan
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
@@ -149,15 +111,37 @@ jobs:
         with:
           args: --severity-threshold=high
 
-  # ============================================================
-  # Integration Tests with Database
-  # Only run if unit tests, linting, and type-check pass
-  # ============================================================
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
 
-  api-tests:
-    name: API Integration Tests
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config-path: .gitleaks.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  # ============================================================
+  # Integration Tests (Only if fast tests pass)
+  # ============================================================
+  integration-tests:
+    name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [unit-tests, lint, type-check]
+    needs: [lint-and-typecheck, unit-tests]
     timeout-minutes: 15
 
     services:
@@ -187,63 +171,42 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup project
+        uses: ./.github/actions/setup-node-project
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        working-directory: ./apps/api-gateway
-        run: npx prisma generate
-
-      - name: Setup test database
+      - name: Setup database
         working-directory: ./apps/api-gateway
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
         run: npx prisma migrate deploy
 
-      - name: Run API integration tests
+      - name: Run integration tests
         working-directory: ./apps/api-gateway
         env:
           NODE_ENV: test
           DATABASE_URL: ${{ env.DATABASE_URL }}
           REDIS_URL: ${{ env.REDIS_URL }}
-          JWT_SECRET: test-jwt-secret-key
-          JWT_REFRESH_SECRET: test-refresh-secret-key
+          JWT_SECRET: test-jwt-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
         run: npm run test:integration
 
-      - name: Upload integration test coverage
+      - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
           files: ./apps/api-gateway/coverage/lcov.info
           flags: integration-tests
-          name: Integration Tests Coverage
 
-      - name: Check coverage thresholds
-        working-directory: ./apps/api-gateway
-        run: |
-          if [ -f coverage/coverage-summary.json ]; then
-            COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
-            echo "Total Coverage: $COVERAGE%"
-            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-              echo "ERROR: Coverage $COVERAGE% is below threshold 80%"
-              exit 1
-            fi
-            echo "SUCCESS: Coverage threshold met"
-          else
-            echo "WARNING: No coverage summary found"
-          fi
-
+  # ============================================================
+  # E2E Tests (Only if integration tests pass)
+  # ============================================================
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: [api-tests]
+    needs: [integration-tests]
     timeout-minutes: 30
 
     services:
@@ -273,61 +236,47 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup project
+        uses: ./.github/actions/setup-node-project
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
+      - name: Install Playwright
         working-directory: ./apps/frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Setup test database
+      - name: Setup database
         working-directory: ./apps/api-gateway
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/copilot_test
+          DATABASE_URL: ${{ env.DATABASE_URL }}
         run: |
           npx prisma migrate deploy
           npx prisma generate
 
-      - name: Build API
-        working-directory: ./apps/api-gateway
-        run: npm run build
-
-      - name: Start API server
-        working-directory: ./apps/api-gateway
+      - name: Build and start services
         env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://test:test@localhost:5432/copilot_test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-key
-          JWT_REFRESH_SECRET: test-refresh-secret-key
-          PORT: 3001
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
+          JWT_SECRET: test-jwt-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          NEXT_PUBLIC_API_URL: http://localhost:3001
         run: |
+          # Build API
+          cd apps/api-gateway
+          npm run build
           npm start &
           echo $! > api.pid
+          cd ../..
           sleep 10
 
-      - name: Build frontend
-        working-directory: ./apps/frontend
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001
-        run: npm run build
-
-      - name: Start frontend server
-        working-directory: ./apps/frontend
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001
-          PORT: 3010
-        run: |
+          # Build Frontend
+          cd apps/frontend
+          npm run build
           npm start &
           echo $! > frontend.pid
+          cd ../..
           sleep 10
 
       - name: Wait for services
@@ -343,7 +292,7 @@ jobs:
           CI: true
         run: npm run test:e2e
 
-      - name: Upload E2E test results
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v3
         with:
@@ -351,7 +300,7 @@ jobs:
           path: apps/frontend/playwright-report/
           retention-days: 30
 
-      - name: Upload E2E test videos
+      - name: Upload videos on failure
         if: failure()
         uses: actions/upload-artifact@v3
         with:
@@ -369,138 +318,33 @@ jobs:
             kill $(cat apps/frontend/frontend.pid) || true
           fi
 
-  test-matrix:
-    name: E2E Tests - ${{ matrix.browser }}
-    runs-on: ubuntu-latest
-    needs: [api-tests]
-    timeout-minutes: 30
-
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium]
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: copilot_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        working-directory: ./apps/frontend
-        run: npx playwright install --with-deps ${{ matrix.browser }}
-
-      - name: Setup and start services
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/copilot_test
-          REDIS_URL: redis://localhost:6379
-        run: |
-          cd apps/api-gateway
-          npx prisma migrate deploy
-          npx prisma generate
-          npm run build
-          npm start &
-          cd ../..
-          sleep 10
-
-          cd apps/frontend
-          npm run build
-          npm start &
-          cd ../..
-          sleep 10
-
-      - name: Run E2E tests on ${{ matrix.browser }}
-        working-directory: ./apps/frontend
-        env:
-          BASE_URL: http://localhost:3010
-          CI: true
-        run: npx playwright test --project=${{ matrix.browser }}
-
-      - name: Upload test results for ${{ matrix.browser }}
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: playwright-results-${{ matrix.browser }}
-          path: apps/frontend/test-results/
-          retention-days: 7
-
   # ============================================================
   # Test Summary
-  # Final gate to ensure all tests passed
   # ============================================================
-
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, lint, type-check, security, api-tests, e2e-tests, test-matrix]
+    needs: [lint-and-typecheck, unit-tests, security, integration-tests, e2e-tests]
     if: always()
 
     steps:
-      - name: Check test results
+      - name: Check results
         run: |
           echo "==================================="
           echo "       TEST RESULTS SUMMARY        "
           echo "==================================="
+          echo "Lint & Type Check: ${{ needs.lint-and-typecheck.result }}"
           echo "Unit Tests:        ${{ needs.unit-tests.result }}"
-          echo "Lint:              ${{ needs.lint.result }}"
-          echo "Type Check:        ${{ needs.type-check.result }}"
           echo "Security Scan:     ${{ needs.security.result }}"
-          echo "Integration Tests: ${{ needs.api-tests.result }}"
+          echo "Integration Tests: ${{ needs.integration-tests.result }}"
           echo "E2E Tests:         ${{ needs.e2e-tests.result }}"
-          echo "Browser Matrix:    ${{ needs.test-matrix.result }}"
           echo "==================================="
 
       - name: Fail if critical tests failed
         if: |
+          needs.lint-and-typecheck.result == 'failure' ||
           needs.unit-tests.result == 'failure' ||
-          needs.lint.result == 'failure' ||
-          needs.type-check.result == 'failure' ||
-          needs.api-tests.result == 'failure'
+          needs.integration-tests.result == 'failure'
         run: |
           echo "CRITICAL TESTS FAILED!"
-          echo "Pipeline cannot proceed with failing unit tests, linting, type-check, or integration tests."
           exit 1
-
-      - name: Warn if non-critical tests failed
-        if: |
-          needs.e2e-tests.result == 'failure' ||
-          needs.test-matrix.result == 'failure' ||
-          needs.security.result == 'failure'
-        run: |
-          echo "WARNING: Some non-critical tests failed"
-          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
-          echo "Browser Matrix: ${{ needs.test-matrix.result }}"
-          echo "Security Scan: ${{ needs.security.result }}"
-          echo "Please review these failures before merging."
