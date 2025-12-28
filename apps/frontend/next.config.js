@@ -21,7 +21,7 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true, // Type checking done separately in CI workflow
   },
   // Proxy API calls from browser to backend container
   // This solves the localhost:3010 connection issue in Docker

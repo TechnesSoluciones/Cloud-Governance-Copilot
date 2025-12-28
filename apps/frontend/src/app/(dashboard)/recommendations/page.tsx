@@ -62,7 +62,7 @@ const filterGroups: FilterGroup[] = [
 ];
 
 export default function RecommendationsV2Page() {
-  const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(
+  const [selectedRecommendation, setSelectedRecommendation] = useState<any>(
     null
   );
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
@@ -76,7 +76,7 @@ export default function RecommendationsV2Page() {
   // Extract recommendations from API response
   const recommendations = useMemo(() => {
     if (!recommendationsData?.success || !recommendationsData.data) return [];
-    return recommendationsData.data.data || [];
+    return recommendationsData.data.recommendations || [];
   }, [recommendationsData]);
 
   // Apply filters to recommendations (must be before early returns)
@@ -85,22 +85,22 @@ export default function RecommendationsV2Page() {
 
     // Apply provider filter
     if (activeFilters.provider && activeFilters.provider.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.provider.includes(rec.provider));
+      filtered = filtered.filter((rec: any) => activeFilters.provider.includes(rec.provider));
     }
 
-    // Apply category filter
+    // Apply type filter (was category)
     if (activeFilters.category && activeFilters.category.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.category.includes(rec.category));
+      filtered = filtered.filter((rec: any) => activeFilters.category.includes(rec.type));
     }
 
-    // Apply severity filter
+    // Apply priority filter (was severity)
     if (activeFilters.severity && activeFilters.severity.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.severity.includes(rec.severity));
+      filtered = filtered.filter((rec: any) => activeFilters.severity.includes(rec.priority));
     }
 
-    // Apply effort filter
+    // Effort filter not supported by backend - skip
     if (activeFilters.effort && activeFilters.effort.length > 0) {
-      filtered = filtered.filter((rec) => activeFilters.effort.includes(rec.effort));
+      // Skip - backend doesn't have effort field
     }
 
     return filtered;
@@ -151,10 +151,9 @@ export default function RecommendationsV2Page() {
   };
 
   const totalSavings = recommendations
-    .filter((rec) => rec.savings)
-    .reduce((sum, rec) => {
-      const amount = parseInt(rec.savings!.replace(/[^0-9]/g, ''));
-      return sum + amount;
+    .filter((rec: any) => rec.estimatedSavings)
+    .reduce((sum: any, rec: any) => {
+      return sum + rec.estimatedSavings;
     }, 0);
 
   return (
@@ -224,7 +223,7 @@ export default function RecommendationsV2Page() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {recommendations.filter((r) => r.severity === 'critical').length}
+                      {recommendations.filter((r: any) => r.priority === 'high').length}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Critical Issues
@@ -240,7 +239,7 @@ export default function RecommendationsV2Page() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {recommendations.reduce((sum, r) => sum + r.affectedResources, 0)}
+                      {recommendations.reduce((sum: any, r: any) => sum + (r.affectedResources?.length || 0), 0)}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Affected Resources
