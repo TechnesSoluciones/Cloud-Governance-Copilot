@@ -11,97 +11,8 @@ import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { SecurityScoreCircular } from '@/components/charts/SecurityScoreCircular';
 import { useFindings, useSummary } from '@/hooks/useSecurity';
+import { Finding } from '@/lib/api/security';
 import { cn } from '@/lib/utils';
-
-interface SecurityFinding {
-  id: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  title: string;
-  resource: string;
-  provider: 'AWS' | 'Azure' | 'GCP';
-  category: string;
-  status: 'open' | 'in_progress' | 'resolved';
-  detectedDate: string;
-}
-
-const securityFindings: SecurityFinding[] = [
-  {
-    id: '1',
-    severity: 'critical',
-    title: 'Unencrypted S3 bucket with public access',
-    resource: 's3://prod-data-bucket',
-    provider: 'AWS',
-    category: 'Data Protection',
-    status: 'open',
-    detectedDate: '2024-01-15',
-  },
-  {
-    id: '2',
-    severity: 'critical',
-    title: 'IAM user with full admin privileges',
-    resource: 'iam://user/john.doe',
-    provider: 'AWS',
-    category: 'Access Management',
-    status: 'open',
-    detectedDate: '2024-01-14',
-  },
-  {
-    id: '3',
-    severity: 'high',
-    title: 'RDS instance publicly accessible',
-    resource: 'rds://db-prod-main',
-    provider: 'AWS',
-    category: 'Network Security',
-    status: 'in_progress',
-    detectedDate: '2024-01-13',
-  },
-  {
-    id: '4',
-    severity: 'high',
-    title: 'Storage account without firewall rules',
-    resource: 'storage://prodstorage01',
-    provider: 'Azure',
-    category: 'Network Security',
-    status: 'open',
-    detectedDate: '2024-01-12',
-  },
-  {
-    id: '5',
-    severity: 'medium',
-    title: 'MFA not enabled for privileged accounts',
-    resource: 'iam://group/admins',
-    provider: 'AWS',
-    category: 'Access Management',
-    status: 'in_progress',
-    detectedDate: '2024-01-11',
-  },
-  {
-    id: '6',
-    severity: 'medium',
-    title: 'Outdated SSL/TLS certificate',
-    resource: 'lb://prod-web-lb',
-    provider: 'GCP',
-    category: 'Encryption',
-    status: 'resolved',
-    detectedDate: '2024-01-10',
-  },
-];
-
-const complianceFrameworks = [
-  { name: 'SOC 2', score: 92, status: 'compliant' as const, controls: 78, passed: 72 },
-  { name: 'ISO 27001', score: 88, status: 'compliant' as const, controls: 114, passed: 100 },
-  { name: 'GDPR', score: 85, status: 'partial' as const, controls: 45, passed: 38 },
-  { name: 'HIPAA', score: 78, status: 'partial' as const, controls: 52, passed: 41 },
-  { name: 'PCI DSS', score: 95, status: 'compliant' as const, controls: 35, passed: 33 },
-];
-
-const securityCategories = [
-  { name: 'Data Protection', findings: 8, critical: 2, high: 3, medium: 3 },
-  { name: 'Access Management', findings: 12, critical: 3, high: 4, medium: 5 },
-  { name: 'Network Security', findings: 6, critical: 0, high: 2, medium: 4 },
-  { name: 'Encryption', findings: 4, critical: 0, high: 1, medium: 3 },
-  { name: 'Logging & Monitoring', findings: 5, critical: 1, high: 2, medium: 2 },
-];
 
 export default function SecurityV2Page() {
   // Fetch security data
@@ -112,15 +23,50 @@ export default function SecurityV2Page() {
   });
 
   // Extract data
-  const summary = summaryData?.success && summaryData.data ? summaryData.data : null;
+  const summary = summaryData?.success && summaryData.data ? summaryData.data.data : null;
   const findings = findingsData?.success && findingsData.data ? findingsData.data.data : [];
   const findingsMeta = findingsData?.success && findingsData.data ? findingsData.data.meta : null;
 
   // Calculate KPIs from real data
-  const securityScore = summary ? 100 - (summary.openFindingsBySeverity.critical * 5 + summary.openFindingsBySeverity.high * 3 + summary.openFindingsBySeverity.medium * 1) : 85;
-  const criticalFindings = summary?.openFindingsBySeverity.critical || 0;
-  const totalFindings = summary ? (summary.openFindingsBySeverity.critical + summary.openFindingsBySeverity.high + summary.openFindingsBySeverity.medium + summary.openFindingsBySeverity.low) : 0;
+  const securityScore = summary
+    ? Math.max(0, 100 - (summary.criticalCount * 5 + summary.highCount * 3 + summary.mediumCount * 1))
+    : 85;
+  const criticalFindings = summary?.criticalCount || 0;
+  const totalFindings = summary?.totalFindings || 0;
   const complianceScore = summary && totalFindings > 0 ? Math.max(0, 100 - (totalFindings * 2)) : 88;
+
+  // Calculate security categories from findings
+  const securityCategories = useMemo(() => {
+    if (!findings || findings.length === 0) return [];
+
+    const categoriesMap = new Map<string, {
+      name: string;
+      findings: number;
+      critical: number;
+      high: number;
+      medium: number;
+    }>();
+
+    findings.forEach((finding: Finding) => {
+      const category = finding.category;
+      const existing = categoriesMap.get(category) || {
+        name: category,
+        findings: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+      };
+
+      existing.findings++;
+      if (finding.severity === 'CRITICAL') existing.critical++;
+      else if (finding.severity === 'HIGH') existing.high++;
+      else if (finding.severity === 'MEDIUM') existing.medium++;
+
+      categoriesMap.set(category, existing);
+    });
+
+    return Array.from(categoriesMap.values());
+  }, [findings]);
 
   // Loading state
   if ((summaryLoading || findingsLoading) && !summary && findings.length === 0) {
@@ -423,41 +369,33 @@ export default function SecurityV2Page() {
                 </tr>
               </thead>
               <tbody>
-                {securityFindings.map((finding) => (
+                {findings.map((finding: Finding) => (
                   <tr
                     key={finding.id}
                     className={cn(
                       'border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border-l-4',
-                      finding.severity === 'critical'
+                      finding.severity === 'CRITICAL'
                         ? 'border-l-error'
-                        : finding.severity === 'high'
+                        : finding.severity === 'HIGH'
                           ? 'border-l-warning'
-                          : finding.severity === 'medium'
+                          : finding.severity === 'MEDIUM'
                             ? 'border-l-info'
                             : 'border-l-slate-300'
                     )}
                   >
                     <td className="py-3 px-4">
-                      <BadgeV2 variant={finding.severity} size="sm">
+                      <BadgeV2 variant={finding.severity.toLowerCase() as any} size="sm">
                         {finding.severity}
                       </BadgeV2>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <BadgeV2
-                          variant={finding.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}
-                          size="sm"
-                        >
-                          {finding.provider}
-                        </BadgeV2>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">
-                          {finding.title}
-                        </span>
-                      </div>
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                        {finding.title}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300">
-                        {finding.resource}
+                        {finding.resourceId}
                       </code>
                     </td>
                     <td className="py-3 px-4">
@@ -470,18 +408,18 @@ export default function SecurityV2Page() {
                         variant={
                           finding.status === 'resolved'
                             ? 'success'
-                            : finding.status === 'in_progress'
+                            : finding.status === 'dismissed'
                               ? 'warning'
                               : 'error'
                         }
                         size="sm"
                       >
-                        {finding.status.replace('_', ' ')}
+                        {finding.status}
                       </BadgeV2>
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {finding.detectedDate}
+                        {new Date(finding.detectedAt).toLocaleDateString()}
                       </span>
                     </td>
                   </tr>

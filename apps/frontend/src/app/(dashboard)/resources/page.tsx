@@ -121,7 +121,7 @@ export default function ResourcesPage() {
                 Total Resources
               </p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {mockResources.length}
+                {resources.length}
               </p>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function ResourcesPage() {
                 Resource Types
               </p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {new Set(mockResources.map((r) => r.type)).size}
+                {new Set(resources.map((r) => r.type)).size}
               </p>
             </div>
           </div>
@@ -151,7 +151,7 @@ export default function ResourcesPage() {
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Locations</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {new Set(mockResources.map((r) => r.location)).size}
+                {new Set(resources.map((r) => r.location)).size}
               </p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function ResourcesPage() {
                 Resource Groups
               </p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {new Set(mockResources.map((r) => r.resourceGroup)).size}
+                {new Set(resources.map((r) => r.resourceGroup)).size}
               </p>
             </div>
           </div>
@@ -178,12 +178,12 @@ export default function ResourcesPage() {
       <ResourceFilters
         filters={filters}
         onFiltersChange={setFilters}
-        resourceGroups={Array.from(new Set(mockResources.map((r) => r.resourceGroup)))}
+        resourceGroups={Array.from(new Set(resources.map((r) => r.resourceGroup)))}
       />
 
       {/* Resources Table */}
       <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800">
-        <ResourceTable resources={filteredResources} onRowClick={setSelectedResource} isLoading={false} />
+        <ResourceTable resources={filteredResources} onRowClick={setSelectedResource} isLoading={isLoading} />
       </div>
 
       {/* Resource Detail Modal */}

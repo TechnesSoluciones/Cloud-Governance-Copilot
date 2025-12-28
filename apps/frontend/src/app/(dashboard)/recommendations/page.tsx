@@ -61,181 +61,6 @@ const filterGroups: FilterGroup[] = [
   },
 ];
 
-const mockRecommendations: Recommendation[] = [
-  {
-    id: '1',
-    severity: 'critical',
-    category: 'security',
-    title: 'Unencrypted S3 buckets detected',
-    description:
-      'Multiple S3 buckets are storing sensitive data without encryption at rest. This poses a significant security risk and violates compliance requirements.',
-    resource: 's3://prod-data-bucket',
-    provider: 'AWS',
-    region: 'us-east-1',
-    impact: 'High - Data breach risk',
-    effort: 'low',
-    affectedResources: 3,
-    tags: ['compliance', 'encryption', 'GDPR'],
-    steps: [
-      'Navigate to S3 console',
-      'Select the bucket',
-      'Enable default encryption with AES-256 or KMS',
-      'Update bucket policy to enforce encryption',
-    ],
-  },
-  {
-    id: '2',
-    severity: 'high',
-    category: 'cost',
-    title: 'Idle EC2 instances running',
-    description:
-      'Several EC2 instances have been running with less than 5% CPU utilization for the past 30 days, indicating they are not being actively used.',
-    resource: 'i-0abc123def456',
-    provider: 'AWS',
-    region: 'us-west-2',
-    savings: '$450/mo',
-    impact: 'Medium - Cost reduction',
-    effort: 'low',
-    affectedResources: 5,
-    tags: ['compute', 'optimization', 'savings'],
-    steps: [
-      'Review instance usage patterns',
-      'Identify non-critical instances',
-      'Stop or terminate unused instances',
-      'Consider auto-scaling groups',
-    ],
-  },
-  {
-    id: '3',
-    severity: 'medium',
-    category: 'cost',
-    title: 'Unused Azure storage volumes',
-    description:
-      'Unattached storage volumes have been identified that are not connected to any running virtual machines, generating unnecessary costs.',
-    resource: 'vol-prod-backup-01',
-    provider: 'Azure',
-    region: 'westeurope',
-    savings: '$120/mo',
-    impact: 'Low - Cost reduction',
-    effort: 'low',
-    affectedResources: 8,
-    tags: ['storage', 'cleanup', 'savings'],
-    steps: [
-      'List all unattached disks',
-      'Verify no backup dependencies',
-      'Create snapshots if needed',
-      'Delete unattached disks',
-    ],
-  },
-  {
-    id: '4',
-    severity: 'high',
-    category: 'security',
-    title: 'Public RDS snapshots found',
-    description:
-      'Database snapshots are publicly accessible, potentially exposing sensitive application data to unauthorized access.',
-    resource: 'rds-snapshot-2024',
-    provider: 'AWS',
-    region: 'eu-central-1',
-    impact: 'High - Data exposure risk',
-    effort: 'low',
-    affectedResources: 2,
-    tags: ['database', 'access-control', 'security'],
-    steps: [
-      'Identify public snapshots',
-      'Review snapshot permissions',
-      'Set snapshots to private',
-      'Implement snapshot encryption',
-    ],
-  },
-  {
-    id: '5',
-    severity: 'medium',
-    category: 'cost',
-    title: 'Oversized GCP VM instances',
-    description:
-      'Virtual machine instances are provisioned with more resources than needed based on actual usage patterns over the last 90 days.',
-    resource: 'instance-prod-web-01',
-    provider: 'GCP',
-    region: 'us-central1',
-    savings: '$280/mo',
-    impact: 'Medium - Cost reduction',
-    effort: 'medium',
-    affectedResources: 4,
-    tags: ['compute', 'rightsizing', 'optimization'],
-    steps: [
-      'Analyze instance metrics',
-      'Identify rightsizing opportunities',
-      'Create instance snapshot',
-      'Resize to appropriate machine type',
-    ],
-  },
-  {
-    id: '6',
-    severity: 'critical',
-    category: 'security',
-    title: 'IAM users with full admin access',
-    description:
-      'Multiple IAM users have been granted full administrative privileges without following the principle of least privilege.',
-    resource: 'iam://user/john.doe',
-    provider: 'AWS',
-    region: 'global',
-    impact: 'Critical - Security breach risk',
-    effort: 'high',
-    affectedResources: 7,
-    tags: ['iam', 'access-management', 'compliance'],
-    steps: [
-      'Audit all IAM users and permissions',
-      'Create role-based policies',
-      'Remove unnecessary admin access',
-      'Implement MFA for privileged accounts',
-      'Enable CloudTrail for audit logging',
-    ],
-  },
-  {
-    id: '7',
-    severity: 'low',
-    category: 'performance',
-    title: 'Enable CloudFront caching',
-    description:
-      'Static content is being served directly from S3 without CDN caching, resulting in slower load times for global users.',
-    resource: 's3://static-assets-bucket',
-    provider: 'AWS',
-    region: 'us-east-1',
-    impact: 'Low - Performance improvement',
-    effort: 'medium',
-    affectedResources: 1,
-    tags: ['cdn', 'performance', 'latency'],
-    steps: [
-      'Create CloudFront distribution',
-      'Configure origin settings',
-      'Set cache behaviors',
-      'Update DNS records',
-    ],
-  },
-  {
-    id: '8',
-    severity: 'high',
-    category: 'reliability',
-    title: 'Missing database backups',
-    description:
-      'Critical database instances do not have automated backup policies configured, risking data loss in case of failure.',
-    resource: 'db-prod-main',
-    provider: 'Azure',
-    region: 'eastus',
-    impact: 'High - Data loss risk',
-    effort: 'low',
-    affectedResources: 3,
-    tags: ['backup', 'disaster-recovery', 'reliability'],
-    steps: [
-      'Enable automated backups',
-      'Configure retention period',
-      'Set backup window',
-      'Test restore procedure',
-    ],
-  },
-];
-
 export default function RecommendationsV2Page() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(
     null
@@ -365,7 +190,7 @@ export default function RecommendationsV2Page() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {mockRecommendations.length}
+                      {recommendations.length}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Total Recommendations
@@ -399,7 +224,7 @@ export default function RecommendationsV2Page() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {mockRecommendations.filter((r) => r.severity === 'critical').length}
+                      {recommendations.filter((r) => r.severity === 'critical').length}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Critical Issues
@@ -415,7 +240,7 @@ export default function RecommendationsV2Page() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {mockRecommendations.reduce((sum, r) => sum + r.affectedResources, 0)}
+                      {recommendations.reduce((sum, r) => sum + r.affectedResources, 0)}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Affected Resources

@@ -404,99 +404,14 @@ export default function CostsV2Page() {
             </button>
           </div>
 
+          {/* TODO: Top Cost Resources table - pending backend endpoint implementation */}
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Resource
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Region
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Cost (MTD)
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Trend
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Utilization
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {topCostResources.map((resource) => (
-                  <tr
-                    key={resource.id}
-                    className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                  >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <BadgeV2
-                          variant={resource.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}
-                          size="sm"
-                        >
-                          {resource.provider}
-                        </BadgeV2>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">
-                          {resource.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {resource.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {resource.region}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {resource.cost}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1">
-                        <span
-                          className={`material-symbols-outlined text-lg ${
-                            resource.trend > 0 ? 'text-error' : 'text-success'
-                          }`}
-                        >
-                          {resource.trend > 0 ? 'trending_up' : 'trending_down'}
-                        </span>
-                        <span
-                          className={`text-sm font-medium ${
-                            resource.trend > 0 ? 'text-error' : 'text-success'
-                          }`}
-                        >
-                          {Math.abs(resource.trend)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 max-w-[80px]">
-                          <div
-                            className="bg-brand-primary-400 h-2 rounded-full"
-                            style={{ width: `${resource.utilizaton}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[40px]">
-                          {resource.utilizaton}%
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+              <span className="material-symbols-outlined text-4xl mb-2 opacity-50">construction</span>
+              <p className="text-sm">Resource cost breakdown coming soon</p>
+              <p className="text-xs mt-1">Backend endpoint pending implementation</p>
+            </div>
+          </div>
           </div>
         </div>
     </div>
