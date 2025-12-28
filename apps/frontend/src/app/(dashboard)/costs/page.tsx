@@ -412,7 +412,6 @@ export default function CostsV2Page() {
               <p className="text-xs mt-1">Backend endpoint pending implementation</p>
             </div>
           </div>
-          </div>
         </div>
     </div>
   );
