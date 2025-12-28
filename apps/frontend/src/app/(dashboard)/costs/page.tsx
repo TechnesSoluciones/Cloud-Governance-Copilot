@@ -92,11 +92,11 @@ export default function CostsV2Page() {
     const grouped = serviceData.services.reduce((acc, item) => {
       const existing = acc.find(i => i.name === item.service);
       if (existing) {
-        existing[item.provider.toLowerCase()] = item.cost;
+        existing[item.provider.toLowerCase()] = item.totalCost;
       } else {
         acc.push({
           name: item.service,
-          [item.provider.toLowerCase()]: item.cost,
+          [item.provider.toLowerCase()]: item.totalCost,
         });
       }
       return acc;
