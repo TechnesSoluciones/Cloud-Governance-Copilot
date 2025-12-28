@@ -34,7 +34,7 @@ export default function IncidentsV2Page() {
   }, [incidentsData]);
 
   // Calculate KPIs from real data
-  const openIncidents = incidents.filter((i: any) => i.status === 'open' || i.status === 'investigating').length;
+  const openIncidents = incidents.filter((i: any) => i.status === 'new' || i.status === 'acknowledged' || i.status === 'investigating').length;
   const criticalIncidents = incidents.filter((i: any) => i.severity === 'critical').length;
   const resolvedToday = incidents.filter(
     (i: any) =>
@@ -112,8 +112,10 @@ export default function IncidentsV2Page() {
 
   const getStatusIndicator = (status: Incident['status']) => {
     switch (status) {
-      case 'open':
-        return <StatusIndicatorV2 status="critical" label="Open" />;
+      case 'new':
+        return <StatusIndicatorV2 status="critical" label="New" />;
+      case 'acknowledged':
+        return <StatusIndicatorV2 status="warning" label="Acknowledged" />;
       case 'investigating':
         return <StatusIndicatorV2 status="warning" label="Investigating" />;
       case 'resolved':
@@ -232,7 +234,8 @@ export default function IncidentsV2Page() {
               className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
             >
               <option value="all">All Status</option>
-              <option value="open">Open</option>
+              <option value="new">New</option>
+              <option value="acknowledged">Acknowledged</option>
               <option value="investigating">Investigating</option>
               <option value="resolved">Resolved</option>
               <option value="closed">Closed</option>
