@@ -11,25 +11,8 @@ import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { useIncidents, useAlerts } from '@/hooks/useIncidents';
+import { Incident } from '@/lib/api/incidents';
 import { cn } from '@/lib/utils';
-
-interface Incident {
-  id: string;
-  title: string;
-  description: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  status: 'open' | 'investigating' | 'resolved' | 'closed';
-  provider: 'AWS' | 'Azure' | 'GCP';
-  affectedResources: number;
-  affectedServices: string[];
-  createdAt: string;
-  updatedAt: string;
-  assignee?: {
-    name: string;
-    email: string;
-  };
-  tags: string[];
-}
 
 export default function IncidentsV2Page() {
   const router = useRouter();
@@ -104,11 +87,12 @@ export default function IncidentsV2Page() {
     const matchesSearch =
       incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       incident.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      incident.affectedServices.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+      incident.affectedResources.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesSeverity = filterSeverity === 'all' || incident.severity === filterSeverity;
     const matchesStatus = filterStatus === 'all' || incident.status === filterStatus;
-    const matchesProvider = filterProvider === 'all' || incident.provider === filterProvider;
+    // Provider filter removed - not available in backend Incident type
+    const matchesProvider = true;
 
     return matchesSearch && matchesSeverity && matchesStatus && matchesProvider;
   });
@@ -317,23 +301,13 @@ export default function IncidentsV2Page() {
                         <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
                           {incident.description}
                         </div>
-                        <div className="flex gap-1 mt-2">
-                          {incident.tags.slice(0, 3).map((tag) => (
-                            <BadgeV2 key={tag} variant="default" size="sm">
-                              {tag}
-                            </BadgeV2>
-                          ))}
-                        </div>
+                        {/* Tags removed - not available in backend Incident type */}
                       </div>
                     </td>
                     <td className="px-6 py-4">{getStatusIndicator(incident.status)}</td>
                     <td className="px-6 py-4">
-                      <BadgeV2
-                        variant={incident.provider.toLowerCase() as 'aws' | 'azure' | 'gcp'}
-                        size="sm"
-                      >
-                        {incident.provider}
-                      </BadgeV2>
+                      {/* Provider removed - not available in backend Incident type */}
+                      <span className="text-sm text-slate-500">-</span>
                     </td>
                     <td className="px-6 py-4">
                       <div>
@@ -341,25 +315,25 @@ export default function IncidentsV2Page() {
                           <span className="material-symbols-outlined text-lg text-indigo-500">
                             dns
                           </span>
-                          {incident.affectedResources} resources
+                          {incident.affectedResourcesCount} resources
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          {incident.affectedServices.join(', ')}
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate max-w-[200px]" title={incident.affectedResources.join(', ')}>
+                          {incident.affectedResources.slice(0, 2).join(', ')}{incident.affectedResources.length > 2 ? '...' : ''}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {incident.assignee ? (
+                      {incident.assignedTo ? (
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-brand-primary-400 flex items-center justify-center text-white text-xs font-semibold">
-                            {incident.assignee.name
+                            {incident.assignedTo
                               .split(' ')
                               .map((n) => n[0])
                               .join('')}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-slate-900 dark:text-white">
-                              {incident.assignee.name}
+                              {incident.assignedTo}
                             </div>
                           </div>
                         </div>
