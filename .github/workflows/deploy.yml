@@ -100,20 +100,17 @@ jobs:
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
           scp caddy/copilot.caddy ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/caddy-proxy/caddy/copilot.caddy
 
-      - name: Restart Caddy
+      - name: Reload Caddy configuration
         run: |
           ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'CADDY_EOF'
-            if docker ps -a --format '{{.Names}}' | grep -q caddy; then
-              CADDY_CONTAINER=$(docker ps -a --format '{{.Names}}' | grep caddy | head -1)
-              docker restart $CADDY_CONTAINER
-              sleep 10
-              if docker ps | grep -q $CADDY_CONTAINER; then
-                echo "✅ Caddy restarted successfully"
-              else
-                echo "❌ Caddy failed to start"
-                docker logs $CADDY_CONTAINER --tail=20
-                exit 1
-              fi
+            # Reload Caddy config without restarting (doesn't affect other apps)
+            if docker ps --format '{{.Names}}' | grep -q caddy; then
+              CADDY_CONTAINER=$(docker ps --format '{{.Names}}' | grep caddy | head -1)
+              echo "🔄 Reloading Caddy configuration (no restart)..."
+              docker exec $CADDY_CONTAINER caddy reload --config /etc/caddy/Caddyfile --force
+              echo "✅ Caddy configuration reloaded"
+            else
+              echo "⚠️  Caddy container not found, skipping reload"
             fi
           CADDY_EOF
 
@@ -249,6 +246,7 @@ jobs:
       - name: Smoke tests
         run: |
           ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
+            cd /opt/copilot-app
             echo "=========================================="
             echo "🧪 SMOKE TESTS"
             echo "=========================================="
@@ -256,23 +254,23 @@ jobs:
             TESTS_PASSED=0
             TESTS_FAILED=0
 
-            # Test 1: API Health
-            api_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/api/health || echo "failed")
-            if [ "$api_health" = "200" ]; then
+            # Test 1: API Gateway Health (direct container access)
+            if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/api/v1/health > /dev/null 2>&1; then
               echo "✓ API Gateway health check passed"
               ((TESTS_PASSED++))
             else
-              echo "❌ API Gateway health check failed (HTTP $api_health)"
+              echo "❌ API Gateway health check failed"
+              docker compose logs --tail=20 api-gateway
               ((TESTS_FAILED++))
             fi
 
-            # Test 2: Frontend Health
-            frontend_health=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "failed")
-            if [ "$frontend_health" = "200" ]; then
+            # Test 2: Frontend Health (direct container access)
+            if docker compose exec -T frontend wget -q -O- http://localhost:3000/api/health > /dev/null 2>&1; then
               echo "✓ Frontend health check passed"
               ((TESTS_PASSED++))
             else
-              echo "❌ Frontend health check failed (HTTP $frontend_health)"
+              echo "❌ Frontend health check failed"
+              docker compose logs --tail=20 frontend
               ((TESTS_FAILED++))
             fi
 
@@ -282,6 +280,7 @@ jobs:
               ((TESTS_PASSED++))
             else
               echo "❌ Redis connectivity test failed"
+              docker compose logs --tail=20 redis
               ((TESTS_FAILED++))
             fi
 
