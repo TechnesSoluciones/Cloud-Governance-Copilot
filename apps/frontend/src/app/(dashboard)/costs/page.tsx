@@ -86,10 +86,10 @@ export default function CostsV2Page() {
 
   // Transform service data for bar chart
   const serviceBreakdown = useMemo(() => {
-    if (!serviceData?.serviceBreakdown) return [];
+    if (!serviceData?.services) return [];
 
     // Group by service name across providers
-    const grouped = serviceData.serviceBreakdown.reduce((acc, item) => {
+    const grouped = serviceData.services.reduce((acc, item) => {
       const existing = acc.find(i => i.name === item.service);
       if (existing) {
         existing[item.provider.toLowerCase()] = item.cost;
