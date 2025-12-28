@@ -119,11 +119,11 @@ export default function CostsV2Page() {
     const grouped = costData.costs.reduce((acc, item) => {
       const existing = acc.find(i => i.name === item.provider);
       if (existing) {
-        existing.value += item.cost;
+        existing.value += item.amount;
       } else {
         acc.push({
           name: item.provider,
-          value: item.cost,
+          value: item.amount,
           color: providerColors[item.provider] || '#888888',
         });
       }
