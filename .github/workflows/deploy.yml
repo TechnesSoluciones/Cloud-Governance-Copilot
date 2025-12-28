@@ -255,7 +255,7 @@ jobs:
             TESTS_FAILED=0
 
             # Test 1: API Gateway Health (direct container access)
-            if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/api/v1/health > /dev/null 2>&1; then
+            if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/health > /dev/null 2>&1; then
               echo "✓ API Gateway health check passed"
               ((TESTS_PASSED++))
             else
