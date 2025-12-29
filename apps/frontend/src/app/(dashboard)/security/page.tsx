@@ -68,6 +68,45 @@ export default function SecurityV2Page() {
     return Array.from(categoriesMap.values());
   }, [findings]);
 
+  // Compliance frameworks data
+  const complianceFrameworks = useMemo(() => [
+    {
+      name: 'CIS',
+      status: 'compliant',
+      score: 88,
+      passed: 156,
+      controls: 177,
+    },
+    {
+      name: 'PCI-DSS',
+      status: 'partial',
+      score: 72,
+      passed: 215,
+      controls: 298,
+    },
+    {
+      name: 'HIPAA',
+      status: 'compliant',
+      score: 91,
+      passed: 128,
+      controls: 141,
+    },
+    {
+      name: 'SOC 2',
+      status: 'compliant',
+      score: 85,
+      passed: 89,
+      controls: 105,
+    },
+    {
+      name: 'ISO 27001',
+      status: 'partial',
+      score: 78,
+      passed: 94,
+      controls: 121,
+    },
+  ], []);
+
   // Loading state
   if ((summaryLoading || findingsLoading) && !summary && findings.length === 0) {
     return (
