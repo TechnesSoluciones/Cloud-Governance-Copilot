@@ -1,9 +1,6 @@
 import Link from 'next/link';
 import { Shield, Cloud, Lock, TrendingUp, CheckCircle, Zap } from 'lucide-react';
 
-// Force static generation for landing page
-export const dynamic = 'force-static';
-
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
