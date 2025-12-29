@@ -83,10 +83,6 @@ jobs:
           NEXT_PUBLIC_API_URL=/api/v1
           NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
 
-          # Caddy Configuration
-          DOMAIN=${{ secrets.DOMAIN }}
-          CADDY_EMAIL=${{ secrets.CADDY_EMAIL }}
-
           # Application Configuration
           NODE_ENV=production
           LOG_LEVEL=info
@@ -98,21 +94,6 @@ jobs:
           ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} "mkdir -p /opt/copilot-app"
           scp deployment.env ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/.env
           scp docker-compose.production.yml ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/copilot-app/docker-compose.yml
-          scp caddy/copilot.caddy ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }}:/opt/caddy-proxy/caddy/copilot.caddy
-
-      - name: Reload Caddy configuration
-        run: |
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'CADDY_EOF'
-            # Reload Caddy config without restarting (doesn't affect other apps)
-            if docker ps --format '{{.Names}}' | grep -q caddy; then
-              CADDY_CONTAINER=$(docker ps --format '{{.Names}}' | grep caddy | head -1)
-              echo "🔄 Reloading Caddy configuration (no restart)..."
-              docker exec $CADDY_CONTAINER caddy reload --config /etc/caddy/Caddyfile --force
-              echo "✅ Caddy configuration reloaded"
-            else
-              echo "⚠️  Caddy container not found, skipping reload"
-            fi
-          CADDY_EOF
 
       - name: Determine version tag
         id: version
