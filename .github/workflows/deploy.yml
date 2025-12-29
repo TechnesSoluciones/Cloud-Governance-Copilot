@@ -265,7 +265,7 @@ jobs:
             fi
 
             # Test 2: Frontend Health (direct container access)
-            if docker compose exec -T frontend wget -q -O- http://localhost:3000/api/health > /dev/null 2>&1; then
+            if docker compose exec -T frontend wget -q -O- http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
               echo "✓ Frontend health check passed"
               ((TESTS_PASSED++))
             else
