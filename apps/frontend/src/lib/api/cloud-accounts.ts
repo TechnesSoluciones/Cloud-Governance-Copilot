@@ -3,7 +3,7 @@
  * Handles all API calls related to cloud account management
  */
 
-import { apiGet, apiPost, apiDelete, ApiResponse } from './client';
+import { apiGet, apiPost, apiPut, apiDelete, ApiResponse } from './client';
 
 export interface CloudAccountCredentials {
   // AWS
@@ -97,6 +97,17 @@ export async function listCloudAccounts(
   token: string
 ): Promise<ApiResponse<CloudAccount[]>> {
   return apiGet<CloudAccount[]>('/cloud-accounts', token);
+}
+
+/**
+ * Update cloud account credentials
+ */
+export async function updateCloudAccountCredentials(
+  accountId: string,
+  credentials: CloudAccountCredentials,
+  token: string
+): Promise<ApiResponse<CloudAccount>> {
+  return apiPut<CloudAccount>(`/cloud-accounts/${accountId}/credentials`, { credentials }, token);
 }
 
 /**

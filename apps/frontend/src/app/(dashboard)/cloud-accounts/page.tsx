@@ -11,7 +11,14 @@ import { useSession } from 'next-auth/react';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
-import { listCloudAccounts, deleteCloudAccount, testCloudAccountConnection, type CloudAccount as ApiCloudAccount } from '@/lib/api/cloud-accounts';
+import {
+  listCloudAccounts,
+  deleteCloudAccount,
+  testCloudAccountConnection,
+  updateCloudAccountCredentials,
+  type CloudAccount as ApiCloudAccount,
+  type CloudAccountCredentials
+} from '@/lib/api/cloud-accounts';
 
 interface CloudAccount {
   id: string;
@@ -30,6 +37,12 @@ export default function CloudAccountsV2Page() {
   const [accounts, setAccounts] = useState<CloudAccount[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Edit modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<CloudAccount | null>(null);
+  const [editCredentials, setEditCredentials] = useState<CloudAccountCredentials>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Load cloud accounts from API
   useEffect(() => {
@@ -132,6 +145,79 @@ export default function CloudAccountsV2Page() {
     } catch (error) {
       console.error('Failed to delete account:', error);
       alert('Failed to delete account');
+    }
+  };
+
+  const handleEdit = (account: CloudAccount) => {
+    setEditingAccount(account);
+    setEditCredentials({}); // Clear credentials (user must enter new ones)
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateCredentials = async () => {
+    if (!session || !editingAccount) return;
+
+    // Validate credentials based on provider
+    const provider = editingAccount.provider;
+    if (provider === 'AWS') {
+      if (!editCredentials.accessKeyId || !editCredentials.secretAccessKey) {
+        alert('Please enter AWS Access Key ID and Secret Access Key');
+        return;
+      }
+    } else if (provider === 'Azure') {
+      if (
+        !editCredentials.tenantId ||
+        !editCredentials.clientId ||
+        !editCredentials.clientSecret ||
+        !editCredentials.subscriptionId
+      ) {
+        alert('Please enter all Azure credentials (Tenant ID, Client ID, Client Secret, Subscription ID)');
+        return;
+      }
+    } else if (provider === 'GCP') {
+      if (!editCredentials.projectId || !editCredentials.clientEmail || !editCredentials.privateKey) {
+        alert('Please enter all GCP credentials (Project ID, Client Email, Private Key JSON)');
+        return;
+      }
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await updateCloudAccountCredentials(
+        editingAccount.id,
+        editCredentials,
+        (session as any).accessToken
+      );
+
+      if (response.success) {
+        alert('Credentials updated successfully!');
+        setIsEditModalOpen(false);
+        setEditingAccount(null);
+        setEditCredentials({});
+
+        // Reload accounts
+        const accountsResponse = await listCloudAccounts((session as any).accessToken);
+        if (accountsResponse.success && accountsResponse.data) {
+          const transformedAccounts: CloudAccount[] = accountsResponse.data.map((acc: ApiCloudAccount) => ({
+            id: acc.id,
+            name: acc.accountName,
+            provider: acc.provider.toUpperCase() as 'AWS' | 'Azure' | 'GCP',
+            accountId: acc.accountIdentifier,
+            status: acc.status === 'connected' ? 'connected' : acc.status === 'error' ? 'error' : 'pending',
+            region: 'N/A',
+            lastSync: acc.lastSync ? new Date(acc.lastSync).toLocaleString() : 'Never',
+            connectionDate: new Date(acc.createdAt).toLocaleDateString(),
+          }));
+          setAccounts(transformedAccounts);
+        }
+      } else {
+        alert(`Failed to update credentials: ${response.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to update credentials:', error);
+      alert('Failed to update credentials');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -322,6 +408,15 @@ export default function CloudAccountsV2Page() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
+                          onClick={() => handleEdit(account)}
+                          className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Edit credentials"
+                        >
+                          <span className="material-symbols-outlined text-blue-500 text-lg">
+                            edit
+                          </span>
+                        </button>
+                        <button
                           onClick={() => handleSync(account.id)}
                           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title="Sync account"
@@ -369,6 +464,224 @@ export default function CloudAccountsV2Page() {
             </div>
           )}
         </div>
+
+        {/* Edit Credentials Modal */}
+        {isEditModalOpen && editingAccount && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-card-dark rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white dark:bg-card-dark border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Edit Credentials
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {editingAccount.name} ({editingAccount.provider})
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingAccount(null);
+                    setEditCredentials({});
+                  }}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-slate-500">close</span>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400">
+                      warning
+                    </span>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                        Security Notice
+                      </h4>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        For security reasons, existing credentials cannot be displayed. Please enter new credentials to update this account.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AWS Credentials */}
+                {editingAccount.provider === 'AWS' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Access Key ID *
+                      </label>
+                      <input
+                        type="text"
+                        value={editCredentials.accessKeyId || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, accessKeyId: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="AKIAIOSFODNN7EXAMPLE"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Secret Access Key *
+                      </label>
+                      <input
+                        type="password"
+                        value={editCredentials.secretAccessKey || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, secretAccessKey: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Region (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editCredentials.region || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, region: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="us-east-1"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Azure Credentials */}
+                {editingAccount.provider === 'Azure' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Subscription ID *
+                      </label>
+                      <input
+                        type="text"
+                        value={editCredentials.subscriptionId || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, subscriptionId: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="12345678-1234-1234-1234-123456789012"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Tenant ID *
+                      </label>
+                      <input
+                        type="text"
+                        value={editCredentials.tenantId || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, tenantId: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="12345678-1234-1234-1234-123456789012"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Client ID *
+                      </label>
+                      <input
+                        type="text"
+                        value={editCredentials.clientId || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, clientId: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="12345678-1234-1234-1234-123456789012"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Client Secret *
+                      </label>
+                      <input
+                        type="password"
+                        value={editCredentials.clientSecret || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, clientSecret: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="Enter client secret"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* GCP Credentials */}
+                {editingAccount.provider === 'GCP' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Project ID *
+                      </label>
+                      <input
+                        type="text"
+                        value={editCredentials.projectId || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, projectId: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="my-project-id"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Client Email *
+                      </label>
+                      <input
+                        type="email"
+                        value={editCredentials.clientEmail || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, clientEmail: e.target.value })}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
+                        placeholder="service-account@project-id.iam.gserviceaccount.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Private Key JSON *
+                      </label>
+                      <textarea
+                        value={editCredentials.privateKey || ''}
+                        onChange={(e) => setEditCredentials({ ...editCredentials, privateKey: e.target.value })}
+                        rows={6}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-primary-400 font-mono text-sm"
+                        placeholder="Paste the entire service account JSON key here"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="sticky bottom-0 bg-white dark:bg-card-dark border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingAccount(null);
+                    setEditCredentials({});
+                  }}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateCredentials}
+                  disabled={isUpdating}
+                  className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? (
+                    <>
+                      <span className="material-symbols-outlined text-lg animate-spin">sync</span>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-lg">save</span>
+                      Update Credentials
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
