@@ -21,6 +21,8 @@ import type {
   NotificationPreferences,
   Notification,
 } from '../types';
+import cloudAccountService from '../../../services/cloudAccount.service';
+import type { AzureCredentials } from '../../../services/cloudAccount.service';
 
 export class ServiceHealthModuleService {
   constructor(private prisma: PrismaClient) {}
@@ -405,22 +407,37 @@ export class ServiceHealthModuleService {
       throw new Error('Azure cloud account not found or inactive');
     }
 
-    const credentials: CloudProviderCredentials = {
-      provider: 'azure',
-      azureClientId: (account as any).azureClientId || undefined,
-      azureClientSecret: (account as any).azureClientSecret || undefined,
-      azureTenantId: (account as any).azureTenantId || undefined,
-      azureSubscriptionId: (account as any).azureSubscriptionId || undefined,
-    };
+    // Decrypt credentials using CloudAccountService
+    let azureCredentials: AzureCredentials;
+    try {
+      const decryptedCreds = await cloudAccountService.getCredentials(accountId, tenantId);
+      azureCredentials = decryptedCreds as AzureCredentials;
+    } catch (error) {
+      throw new Error(
+        `Failed to decrypt Azure credentials: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
+    }
 
+    // Validate credentials
     if (
-      !credentials.azureClientId ||
-      !credentials.azureClientSecret ||
-      !credentials.azureTenantId ||
-      !credentials.azureSubscriptionId
+      !azureCredentials.clientId ||
+      !azureCredentials.clientSecret ||
+      !azureCredentials.tenantId ||
+      !azureCredentials.subscriptionId
     ) {
       throw new Error('Azure credentials are incomplete for this account');
     }
+
+    // Build CloudProviderCredentials
+    const credentials: CloudProviderCredentials = {
+      provider: 'azure',
+      azureClientId: azureCredentials.clientId,
+      azureClientSecret: azureCredentials.clientSecret,
+      azureTenantId: azureCredentials.tenantId,
+      azureSubscriptionId: azureCredentials.subscriptionId,
+    };
 
     return { credentials };
   }

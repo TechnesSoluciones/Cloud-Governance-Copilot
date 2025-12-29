@@ -28,6 +28,8 @@ import { prisma } from '../lib/prisma';
 import { AzureServiceHealthService } from '../integrations/azure/service-health.service';
 import type { ServiceIssue, MaintenanceEvent } from '../integrations/azure/service-health.service';
 import type { CloudProviderCredentials } from '../integrations/cloud-provider.interface';
+import cloudAccountService from '../services/cloudAccount.service';
+import type { AzureCredentials } from '../services/cloudAccount.service';
 
 // ============================================================
 // Configuration
@@ -131,26 +133,44 @@ async function runServiceHealthCheck(): Promise<void> {
         // Process each Azure account
         for (const account of tenant.cloudAccounts) {
           try {
-            // Decrypt credentials
-            const credentials: CloudProviderCredentials = {
-              provider: 'azure',
-              azureClientId: (account as any).azureClientId || undefined,
-              azureClientSecret: (account as any).azureClientSecret || undefined,
-              azureTenantId: (account as any).azureTenantId || undefined,
-              azureSubscriptionId: (account as any).azureSubscriptionId || undefined,
-            };
-
-            if (
-              !credentials.azureClientId ||
-              !credentials.azureClientSecret ||
-              !credentials.azureTenantId ||
-              !credentials.azureSubscriptionId
-            ) {
+            // Decrypt credentials using CloudAccountService
+            let azureCredentials: AzureCredentials;
+            try {
+              const decryptedCreds = await cloudAccountService.getCredentials(
+                account.id,
+                tenant.id
+              );
+              azureCredentials = decryptedCreds as AzureCredentials;
+            } catch (error) {
               console.warn(
-                `[ServiceHealthMonitor] Skipping account ${account.accountName}: Missing Azure credentials`
+                `[ServiceHealthMonitor] Skipping account ${account.accountName}: Failed to decrypt credentials - ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`
               );
               continue;
             }
+
+            // Validate Azure credentials
+            if (
+              !azureCredentials.clientId ||
+              !azureCredentials.clientSecret ||
+              !azureCredentials.tenantId ||
+              !azureCredentials.subscriptionId
+            ) {
+              console.warn(
+                `[ServiceHealthMonitor] Skipping account ${account.accountName}: Incomplete Azure credentials`
+              );
+              continue;
+            }
+
+            // Build CloudProviderCredentials from decrypted data
+            const credentials: CloudProviderCredentials = {
+              provider: 'azure',
+              azureClientId: azureCredentials.clientId,
+              azureClientSecret: azureCredentials.clientSecret,
+              azureTenantId: azureCredentials.tenantId,
+              azureSubscriptionId: azureCredentials.subscriptionId,
+            };
 
             // Initialize service health service
             const serviceHealth = new AzureServiceHealthService(credentials);
