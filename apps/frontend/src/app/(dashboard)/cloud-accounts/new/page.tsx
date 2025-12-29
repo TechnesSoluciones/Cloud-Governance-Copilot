@@ -299,6 +299,144 @@ export default function NewCloudAccountPage() {
                 </div>
               </div>
 
+              {/* Required Permissions Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-8">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">
+                    info
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-3">
+                      Required Permissions
+                    </h3>
+
+                    {selectedProvider === 'AWS' && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          The IAM user or role must have the following permissions to enable full CloudNexus functionality:
+                        </p>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-blue-100 dark:border-blue-900">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            Required IAM Policies:
+                          </p>
+                          <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>ReadOnlyAccess</strong> - View all resources and configurations</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>SecurityAudit</strong> - Security posture and compliance scanning</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>AWSSupportAccess</strong> - Access to cost and billing information</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-blue-500 text-sm mt-0.5">info</span>
+                              <span><strong>Custom Policy</strong> - Cost Explorer and Recommendations access (ce:*, trustedadvisor:*)</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                          💡 <strong>Tip:</strong> Create a dedicated IAM user for CloudNexus with programmatic access only.
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedProvider === 'Azure' && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          The Service Principal must have the following role assignments at the Subscription level:
+                        </p>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-blue-100 dark:border-blue-900">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            Required Azure Roles:
+                          </p>
+                          <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>Reader</strong> - View all resources in the subscription</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>Security Reader</strong> - Read security policies and states</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>Cost Management Reader</strong> - Access cost and usage data</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-blue-500 text-sm mt-0.5">info</span>
+                              <span><strong>Monitoring Reader</strong> - Read monitoring data and logs</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-blue-100 dark:border-blue-900 mt-3">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            How to create a Service Principal:
+                          </p>
+                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded overflow-x-auto">
+{`az ad sp create-for-rbac --name "CloudNexus" \\
+  --role "Reader" \\
+  --scopes /subscriptions/{subscription-id}`}
+                          </pre>
+                        </div>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                          💡 <strong>Tip:</strong> Add additional role assignments (Security Reader, Cost Management Reader) after creation.
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedProvider === 'GCP' && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          The Service Account must have the following IAM roles assigned at the Project level:
+                        </p>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-blue-100 dark:border-blue-900">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            Required GCP Roles:
+                          </p>
+                          <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>Viewer</strong> - Read access to all resources</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>Security Reviewer</strong> - Read access to security configurations</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                              <span><strong>Cloud Asset Viewer</strong> - List and view all cloud assets</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-blue-500 text-sm mt-0.5">info</span>
+                              <span><strong>Billing Account Viewer</strong> - Access to cost and billing data</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-blue-100 dark:border-blue-900 mt-3">
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            How to create a Service Account:
+                          </p>
+                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded overflow-x-auto">
+{`gcloud iam service-accounts create cloudnexus \\
+  --display-name="CloudNexus Service Account"
+
+gcloud iam service-accounts keys create key.json \\
+  --iam-account=cloudnexus@PROJECT_ID.iam.gserviceaccount.com`}
+                          </pre>
+                        </div>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                          💡 <strong>Tip:</strong> Grant roles at the project level for comprehensive monitoring.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="max-w-2xl space-y-6">
                 {/* Common Fields */}
                 <div>
