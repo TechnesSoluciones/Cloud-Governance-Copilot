@@ -245,12 +245,85 @@ Changes:
 - **Loading States**: Added throughout UI with "..." placeholders
 - **Validation**: ✅ Sidebar link verified at `/audit-logs`
 
+### 8. Cloud Account Creation - Azure Test Account Validation and Permissions Documentation
+**Commit**: `a1f976a`
+**Files**:
+- `/Users/josegomez/Documents/Code/SaaS/Copilot/apps/frontend/src/app/(dashboard)/cloud-accounts/new/page.tsx`
+
+#### Database Validation
+- **Connected to PostgreSQL**: `46.224.33.191:5432` (via SSH)
+- **Verified Azure Test Account**:
+  - Account Name: "SX - MSDN INFRA 18 - Nerdio App"
+  - Provider: Azure
+  - Account Identifier: 92d1d794-a351-42d0-8b66-3dedb3cd3c84
+  - Status: Active
+  - Created: 2025-12-21 17:08:16.673437
+
+#### Permissions Documentation Added
+Added comprehensive permissions information panel in the credentials step that displays provider-specific requirements:
+
+**AWS IAM Permissions**:
+- Info box with blue styling showing required policies
+- Policies listed:
+  - ReadOnlyAccess - View all resources and configurations
+  - SecurityAudit - Security posture and compliance scanning
+  - AWSSupportAccess - Access to cost and billing information
+  - Custom Policy - Cost Explorer and Recommendations (ce:*, trustedadvisor:*)
+- Tip: Create dedicated IAM user for CloudNexus with programmatic access only
+
+**Azure Role Assignments**:
+- Required roles at subscription level:
+  - Reader - View all resources in the subscription
+  - Security Reader - Read security policies and states
+  - Cost Management Reader - Access cost and usage data
+  - Monitoring Reader - Read monitoring data and logs
+- CLI command to create Service Principal:
+  ```bash
+  az ad sp create-for-rbac --name "CloudNexus" \
+    --role "Reader" \
+    --scopes /subscriptions/{subscription-id}
+  ```
+- Tip: Add additional role assignments after creation
+
+**GCP Service Account Roles**:
+- Required roles at project level:
+  - Viewer - View all resources
+  - Security Reviewer - Review security configuration
+  - Cloud Asset Viewer - View asset inventory
+  - Billing Account Viewer - Access billing information
+- CLI commands to create Service Account:
+  ```bash
+  gcloud iam service-accounts create cloudnexus \
+    --display-name="CloudNexus Service Account"
+
+  gcloud projects add-iam-policy-binding PROJECT_ID \
+    --member="serviceAccount:cloudnexus@PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/viewer"
+
+  gcloud iam service-accounts keys create key.json \
+    --iam-account=cloudnexus@PROJECT_ID.iam.gserviceaccount.com
+  ```
+- Tip: Store service account keys securely and rotate them regularly
+
+#### UI/UX Features
+- Blue info box with Material Symbols "info" icon
+- Conditional rendering based on selected provider
+- Dark mode compatible styling
+- Checkmarks for required permissions
+- Code blocks with CLI commands
+- Tips section for best practices
+- Professional formatting with proper spacing and hierarchy
+
 ## Status
 - **Azure Advisor Integration**: ✅ COMPLETE
 - **Assets (Inventory) Integration**: ✅ COMPLETE
 - **Audit Logs Integration**: ✅ COMPLETE
 - **All Mock Data Removed**: ✅ COMPLETE
-- **Commit and Push**: ✅ SUCCESSFUL (commit `6cb2013`)
+- **Azure Test Account Validation**: ✅ COMPLETE
+- **Permissions Documentation**: ✅ COMPLETE
+- **Commit and Push**: ✅ SUCCESSFUL (commit `a1f976a`)
 
 ## Summary
 Successfully cleaned up mock data and integrated real API endpoints for three major dashboard pages (Azure Advisor, Assets, Audit Logs). All pages now fetch data from backend APIs, display loading states properly, and have functional buttons connected to mutations. Navigation links verified and working correctly.
+
+Additionally, validated Azure test account in production database and added comprehensive permissions documentation to the cloud account creation wizard. Users now see clear guidance on required IAM policies, role assignments, and service account permissions for AWS, Azure, and GCP respectively, including CLI commands for creating the necessary credentials.
