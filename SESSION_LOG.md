@@ -314,6 +314,78 @@ Added comprehensive permissions information panel in the credentials step that d
 - Tips section for best practices
 - Professional formatting with proper spacing and hierarchy
 
+### 9. Circuit Breaker Fix - Azure Credentials Decryption
+**Commit**: `ae51ad9`
+**Files**:
+- `/Users/josegomez/Documents/Code/SaaS/Copilot/apps/api-gateway/src/jobs/service-health-monitor.job.ts`
+- `/Users/josegomez/Documents/Code/SaaS/Copilot/apps/api-gateway/src/modules/service-health/services/service-health.service.ts`
+
+#### Problem Identified
+- **Circuit Breaker Error**: "Circuit breaker is OPEN for AzureAPI. Service is experiencing issues. Will retry in approximately 32 seconds."
+- **Root Cause**: Services were attempting to access encrypted credentials directly as object properties instead of decrypting them
+- **Impact**: Multiple API calls failing with 500 errors, triggering circuit breaker after 3 consecutive failures
+
+#### Root Cause Analysis
+**Incorrect Pattern** (Before):
+```typescript
+const credentials: CloudProviderCredentials = {
+  provider: 'azure',
+  azureClientId: (account as any).azureClientId || undefined,        // ❌ Property doesn't exist
+  azureClientSecret: (account as any).azureClientSecret || undefined, // ❌ Property doesn't exist
+  azureTenantId: (account as any).azureTenantId || undefined,        // ❌ Property doesn't exist
+  azureSubscriptionId: (account as any).azureSubscriptionId || undefined, // ❌ Property doesn't exist
+};
+```
+
+**Issue**: Credentials are stored encrypted in database:
+- `credentials_ciphertext` - AES-256-GCM encrypted JSON (288 bytes)
+- `credentials_iv` - Initialization vector
+- `credentials_auth_tag` - Authentication tag
+
+**Correct Pattern** (After):
+```typescript
+// Decrypt credentials using CloudAccountService
+const decryptedCreds = await cloudAccountService.getCredentials(accountId, tenantId);
+const azureCredentials = decryptedCreds as AzureCredentials;
+
+const credentials: CloudProviderCredentials = {
+  provider: 'azure',
+  azureClientId: azureCredentials.clientId,          // ✅ From decrypted data
+  azureClientSecret: azureCredentials.clientSecret,   // ✅ From decrypted data
+  azureTenantId: azureCredentials.tenantId,          // ✅ From decrypted data
+  azureSubscriptionId: azureCredentials.subscriptionId, // ✅ From decrypted data
+};
+```
+
+#### Changes Made
+
+**1. ServiceHealthMonitor Job** (lines 31-32, 134-172):
+- Added import: `cloudAccountService` and `AzureCredentials` type
+- Replaced direct property access with `cloudAccountService.getCredentials()`
+- Added proper error handling for decryption failures
+- Added validation of decrypted credentials
+- Improved logging with specific error messages
+
+**2. ServiceHealthModuleService** (lines 24-25, 410-442):
+- Added same imports for credential decryption
+- Updated `getCloudAccount()` private method
+- Properly decrypt credentials before use
+- Comprehensive error handling with descriptive messages
+
+#### Circuit Breaker Configuration
+- **Failure Threshold**: 3 consecutive failures
+- **Reset Timeout**: 60 seconds (1 minute)
+- **Trigger Codes**: 429 (Rate Limit), 500, 502, 503, 504
+- **Algorithm**: AES-256-GCM for credential encryption
+
+#### Error Chain Resolved
+1. ~~ServiceHealthMonitor can't get credentials → skips account~~
+2. ~~Security API calls fail → 500 errors~~
+3. ~~Frontend makes 3 requests → 3 failures~~
+4. ~~Circuit breaker opens → blocks all requests for 60s~~
+
+✅ **Now**: Credentials properly decrypted → API calls succeed → Circuit breaker stays CLOSED
+
 ## Status
 - **Azure Advisor Integration**: ✅ COMPLETE
 - **Assets (Inventory) Integration**: ✅ COMPLETE
@@ -321,9 +393,12 @@ Added comprehensive permissions information panel in the credentials step that d
 - **All Mock Data Removed**: ✅ COMPLETE
 - **Azure Test Account Validation**: ✅ COMPLETE
 - **Permissions Documentation**: ✅ COMPLETE
-- **Commit and Push**: ✅ SUCCESSFUL (commit `a1f976a`)
+- **Circuit Breaker Fix**: ✅ COMPLETE
+- **Commit and Push**: ✅ SUCCESSFUL (commit `ae51ad9`)
 
 ## Summary
 Successfully cleaned up mock data and integrated real API endpoints for three major dashboard pages (Azure Advisor, Assets, Audit Logs). All pages now fetch data from backend APIs, display loading states properly, and have functional buttons connected to mutations. Navigation links verified and working correctly.
 
 Additionally, validated Azure test account in production database and added comprehensive permissions documentation to the cloud account creation wizard. Users now see clear guidance on required IAM policies, role assignments, and service account permissions for AWS, Azure, and GCP respectively, including CLI commands for creating the necessary credentials.
+
+**Critical Fix**: Resolved Circuit Breaker issue caused by incorrect Azure credentials access pattern. Two services (ServiceHealthMonitor and ServiceHealthModuleService) were attempting to access encrypted credentials directly instead of using the CloudAccountService decryption method. This was causing "Missing Azure credentials" warnings, subsequent API failures, and circuit breaker activation. Fix enables proper service health monitoring and security data loading.
