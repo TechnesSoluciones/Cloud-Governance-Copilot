@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Shield, Cloud, Lock, TrendingUp, CheckCircle, Zap } from 'lucide-react';
 
+// Force dynamic rendering for this page to work with standalone mode
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
