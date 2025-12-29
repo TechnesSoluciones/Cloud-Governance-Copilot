@@ -5,10 +5,17 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { cn } from '@/lib/utils';
+import {
+  useAuditLogs,
+  useAuditStats,
+  extractAuditLogsData,
+  extractStatsData,
+} from '@/hooks/useAuditLogs';
+import { AuditLog as ApiAuditLog } from '@/lib/api/audit-logs';
 
 interface AuditLog {
   id: string;
@@ -29,175 +36,84 @@ interface AuditLog {
   details?: string;
 }
 
-const mockLogs: AuditLog[] = [
-  {
-    id: '1',
-    timestamp: '2024-12-26T10:30:00Z',
+// Helper function to transform API audit log to component format
+function transformAuditLog(apiLog: ApiAuditLog): AuditLog {
+  const formatProvider = (provider: string): 'AWS' | 'Azure' | 'GCP' => {
+    if (provider === 'AZURE') return 'Azure';
+    if (provider === 'AWS') return 'AWS';
+    return 'GCP';
+  };
+
+  return {
+    id: apiLog.id,
+    timestamp: apiLog.timestamp,
     user: {
-      name: 'John Doe',
-      email: 'john.doe@company.com',
+      name: apiLog.userName,
+      email: apiLog.userEmail,
     },
-    action: 'Created EC2 instance',
-    actionType: 'create',
-    resource: 'i-0abc123def456',
-    resourceType: 'EC2 Instance',
-    provider: 'AWS',
-    status: 'success',
-    ipAddress: '192.168.1.100',
-    location: 'San Francisco, CA',
-    details: 'Instance type: t3.medium, Region: us-east-1',
-  },
-  {
-    id: '2',
-    timestamp: '2024-12-26T10:25:00Z',
-    user: {
-      name: 'Jane Smith',
-      email: 'jane.smith@company.com',
-    },
-    action: 'Updated security group rules',
-    actionType: 'update',
-    resource: 'sg-0987654321',
-    resourceType: 'Security Group',
-    provider: 'AWS',
-    status: 'success',
-    ipAddress: '192.168.1.101',
-    location: 'New York, NY',
-    details: 'Added inbound rule for port 443',
-  },
-  {
-    id: '3',
-    timestamp: '2024-12-26T10:20:00Z',
-    user: {
-      name: 'Mike Johnson',
-      email: 'mike.j@company.com',
-    },
-    action: 'Deleted storage account',
-    actionType: 'delete',
-    resource: 'storageaccount123',
-    resourceType: 'Storage Account',
-    provider: 'Azure',
-    status: 'success',
-    ipAddress: '192.168.1.102',
-    location: 'London, UK',
-    details: 'Permanently deleted unused storage account',
-  },
-  {
-    id: '4',
-    timestamp: '2024-12-26T10:15:00Z',
-    user: {
-      name: 'Sarah Wilson',
-      email: 'sarah.w@company.com',
-    },
-    action: 'Failed to access RDS database',
-    actionType: 'access',
-    resource: 'db-prod-main',
-    resourceType: 'RDS Database',
-    provider: 'AWS',
-    status: 'failed',
-    ipAddress: '192.168.1.103',
-    location: 'Austin, TX',
-    details: 'Access denied: Insufficient permissions',
-  },
-  {
-    id: '5',
-    timestamp: '2024-12-26T10:10:00Z',
-    user: {
-      name: 'David Lee',
-      email: 'david.lee@company.com',
-    },
-    action: 'Modified IAM policy',
-    actionType: 'config',
-    resource: 'policy-admin-access',
-    resourceType: 'IAM Policy',
-    provider: 'AWS',
-    status: 'success',
-    ipAddress: '192.168.1.104',
-    location: 'Seattle, WA',
-    details: 'Updated permissions for S3 bucket access',
-  },
-  {
-    id: '6',
-    timestamp: '2024-12-26T10:05:00Z',
-    user: {
-      name: 'Emily Brown',
-      email: 'emily.b@company.com',
-    },
-    action: 'Created Kubernetes cluster',
-    actionType: 'create',
-    resource: 'cluster-prod-01',
-    resourceType: 'GKE Cluster',
-    provider: 'GCP',
-    status: 'success',
-    ipAddress: '192.168.1.105',
-    location: 'Tokyo, Japan',
-    details: 'Cluster type: Standard, Nodes: 3',
-  },
-  {
-    id: '7',
-    timestamp: '2024-12-26T10:00:00Z',
-    user: {
-      name: 'Robert Garcia',
-      email: 'robert.g@company.com',
-    },
-    action: 'Updated load balancer configuration',
-    actionType: 'update',
-    resource: 'lb-prod-web',
-    resourceType: 'Load Balancer',
-    provider: 'Azure',
-    status: 'warning',
-    ipAddress: '192.168.1.106',
-    location: 'Sydney, Australia',
-    details: 'Modified health check settings',
-  },
-  {
-    id: '8',
-    timestamp: '2024-12-26T09:55:00Z',
-    user: {
-      name: 'Lisa Anderson',
-      email: 'lisa.a@company.com',
-    },
-    action: 'Accessed S3 bucket',
-    actionType: 'access',
-    resource: 's3://prod-data-bucket',
-    resourceType: 'S3 Bucket',
-    provider: 'AWS',
-    status: 'success',
-    ipAddress: '192.168.1.107',
-    location: 'Boston, MA',
-    details: 'Downloaded 5 objects',
-  },
-];
+    action: apiLog.action,
+    actionType: apiLog.actionType,
+    resource: apiLog.resourceId,
+    resourceType: apiLog.resourceType,
+    provider: formatProvider(apiLog.provider),
+    status: apiLog.status,
+    ipAddress: apiLog.ipAddress,
+    location: apiLog.location || 'Unknown',
+    details: apiLog.details,
+  };
+}
 
 export default function AuditLogsV2Page() {
-  const [logs, setLogs] = useState<AuditLog[]>(mockLogs);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAction, setFilterAction] = useState<string>('all');
   const [filterProvider, setFilterProvider] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<string>('today');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const totalEvents = logs.length;
-  const uniqueUsers = new Set(logs.map((l) => l.user.email)).size;
-  const criticalActions = logs.filter(
+  // Fetch audit logs from API
+  const { data: logsData, refetch: refetchLogs, isLoading: isLoadingLogs } = useAuditLogs({
+    search: searchQuery || undefined,
+    actionType: filterAction !== 'all' ? filterAction as any : undefined,
+    provider: filterProvider !== 'all' ? filterProvider as any : undefined,
+    status: filterStatus !== 'all' ? filterStatus as any : undefined,
+  });
+
+  // Fetch stats from API
+  const { data: statsData, isLoading: isLoadingStats } = useAuditStats();
+
+  // Transform and set logs when data changes
+  useEffect(() => {
+    const data = extractAuditLogsData(logsData);
+    if (data?.data) {
+      const transformed = data.data.map(transformAuditLog);
+      setLogs(transformed);
+    }
+    setIsLoading(isLoadingLogs || isLoadingStats);
+  }, [logsData, isLoadingLogs, isLoadingStats]);
+
+  const stats = extractStatsData(statsData);
+  const totalEvents = stats?.totalEvents || logs.length;
+  const uniqueUsers = stats?.uniqueUsers || new Set(logs.map((l) => l.user.email)).size;
+  const criticalActions = stats?.criticalActions || logs.filter(
     (l) => l.actionType === 'delete' || l.status === 'failed'
   ).length;
-  const successRate = Math.round(
+  const successRate = stats?.successRate || (logs.length > 0 ? Math.round(
     (logs.filter((l) => l.status === 'success').length / logs.length) * 100
-  );
+  ) : 0);
 
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch =
-      log.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.resource.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleExport = () => {
+    const dataStr = JSON.stringify(logs, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audit-logs-export-${new Date().toISOString()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
-    const matchesAction = filterAction === 'all' || log.actionType === filterAction;
-    const matchesProvider = filterProvider === 'all' || log.provider === filterProvider;
-    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
-
-    return matchesSearch && matchesAction && matchesProvider && matchesStatus;
-  });
+  const filteredLogs = logs;
 
   const getActionIcon = (actionType: AuditLog['actionType']) => {
     switch (actionType) {
@@ -273,11 +189,18 @@ export default function AuditLogsV2Page() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+            <button
+              onClick={() => alert('Advanced filters coming soon')}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+            >
               <span className="material-symbols-outlined text-lg">filter_list</span>
               Advanced Filters
             </button>
-            <button className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              disabled={logs.length === 0}
+              className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
               <span className="material-symbols-outlined text-lg">download</span>
               Export Logs
             </button>
@@ -289,28 +212,28 @@ export default function AuditLogsV2Page() {
           <KPICardV2
             icon="history"
             label="Total Events"
-            value={totalEvents.toLocaleString()}
+            value={isLoading ? '...' : totalEvents.toLocaleString()}
             variant="blue"
             comparison="Last 24 hours"
           />
           <KPICardV2
             icon="group"
             label="Active Users"
-            value={uniqueUsers}
+            value={isLoading ? '...' : uniqueUsers.toString()}
             variant="indigo"
-            comparison={`${totalEvents} total actions`}
+            comparison={isLoading ? '...' : `${totalEvents} total actions`}
           />
           <KPICardV2
             icon="warning"
             label="Critical Actions"
-            value={criticalActions}
+            value={isLoading ? '...' : criticalActions.toString()}
             variant="orange"
             comparison="Deletes & failures"
           />
           <KPICardV2
             icon="check_circle"
             label="Success Rate"
-            value={`${successRate}%`}
+            value={isLoading ? '...' : `${successRate}%`}
             variant="emerald"
             comparison="Overall reliability"
           />

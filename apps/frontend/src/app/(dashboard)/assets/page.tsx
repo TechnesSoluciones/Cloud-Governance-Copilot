@@ -5,12 +5,19 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { FilterToolbar, FilterGroup } from '@/components/ui/FilterToolbar';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { cn } from '@/lib/utils';
+import {
+  useAssets,
+  useTriggerDiscovery,
+  useUpdateTags,
+  extractAssetsData,
+} from '@/hooks/useAssets';
+import { Asset as ApiAsset } from '@/lib/api/assets';
 
 interface Resource {
   id: string;
@@ -25,104 +32,53 @@ interface Resource {
   lastUpdated: string;
 }
 
-const mockResources: Resource[] = [
-  {
-    id: '1',
-    name: 'prod-web-server-01',
-    type: 'EC2 Instance',
-    provider: 'AWS',
-    region: 'us-east-1',
-    status: 'running',
-    environment: 'production',
-    cost: '$145/mo',
-    tags: { app: 'web', team: 'platform' },
-    lastUpdated: '2 hours ago',
-  },
-  {
-    id: '2',
-    name: 'prod-db-primary',
-    type: 'RDS MySQL',
-    provider: 'AWS',
-    region: 'us-west-2',
-    status: 'running',
-    environment: 'production',
-    cost: '$892/mo',
-    tags: { app: 'database', team: 'backend' },
-    lastUpdated: '1 hour ago',
-  },
-  {
-    id: '3',
-    name: 'staging-app-service',
-    type: 'App Service',
-    provider: 'Azure',
-    region: 'westeurope',
-    status: 'running',
-    environment: 'staging',
-    cost: '$78/mo',
-    tags: { app: 'api', team: 'backend' },
-    lastUpdated: '3 hours ago',
-  },
-  {
-    id: '4',
-    name: 'dev-storage-bucket',
-    type: 'S3 Bucket',
-    provider: 'AWS',
-    region: 'us-east-1',
-    status: 'warning',
-    environment: 'development',
-    cost: '$12/mo',
-    tags: { app: 'storage', team: 'platform' },
-    lastUpdated: '5 hours ago',
-  },
-  {
-    id: '5',
-    name: 'prod-gke-cluster',
-    type: 'GKE Cluster',
-    provider: 'GCP',
-    region: 'us-central1',
-    status: 'running',
-    environment: 'production',
-    cost: '$580/mo',
-    tags: { app: 'kubernetes', team: 'platform' },
-    lastUpdated: '30 minutes ago',
-  },
-  {
-    id: '6',
-    name: 'prod-load-balancer',
-    type: 'Application Load Balancer',
-    provider: 'AWS',
-    region: 'us-east-1',
-    status: 'running',
-    environment: 'production',
-    cost: '$45/mo',
-    tags: { app: 'networking', team: 'platform' },
-    lastUpdated: '1 hour ago',
-  },
-  {
-    id: '7',
-    name: 'staging-vm-worker',
-    type: 'Virtual Machine',
-    provider: 'Azure',
-    region: 'eastus',
-    status: 'stopped',
-    environment: 'staging',
-    cost: '$0/mo',
-    tags: { app: 'worker', team: 'backend' },
-    lastUpdated: '2 days ago',
-  },
-  {
-    id: '8',
-    name: 'prod-cdn-distribution',
-    type: 'CloudFront',
-    provider: 'AWS',
-    region: 'global',
-    status: 'running',
-    environment: 'production',
-    cost: '$124/mo',
-    tags: { app: 'cdn', team: 'platform' },
-    lastUpdated: '4 hours ago',
-  },
-];
+// Helper function to transform API asset to component format
+function transformAsset(apiAsset: ApiAsset): Resource {
+  const formatProvider = (provider: string): 'AWS' | 'Azure' | 'GCP' => {
+    if (provider === 'AZURE') return 'Azure';
+    if (provider === 'AWS') return 'AWS';
+    return 'GCP';
+  };
+
+  const formatStatus = (status: string): 'running' | 'stopped' | 'warning' | 'error' => {
+    if (status === 'active') return 'running';
+    if (status === 'terminated') return 'stopped';
+    return 'warning';
+  };
+
+  const getEnvironment = (tags: Record<string, string>): 'production' | 'staging' | 'development' => {
+    const env = tags.environment || tags.Environment || tags.env;
+    if (env === 'prod' || env === 'production') return 'production';
+    if (env === 'staging' || env === 'stg') return 'staging';
+    return 'development';
+  };
+
+  const formatLastUpdated = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
+  return {
+    id: apiAsset.id,
+    name: apiAsset.name,
+    type: apiAsset.resourceType,
+    provider: formatProvider(apiAsset.provider),
+    region: apiAsset.region,
+    status: formatStatus(apiAsset.status),
+    environment: getEnvironment(apiAsset.tags),
+    cost: apiAsset.monthlyCost ? `$${apiAsset.monthlyCost}/mo` : '$0/mo',
+    tags: apiAsset.tags,
+    lastUpdated: formatLastUpdated(apiAsset.lastSeenAt),
+  };
+}
 
 const filterGroups: FilterGroup[] = [
   {
@@ -131,9 +87,9 @@ const filterGroups: FilterGroup[] = [
     icon: 'cloud',
     multiSelect: true,
     options: [
-      { id: 'aws', label: 'AWS', value: 'AWS', count: 5 },
-      { id: 'azure', label: 'Azure', value: 'Azure', count: 2 },
-      { id: 'gcp', label: 'GCP', value: 'GCP', count: 1 },
+      { id: 'aws', label: 'AWS', value: 'AWS', count: 0 },
+      { id: 'azure', label: 'Azure', value: 'Azure', count: 0 },
+      { id: 'gcp', label: 'GCP', value: 'GCP', count: 0 },
     ],
   },
   {
@@ -142,9 +98,8 @@ const filterGroups: FilterGroup[] = [
     icon: 'toggle_on',
     multiSelect: true,
     options: [
-      { id: 'running', label: 'Running', value: 'running', count: 6 },
-      { id: 'stopped', label: 'Stopped', value: 'stopped', count: 1 },
-      { id: 'warning', label: 'Warning', value: 'warning', count: 1 },
+      { id: 'active', label: 'Running', value: 'active', count: 0 },
+      { id: 'terminated', label: 'Stopped', value: 'terminated', count: 0 },
     ],
   },
   {
@@ -153,60 +108,155 @@ const filterGroups: FilterGroup[] = [
     icon: 'deployed_code',
     multiSelect: true,
     options: [
-      { id: 'production', label: 'Production', value: 'production', count: 5 },
-      { id: 'staging', label: 'Staging', value: 'staging', count: 2 },
-      { id: 'development', label: 'Development', value: 'development', count: 1 },
+      { id: 'production', label: 'Production', value: 'production', count: 0 },
+      { id: 'staging', label: 'Staging', value: 'staging', count: 0 },
+      { id: 'development', label: 'Development', value: 'development', count: 0 },
     ],
   },
-  {
-    id: 'type',
-    label: 'Resource Type',
-    icon: 'category',
-    multiSelect: true,
-    options: [
-      { id: 'compute', label: 'Compute', value: 'compute', count: 4 },
-      { id: 'storage', label: 'Storage', value: 'storage', count: 1 },
-      { id: 'database', label: 'Database', value: 'database', count: 1 },
-      { id: 'networking', label: 'Networking', value: 'networking', count: 2 },
-    ],
-  },
-];
-
-const resourceTypeDistribution = [
-  { type: 'Compute', count: 342, percentage: 45 },
-  { type: 'Storage', count: 228, percentage: 30 },
-  { type: 'Database', count: 114, percentage: 15 },
-  { type: 'Networking', count: 76, percentage: 10 },
 ];
 
 export default function InventoryV2Page() {
-  const [filteredResources, setFilteredResources] = useState<Resource[]>(mockResources);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch assets from API
+  const { data: assetsData, refetch: refetchAssets, isLoading: isLoadingAssets } = useAssets({});
+
+  // Mutations
+  const { mutate: triggerDiscovery, isPending: isDiscovering } = useTriggerDiscovery();
+  const { mutate: updateTags, isPending: isUpdatingTags } = useUpdateTags();
+
+  // Transform and set assets when data changes
+  useEffect(() => {
+    const data = extractAssetsData(assetsData);
+    if (data?.data) {
+      const transformed = data.data.map(transformAsset);
+      setResources(transformed);
+      setFilteredResources(transformed);
+    }
+    setIsLoading(isLoadingAssets);
+  }, [assetsData, isLoadingAssets]);
 
   const handleFilterChange = (filterId: string, selectedValues: string[]) => {
-    // Simple filter implementation for demo
-    let filtered = mockResources;
+    let filtered = resources;
 
-    // Note: In production, you'd track all active filters and apply them together
     if (selectedValues.length > 0) {
       if (filterId === 'provider') {
         filtered = filtered.filter((r) => selectedValues.includes(r.provider));
       } else if (filterId === 'status') {
-        filtered = filtered.filter((r) => selectedValues.includes(r.status));
+        filtered = filtered.filter((r) =>
+          selectedValues.includes(r.status === 'running' ? 'active' : 'terminated')
+        );
       } else if (filterId === 'environment') {
         filtered = filtered.filter((r) => selectedValues.includes(r.environment));
       }
     }
 
+    // Apply search filter if exists
+    if (searchQuery) {
+      filtered = filtered.filter((r) =>
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.type.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
     setFilteredResources(filtered);
   };
 
-  const totalResources = mockResources.length;
-  const runningResources = mockResources.filter((r) => r.status === 'running').length;
-  const totalCost = mockResources.reduce((sum, r) => {
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    let filtered = resources;
+
+    if (query) {
+      filtered = filtered.filter((r) =>
+        r.name.toLowerCase().includes(query.toLowerCase()) ||
+        r.type.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    setFilteredResources(filtered);
+  };
+
+  const handleSyncNow = () => {
+    triggerDiscovery(
+      {},
+      {
+        onSuccess: (response) => {
+          if (response.success) {
+            alert(`Discovery complete! Found ${response.data?.discoveredCount} new assets`);
+            refetchAssets();
+          }
+        },
+        onError: (error) => {
+          alert(`Failed to trigger discovery: ${error.message}`);
+        },
+      }
+    );
+  };
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(resources, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `inventory-export-${new Date().toISOString()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleEditTags = (resourceId: string) => {
+    const resource = resources.find((r) => r.id === resourceId);
+    if (!resource) return;
+
+    const tagsJson = prompt('Enter tags as JSON (e.g., {"team": "backend", "env": "prod"}):');
+    if (!tagsJson) return;
+
+    try {
+      const tags = JSON.parse(tagsJson);
+      updateTags(
+        { id: resourceId, params: { tags } },
+        {
+          onSuccess: () => {
+            alert('Tags updated successfully');
+            refetchAssets();
+            setSelectedResource(null);
+          },
+          onError: (error) => {
+            alert(`Failed to update tags: ${error.message}`);
+          },
+        }
+      );
+    } catch (error) {
+      alert('Invalid JSON format');
+    }
+  };
+
+  const totalResources = resources.length;
+  const runningResources = resources.filter((r) => r.status === 'running').length;
+  const totalCost = resources.reduce((sum, r) => {
     const cost = parseInt(r.cost.replace(/[^0-9]/g, '')) || 0;
     return sum + cost;
   }, 0);
+
+  // Calculate resource type distribution from real data
+  const resourceTypeDistribution = Object.entries(
+    resources.reduce((acc, r) => {
+      const category = r.type.includes('Instance') || r.type.includes('VM') || r.type.includes('Cluster') ? 'Compute'
+        : r.type.includes('Bucket') || r.type.includes('Storage') ? 'Storage'
+        : r.type.includes('Database') || r.type.includes('RDS') || r.type.includes('SQL') ? 'Database'
+        : 'Networking';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>)
+  ).map(([type, count]) => ({
+    type,
+    count,
+    percentage: totalResources > 0 ? Math.round((count / totalResources) * 100) : 0,
+  }));
 
   return (
     <div className="h-full flex overflow-hidden">
@@ -224,11 +274,19 @@ export default function InventoryV2Page() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <button
+                onClick={handleSyncNow}
+                disabled={isDiscovering || isLoading}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
                 <span className="material-symbols-outlined text-lg">refresh</span>
-                Sync Now
+                {isDiscovering ? 'Syncing...' : 'Sync Now'}
               </button>
-              <button className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2">
+              <button
+                onClick={handleExport}
+                disabled={resources.length === 0}
+                className="px-4 py-2 bg-brand-primary-400 text-white rounded-lg text-sm font-semibold hover:bg-brand-primary-500 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
                 <span className="material-symbols-outlined text-lg">download</span>
                 Export Inventory
               </button>
@@ -240,30 +298,30 @@ export default function InventoryV2Page() {
             <KPICardV2
               icon="dns"
               label="Total Resources"
-              value={totalResources.toString()}
+              value={isLoading ? '...' : totalResources.toString()}
               variant="blue"
               comparison="Across all providers"
             />
             <KPICardV2
               icon="check_circle"
               label="Running Resources"
-              value={runningResources.toString()}
+              value={isLoading ? '...' : runningResources.toString()}
               variant="emerald"
-              comparison={`${Math.round((runningResources / totalResources) * 100)}% of total`}
+              comparison={isLoading ? '...' : `${totalResources > 0 ? Math.round((runningResources / totalResources) * 100) : 0}% of total`}
             />
             <KPICardV2
               icon="attach_money"
               label="Total Cost"
-              value={`$${totalCost.toLocaleString()}`}
+              value={isLoading ? '...' : `$${totalCost.toLocaleString()}`}
               variant="orange"
               comparison="Monthly estimate"
             />
             <KPICardV2
               icon="cloud"
               label="Providers"
-              value="3"
+              value={isLoading ? '...' : new Set(resources.map(r => r.provider)).size.toString()}
               variant="indigo"
-              comparison="AWS, Azure, GCP"
+              comparison={isLoading ? '...' : Array.from(new Set(resources.map(r => r.provider))).join(', ')}
             />
           </div>
 
@@ -328,6 +386,8 @@ export default function InventoryV2Page() {
                   <input
                     type="text"
                     placeholder="Search resources..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg text-sm border-none focus:outline-none focus:ring-2 focus:ring-brand-primary-400"
                   />
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
@@ -337,35 +397,46 @@ export default function InventoryV2Page() {
               </div>
             </div>
 
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Resource Name
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Region
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Environment
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Cost
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Updated
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredResources.map((resource) => (
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary-400"></div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Loading resources...</p>
+                </div>
+              </div>
+            )}
+
+            {!isLoading && (
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Resource Name
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Region
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Environment
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Cost
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        Updated
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredResources.map((resource) => (
                     <tr
                       key={resource.id}
                       onClick={() => setSelectedResource(resource)}
@@ -435,10 +506,11 @@ export default function InventoryV2Page() {
                         </span>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
@@ -557,17 +629,27 @@ export default function InventoryV2Page() {
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                <button className="w-full px-4 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => alert('Manage Resource functionality coming soon')}
+                  className="w-full px-4 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors flex items-center justify-center gap-2"
+                >
                   <span className="material-symbols-outlined">settings</span>
                   Manage Resource
                 </button>
-                <button className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => alert('View Metrics functionality coming soon')}
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                >
                   <span className="material-symbols-outlined">monitoring</span>
                   View Metrics
                 </button>
-                <button className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handleEditTags(selectedResource.id)}
+                  disabled={isUpdatingTags}
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
                   <span className="material-symbols-outlined">local_offer</span>
-                  Edit Tags
+                  {isUpdatingTags ? 'Updating...' : 'Edit Tags'}
                 </button>
               </div>
             </div>
