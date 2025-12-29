@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   // Standalone output for Docker deployment, but without static export
-  output: 'standalone',
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
+  // output: 'standalone', // Temporarily disabled for debugging
   env: {
     // Use relative path in production, localhost in development
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ||

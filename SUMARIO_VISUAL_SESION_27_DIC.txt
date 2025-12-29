@@ -1,0 +1,192 @@
+================================================================================
+
+   SESIÓN DE INTEGRACIÓN FRONTEND-BACKEND: MÓDULO COSTOS
+   27 de Diciembre de 2025 - Fase de Análisis Completa
+
+================================================================================
+
+INFRAESTRUCTURA DISPONIBLE
+==================================================================================
+
+✓ Backend Completo
+  - Módulo finops: 100% implementado
+  - 5 endpoints funcionales y documentados
+  - Rate limiting, autenticación, validación presentes
+
+✓ Frontend Hooks Completos
+  - useCombinedCostData() → Todos los datos en una llamada
+  - useCosts() → Datos principales
+  - useCostsByService() → Desglose por servicio
+  - useCostTrends() → Tendencias temporales
+  - useAnomalies() → Detección de anomalías
+  - Y 2 más de utilidad
+
+✓ API Client Completo
+  - finops.ts configurado en /lib/api/
+  - Tipos TypeScript, validación, manejo de errores
+
+✗ Página CostsPage
+  - Visualmente perfecta ✓
+  - UI/UX excelente ✓
+  - Usando MOCK DATA ✗ ← ESTE ES EL ÚNICO PROBLEMA
+
+==================================================================================
+
+PROBLEMAS IDENTIFICADOS
+==================================================================================
+
+CRÍTICO (1)
+  └─ Data completamente hardcodeada en CostsPage
+     • 3 arrays: serviceBreakdown, costByProvider, topCostResources
+     • 4 valores fijos en KPI cards
+     • Selector timeRange no actualiza datos
+
+ALTO (2)
+  ├─ Página ignora hook useCosts() disponible
+  └─ Typo: campo utilizaton debe ser utilization
+
+MEDIO (2)
+  ├─ Export Report button sin funcionalidad
+  └─ No hay integración con AccountContext
+
+==================================================================================
+
+SOLUCIÓN DISPONIBLE
+==================================================================================
+
+NO NECESITAS CREAR:
+  ✗ Nuevos hooks           (ya existen)
+  ✗ Nuevo API client        (ya existe)
+  ✗ Nuevos endpoints        (ya existen)
+  ✗ Nuevos tipos           (ya existen)
+
+SOLO NECESITAS HACER:
+  ✓ Conectar CostsPage a los hooks existentes
+  ✓ Reemplazar 3 arrays con datos del API
+  ✓ Agregar 2 componentes de estado (loading/error)
+  ✓ Corregir 1 typo
+
+TIEMPO ESTIMADO: 1-2 HORAS DE DESARROLLO
+
+==================================================================================
+
+DOCUMENTACIÓN CREADA (5 DOCUMENTOS)
+==================================================================================
+
+1. BITACORA_SESION_27_DIC_INTEGRACION_COSTS.md
+   └─ 900+ líneas de registro continuo de progreso
+   └─ Problemas, endpoints, cambios realizados
+   └─ Actualizar durante desarrollo
+
+2. QUICK_REFERENCE_COSTOS_2025_12_27.md
+   └─ 250 líneas de guía rápida
+   └─ Mantener abierto mientras codificas
+   └─ Hooks, parámetros, troubleshooting
+
+3. MATRIX_INTEGRACION_MODULOS_2025_12_27.md
+   └─ 350 líneas de vista estratégica
+   └─ Status de 9 módulos
+   └─ Plan de integración priorizado
+
+4. RESUMEN_SESION_27_DIC_FASE_ANALISIS.md
+   └─ 450 líneas de síntesis ejecutiva
+   └─ Qué se logró, hallazgos, próximos pasos
+
+5. INSTRUCCIONES_PROXIMA_SESION_INTEGRACION_COSTS.md
+   └─ Paso a paso para desarrollo
+   └─ 10 pasos exactos a seguir
+   └─ Con verificaciones en cada paso
+
++ INDEX_DOCUMENTOS_SESION_27_DIC.md
+  └─ Índice de navegación de documentos
+
+TOTAL: 2000+ líneas de documentación completa
+
+==================================================================================
+
+ESTADO ACTUAL DEL MÓDULO
+==================================================================================
+
+Backend:        [████████████████████] 100%  ✓ Completo
+Frontend Hooks: [████████████████████] 100%  ✓ Completo
+API Client:     [████████████████████] 100%  ✓ Completo
+Página:         [████░░░░░░░░░░░░░░░░]  20%  ✗ Necesita integración
+Documentación:  [████████████████████] 100%  ✓ Completo
+
+OVERALL:        [████████░░░░░░░░░░░░]  80%  En Progreso
+
+==================================================================================
+
+PRÓXIMOS PASOS
+==================================================================================
+
+ESTA SEMANA:
+  1. Ejecutar integración de CostsPage (1-2 horas)
+     └─ Usar INSTRUCCIONES_PROXIMA_SESION_INTEGRACION_COSTS.md
+  2. Testing en navegador (30 minutos)
+  3. Code review y merge a main
+
+PRÓXIMA SEMANA:
+  1. Auditar resto de módulos (Security, Recommendations, etc)
+     └─ Usar MATRIX_INTEGRACION_MODULOS como guía
+  2. Completar integraciones restantes
+  3. Testing E2E de flujos completos
+
+==================================================================================
+
+INFORMACIÓN CRÍTICA
+==================================================================================
+
+Archivo a editar:
+  /Users/josegomez/Documents/Code/SaaS/Copilot/
+  apps/frontend/src/app/(dashboard)/costs/page.tsx
+
+Hook a usar:
+  useCombinedCostData() desde @/hooks/useCosts
+
+Parámetros requeridos:
+  { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
+
+API Endpoint:
+  GET /api/v1/finops/costs (backend ya configurado)
+
+Documentación de referencia:
+  QUICK_REFERENCE_COSTOS_2025_12_27.md (mantener abierto)
+
+==================================================================================
+
+CHECKLIST DE LECTURA
+==================================================================================
+
+Antes de empezar a codificar:
+  [ ] Lee QUICK_REFERENCE_COSTOS_2025_12_27.md (10 min)
+  [ ] Lee INSTRUCCIONES_PROXIMA_SESION_INTEGRACION_COSTS.md (15 min)
+  [ ] Entiende el patrón de integración
+
+Mientras codificas:
+  [ ] Mantén QUICK_REFERENCE abierto
+  [ ] Sigue INSTRUCCIONES paso a paso
+  [ ] Verifica cada paso en console del navegador
+
+Al terminar:
+  [ ] Actualiza BITACORA con resumen
+  [ ] Verifica cambio de timeRange actualiza datos
+  [ ] Testing en browser completo
+
+==================================================================================
+
+LA BUENA NOTICIA
+==================================================================================
+
+La infraestructura está 100% lista. Solo necesitas conectar lo que ya existe.
+No es crear desde cero, es configurar lo que ya funciona.
+
+ESTIMADO DE TIEMPO: 1-2 horas de desarrollo
+COMPLEJIDAD: Media
+RIESGO: Bajo (infraestructura ya probada)
+
+==================================================================================
+
+Generated: 2025-12-27 14:45 UTC
+Session: Integración Frontend-Backend Costos (Fase de Análisis)
+Status: ANÁLISIS COMPLETADO - LISTO PARA DESARROLLO
