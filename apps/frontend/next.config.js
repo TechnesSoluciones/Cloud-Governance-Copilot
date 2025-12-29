@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Standalone output for Docker deployment, but without static export
-  // output: 'standalone', // Temporarily disabled for debugging
+  // Standalone output for Docker deployment
+  output: 'standalone',
   env: {
     // Use relative path in production, localhost in development
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ||
