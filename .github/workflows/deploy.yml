@@ -226,58 +226,65 @@ jobs:
 
       - name: Smoke tests
         run: |
-          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} << 'EOF'
-            cd /opt/copilot-app
-            echo "=========================================="
-            echo "🧪 SMOKE TESTS"
-            echo "=========================================="
+          # Create smoke test script on server
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} 'cat > /tmp/smoke-tests.sh' << 'SCRIPT_EOF'
+#!/bin/bash
+set +e
+cd /opt/copilot-app
 
-            TESTS_PASSED=0
-            TESTS_FAILED=0
+echo "=========================================="
+echo "🧪 SMOKE TESTS"
+echo "=========================================="
 
-            # Test 1: API Gateway Health (direct container access)
-            if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/health > /dev/null 2>&1; then
-              echo "✓ API Gateway health check passed"
-              ((TESTS_PASSED++))
-            else
-              echo "❌ API Gateway health check failed"
-              docker compose logs --tail=20 api-gateway
-              ((TESTS_FAILED++))
-            fi
+TESTS_PASSED=0
+TESTS_FAILED=0
 
-            # Test 2: Frontend Health (direct container access)
-            if docker compose exec -T frontend wget -q -O- http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
-              echo "✓ Frontend health check passed"
-              ((TESTS_PASSED++))
-            else
-              echo "❌ Frontend health check failed"
-              docker compose logs --tail=20 frontend
-              ((TESTS_FAILED++))
-            fi
+# Test 1: API Gateway Health
+if docker compose exec -T api-gateway wget -q -O- http://localhost:3010/health > /dev/null 2>&1; then
+  echo "✓ API Gateway health check passed"
+  ((TESTS_PASSED++))
+else
+  echo "❌ API Gateway health check failed"
+  docker compose logs --tail=20 api-gateway
+  ((TESTS_FAILED++))
+fi
 
-            # Test 3: Redis Connection
-            if docker compose exec -T redis redis-cli ping &> /dev/null; then
-              echo "✓ Redis connectivity test passed"
-              ((TESTS_PASSED++))
-            else
-              echo "❌ Redis connectivity test failed"
-              docker compose logs --tail=20 redis
-              ((TESTS_FAILED++))
-            fi
+# Test 2: Frontend Health
+if docker compose exec -T frontend wget -q -O- http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
+  echo "✓ Frontend health check passed"
+  ((TESTS_PASSED++))
+else
+  echo "❌ Frontend health check failed"
+  docker compose logs --tail=20 frontend
+  ((TESTS_FAILED++))
+fi
 
-            echo "=========================================="
-            echo "Tests Passed: $TESTS_PASSED/3"
-            echo "Tests Failed: $TESTS_FAILED/3"
-            echo "=========================================="
+# Test 3: Redis Connection
+if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
+  echo "✓ Redis connectivity test passed"
+  ((TESTS_PASSED++))
+else
+  echo "❌ Redis connectivity test failed"
+  docker compose logs --tail=20 redis
+  ((TESTS_FAILED++))
+fi
 
-            if [ $TESTS_FAILED -eq 0 ]; then
-              echo "✅ ALL SMOKE TESTS PASSED"
-              exit 0
-            else
-              echo "❌ SOME TESTS FAILED"
-              exit 1
-            fi
-          EOF
+echo "=========================================="
+echo "Tests Passed: $TESTS_PASSED/3"
+echo "Tests Failed: $TESTS_FAILED/3"
+echo "=========================================="
+
+if [ $TESTS_FAILED -eq 0 ]; then
+  echo "✅ ALL SMOKE TESTS PASSED"
+  exit 0
+else
+  echo "❌ SOME TESTS FAILED"
+  exit 1
+fi
+SCRIPT_EOF
+
+          # Execute the smoke test script
+          ssh ${{ secrets.APP_SERVER_USER }}@${{ secrets.APP_SERVER_HOST }} 'bash /tmp/smoke-tests.sh'
 
       - name: Deployment summary
         run: |
