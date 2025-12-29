@@ -276,38 +276,45 @@ export default function SecurityV2Page() {
             </div>
 
             <div className="space-y-4">
-              {securityCategories.map((category) => (
-                <div
-                  key={category.name}
-                  className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                      {category.name}
-                    </h4>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {category.findings} findings
-                    </span>
+              {securityCategories && securityCategories.length > 0 ? (
+                securityCategories.map((category) => (
+                  <div
+                    key={category.name}
+                    className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {category.name}
+                      </h4>
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
+                        {category.findings} findings
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {category.critical > 0 && (
+                        <BadgeV2 variant="critical" size="sm">
+                          {category.critical} Critical
+                        </BadgeV2>
+                      )}
+                      {category.high > 0 && (
+                        <BadgeV2 variant="high" size="sm">
+                          {category.high} High
+                        </BadgeV2>
+                      )}
+                      {category.medium > 0 && (
+                        <BadgeV2 variant="medium" size="sm">
+                          {category.medium} Medium
+                        </BadgeV2>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {category.critical > 0 && (
-                      <BadgeV2 variant="critical" size="sm">
-                        {category.critical} Critical
-                      </BadgeV2>
-                    )}
-                    {category.high > 0 && (
-                      <BadgeV2 variant="high" size="sm">
-                        {category.high} High
-                      </BadgeV2>
-                    )}
-                    {category.medium > 0 && (
-                      <BadgeV2 variant="medium" size="sm">
-                        {category.medium} Medium
-                      </BadgeV2>
-                    )}
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <span className="material-symbols-outlined text-4xl mb-2">security</span>
+                  <p className="text-sm">No security findings by category</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -408,61 +415,75 @@ export default function SecurityV2Page() {
                 </tr>
               </thead>
               <tbody>
-                {findings.map((finding: Finding) => (
-                  <tr
-                    key={finding.id}
-                    className={cn(
-                      'border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border-l-4',
-                      finding.severity === 'CRITICAL'
-                        ? 'border-l-error'
-                        : finding.severity === 'HIGH'
-                          ? 'border-l-warning'
-                          : finding.severity === 'MEDIUM'
-                            ? 'border-l-info'
-                            : 'border-l-slate-300'
-                    )}
-                  >
-                    <td className="py-3 px-4">
-                      <BadgeV2 variant={finding.severity.toLowerCase() as any} size="sm">
-                        {finding.severity}
-                      </BadgeV2>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm font-medium text-slate-900 dark:text-white">
-                        {finding.title}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300">
-                        {finding.resourceId}
-                      </code>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {finding.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <BadgeV2
-                        variant={
-                          finding.status === 'resolved'
-                            ? 'success'
-                            : finding.status === 'dismissed'
-                              ? 'warning'
-                              : 'error'
-                        }
-                        size="sm"
-                      >
-                        {finding.status}
-                      </BadgeV2>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {new Date(finding.detectedAt).toLocaleDateString()}
-                      </span>
+                {findings && findings.length > 0 ? (
+                  findings.map((finding: Finding) => (
+                    <tr
+                      key={finding.id}
+                      className={cn(
+                        'border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border-l-4',
+                        finding.severity === 'CRITICAL'
+                          ? 'border-l-error'
+                          : finding.severity === 'HIGH'
+                            ? 'border-l-warning'
+                            : finding.severity === 'MEDIUM'
+                              ? 'border-l-info'
+                              : 'border-l-slate-300'
+                      )}
+                    >
+                      <td className="py-3 px-4">
+                        <BadgeV2 variant={finding.severity.toLowerCase() as any} size="sm">
+                          {finding.severity}
+                        </BadgeV2>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm font-medium text-slate-900 dark:text-white">
+                          {finding.title}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300">
+                          {finding.resourceId}
+                        </code>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          {finding.category}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <BadgeV2
+                          variant={
+                            finding.status === 'resolved'
+                              ? 'success'
+                              : finding.status === 'dismissed'
+                                ? 'warning'
+                                : 'error'
+                          }
+                          size="sm"
+                        >
+                          {finding.status}
+                        </BadgeV2>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          {new Date(finding.detectedAt).toLocaleDateString()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center">
+                      <div className="text-slate-500 dark:text-slate-400">
+                        <span className="material-symbols-outlined text-6xl mb-4 block">
+                          shield_check
+                        </span>
+                        <p className="text-lg font-medium mb-1">No security findings</p>
+                        <p className="text-sm">Your cloud infrastructure is secure</p>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
