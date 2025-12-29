@@ -7,8 +7,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { cn } from '@/lib/utils';
+import { createCloudAccount, type CloudAccountCredentials } from '@/lib/api/cloud-accounts';
 
 type CloudProvider = 'AWS' | 'Azure' | 'GCP' | null;
 type WizardStep = 'provider' | 'credentials' | 'test' | 'complete';
@@ -20,6 +22,7 @@ interface ConnectionStatus {
 
 export default function NewCloudAccountPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [currentStep, setCurrentStep] = useState<WizardStep>('provider');
   const [selectedProvider, setSelectedProvider] = useState<CloudProvider>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({ status: 'idle' });
@@ -55,28 +58,78 @@ export default function NewCloudAccountPage() {
   };
 
   const handleTestConnection = async () => {
-    setConnectionStatus({ status: 'testing', message: 'Testing connection...' });
+    if (!session || !selectedProvider) {
+      setConnectionStatus({
+        status: 'error',
+        message: 'Session or provider not selected.',
+      });
+      return;
+    }
 
-    // Simulate API call
-    setTimeout(() => {
-      const success = Math.random() > 0.2; // 80% success rate
-      if (success) {
+    setConnectionStatus({ status: 'testing', message: 'Creating cloud account...' });
+
+    try {
+      // Prepare credentials based on provider
+      const credentials: CloudAccountCredentials = {};
+
+      if (selectedProvider === 'AWS') {
+        credentials.accessKeyId = formData.awsAccessKeyId;
+        credentials.secretAccessKey = formData.awsSecretAccessKey;
+        credentials.region = formData.awsRegion;
+      } else if (selectedProvider === 'Azure') {
+        credentials.subscriptionId = formData.azureSubscriptionId;
+        credentials.tenantId = formData.azureTenantId;
+        credentials.clientId = formData.azureClientId;
+        credentials.clientSecret = formData.azureClientSecret;
+      } else if (selectedProvider === 'GCP') {
+        credentials.projectId = formData.gcpProjectId;
+        // Parse service account key JSON
+        try {
+          const serviceAccountKey = JSON.parse(formData.gcpServiceAccountKey);
+          credentials.clientEmail = serviceAccountKey.client_email;
+          credentials.privateKey = serviceAccountKey.private_key;
+        } catch (e) {
+          setConnectionStatus({
+            status: 'error',
+            message: 'Invalid service account key JSON format.',
+          });
+          return;
+        }
+      }
+
+      // Call API to create cloud account
+      const response = await createCloudAccount(
+        {
+          provider: selectedProvider,
+          name: formData.accountName,
+          credentials,
+        },
+        (session as any).accessToken
+      );
+
+      if (response.success) {
         setConnectionStatus({
           status: 'success',
-          message: 'Connection successful! Account verified.',
+          message: 'Connection successful! Account created.',
         });
         setTimeout(() => setCurrentStep('complete'), 1500);
       } else {
         setConnectionStatus({
           status: 'error',
-          message: 'Connection failed. Please verify your credentials.',
+          message: response.error?.message || 'Connection failed. Please verify your credentials.',
         });
       }
-    }, 2000);
+    } catch (error) {
+      console.error('Failed to create cloud account:', error);
+      setConnectionStatus({
+        status: 'error',
+        message: 'An unexpected error occurred. Please try again.',
+      });
+    }
   };
 
   const handleComplete = () => {
-    router.push('/cloud-accounts-v2');
+    router.push('/cloud-accounts');
   };
 
   return (

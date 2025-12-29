@@ -5,102 +5,70 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
+import { listCloudAccounts, deleteCloudAccount, testCloudAccountConnection, type CloudAccount as ApiCloudAccount } from '@/lib/api/cloud-accounts';
 
 interface CloudAccount {
   id: string;
   name: string;
   provider: 'AWS' | 'Azure' | 'GCP';
   accountId: string;
-  status: 'connected' | 'disconnected' | 'error';
+  status: 'connected' | 'disconnected' | 'error' | 'pending';
   region: string;
-  resourceCount: number;
-  monthlyCost: number;
   lastSync: string;
   connectionDate: string;
-  tags: string[];
 }
-
-const mockAccounts: CloudAccount[] = [
-  {
-    id: '1',
-    name: 'Production AWS',
-    provider: 'AWS',
-    accountId: '123456789012',
-    status: 'connected',
-    region: 'us-east-1',
-    resourceCount: 847,
-    monthlyCost: 8450,
-    lastSync: '2 minutes ago',
-    connectionDate: '2024-01-15',
-    tags: ['production', 'critical'],
-  },
-  {
-    id: '2',
-    name: 'Development Azure',
-    provider: 'Azure',
-    accountId: 'sub-abc-def-ghi',
-    status: 'connected',
-    region: 'westeurope',
-    resourceCount: 234,
-    monthlyCost: 2340,
-    lastSync: '5 minutes ago',
-    connectionDate: '2024-02-20',
-    tags: ['development', 'testing'],
-  },
-  {
-    id: '3',
-    name: 'Analytics GCP',
-    provider: 'GCP',
-    accountId: 'project-analytics-123',
-    status: 'connected',
-    region: 'us-central1',
-    resourceCount: 159,
-    monthlyCost: 1660,
-    lastSync: '10 minutes ago',
-    connectionDate: '2024-03-10',
-    tags: ['analytics', 'data'],
-  },
-  {
-    id: '4',
-    name: 'Staging AWS',
-    provider: 'AWS',
-    accountId: '987654321098',
-    status: 'connected',
-    region: 'eu-west-1',
-    resourceCount: 312,
-    monthlyCost: 1890,
-    lastSync: '1 hour ago',
-    connectionDate: '2024-01-20',
-    tags: ['staging'],
-  },
-  {
-    id: '5',
-    name: 'Legacy Azure',
-    provider: 'Azure',
-    accountId: 'sub-legacy-001',
-    status: 'error',
-    region: 'eastus',
-    resourceCount: 78,
-    monthlyCost: 450,
-    lastSync: '2 days ago',
-    connectionDate: '2023-11-05',
-    tags: ['legacy', 'deprecated'],
-  },
-];
 
 export default function CloudAccountsV2Page() {
   const router = useRouter();
-  const [accounts, setAccounts] = useState<CloudAccount[]>(mockAccounts);
+  const { data: session } = useSession();
+  const [accounts, setAccounts] = useState<CloudAccount[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load cloud accounts from API
+  useEffect(() => {
+    const loadAccounts = async () => {
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await listCloudAccounts((session as any).accessToken);
+
+        if (response.success && response.data) {
+          // Transform API data to local format
+          const transformedAccounts: CloudAccount[] = response.data.map((acc: ApiCloudAccount) => ({
+            id: acc.id,
+            name: acc.accountName,
+            provider: acc.provider.toUpperCase() as 'AWS' | 'Azure' | 'GCP',
+            accountId: acc.accountIdentifier,
+            status: acc.status === 'connected' ? 'connected' : acc.status === 'error' ? 'error' : 'pending',
+            region: 'N/A', // Region not available in API yet
+            lastSync: acc.lastSync ? new Date(acc.lastSync).toLocaleString() : 'Never',
+            connectionDate: new Date(acc.createdAt).toLocaleDateString(),
+          }));
+
+          setAccounts(transformedAccounts);
+        }
+      } catch (error) {
+        console.error('Failed to load cloud accounts:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAccounts();
+  }, [session]);
 
   const connectedAccounts = accounts.filter((a) => a.status === 'connected').length;
-  const totalResources = accounts.reduce((sum, a) => sum + a.resourceCount, 0);
-  const totalCost = accounts.reduce((sum, a) => sum + a.monthlyCost, 0);
   const errorAccounts = accounts.filter((a) => a.status === 'error').length;
 
   const filteredAccounts = accounts.filter(
@@ -111,7 +79,60 @@ export default function CloudAccountsV2Page() {
   );
 
   const handleConnectNewAccount = () => {
-    router.push('/cloud-accounts-v2/new');
+    router.push('/cloud-accounts/new');
+  };
+
+  const handleSync = async (accountId: string) => {
+    if (!session) return;
+
+    try {
+      const response = await testCloudAccountConnection(accountId, (session as any).accessToken);
+      if (response.success) {
+        alert(`Sync successful: ${response.data?.message}`);
+        // Reload accounts
+        const accountsResponse = await listCloudAccounts((session as any).accessToken);
+        if (accountsResponse.success && accountsResponse.data) {
+          const transformedAccounts: CloudAccount[] = accountsResponse.data.map((acc: ApiCloudAccount) => ({
+            id: acc.id,
+            name: acc.accountName,
+            provider: acc.provider.toUpperCase() as 'AWS' | 'Azure' | 'GCP',
+            accountId: acc.accountIdentifier,
+            status: acc.status === 'connected' ? 'connected' : acc.status === 'error' ? 'error' : 'pending',
+            region: 'N/A',
+            lastSync: acc.lastSync ? new Date(acc.lastSync).toLocaleString() : 'Never',
+            connectionDate: new Date(acc.createdAt).toLocaleDateString(),
+          }));
+          setAccounts(transformedAccounts);
+        }
+      } else {
+        alert('Sync failed');
+      }
+    } catch (error) {
+      console.error('Failed to sync account:', error);
+      alert('Failed to sync account');
+    }
+  };
+
+  const handleDelete = async (accountId: string, accountName: string) => {
+    if (!session) return;
+
+    if (!confirm(`Are you sure you want to delete "${accountName}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await deleteCloudAccount(accountId, (session as any).accessToken);
+      if (response.success) {
+        // Remove from local state
+        setAccounts(accounts.filter(acc => acc.id !== accountId));
+        alert('Account deleted successfully');
+      } else {
+        alert('Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      alert('Failed to delete account');
+    }
   };
 
   const getStatusColor = (status: CloudAccount['status']) => {
@@ -126,6 +147,21 @@ export default function CloudAccountsV2Page() {
         return 'operational';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <span className="material-symbols-outlined text-6xl text-brand-primary-400 animate-spin mb-4">
+              sync
+            </span>
+            <p className="text-lg text-slate-600 dark:text-slate-400">Loading cloud accounts...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -159,25 +195,17 @@ export default function CloudAccountsV2Page() {
             comparison={`${accounts.length} total accounts`}
           />
           <KPICardV2
-            icon="dns"
-            label="Total Resources"
-            value={totalResources.toLocaleString()}
+            icon="cloud_queue"
+            label="Pending Accounts"
+            value={accounts.filter((a) => a.status === 'pending').length}
             variant="indigo"
-            trend={{
-              direction: 'up',
-              percentage: 8,
-              label: 'vs last month',
-            }}
+            comparison="Awaiting verification"
           />
           <KPICardV2
-            icon="attach_money"
-            label="Total Monthly Cost"
-            value={`$${totalCost.toLocaleString()}`}
+            icon="verified"
+            label="AWS Accounts"
+            value={accounts.filter((a) => a.provider === 'AWS').length}
             variant="blue"
-            trend={{
-              direction: 'up',
-              percentage: 5,
-            }}
           />
           <KPICardV2
             icon="error"
@@ -234,13 +262,10 @@ export default function CloudAccountsV2Page() {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Resources
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    Monthly Cost
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Last Sync
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    Connected Since
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     Actions
@@ -262,13 +287,6 @@ export default function CloudAccountsV2Page() {
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           {account.accountId}
-                        </div>
-                        <div className="flex gap-1 mt-2">
-                          {account.tags.map((tag) => (
-                            <BadgeV2 key={tag} variant="default" size="sm">
-                              {tag}
-                            </BadgeV2>
-                          ))}
                         </div>
                       </div>
                     </td>
@@ -292,45 +310,33 @@ export default function CloudAccountsV2Page() {
                       />
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-indigo-500 text-lg">
-                          dns
-                        </span>
-                        <span className="font-semibold text-slate-900 dark:text-white">
-                          {account.resourceCount}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-blue-500 text-lg">
-                          attach_money
-                        </span>
-                        <span className="font-semibold text-slate-900 dark:text-white">
-                          ${account.monthlyCost.toLocaleString()}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
                       <div className="text-sm text-slate-600 dark:text-slate-400">
                         {account.lastSync}
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <div className="text-sm text-slate-600 dark:text-slate-400">
+                        {account.connectionDate}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                        <button
+                          onClick={() => handleSync(account.id)}
+                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          title="Sync account"
+                        >
                           <span className="material-symbols-outlined text-slate-500 text-lg">
                             sync
                           </span>
                         </button>
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                          <span className="material-symbols-outlined text-slate-500 text-lg">
-                            settings
-                          </span>
-                        </button>
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                          <span className="material-symbols-outlined text-slate-500 text-lg">
-                            more_vert
+                        <button
+                          onClick={() => handleDelete(account.id, account.name)}
+                          className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete account"
+                        >
+                          <span className="material-symbols-outlined text-red-500 text-lg">
+                            delete
                           </span>
                         </button>
                       </div>
