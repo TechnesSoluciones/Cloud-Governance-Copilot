@@ -12,8 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { authApi } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 
-export const dynamic = 'force-dynamic';
-
 export default function VerifyEmailPage() {
   const { data: session } = useSession();
   const router = useRouter();

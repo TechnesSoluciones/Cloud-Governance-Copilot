@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
-export const dynamic = 'force-dynamic';
-
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
