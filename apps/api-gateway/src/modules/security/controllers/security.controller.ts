@@ -1401,6 +1401,139 @@ export class SecurityController {
     }
   };
 
+  /**
+   * Get compliance framework scores
+   *
+   * Calculates compliance scores for standard frameworks (CIS, PCI-DSS, HIPAA, SOC 2, ISO 27001, NIST)
+   * based on security findings. Scores are calculated using a weighted formula that considers
+   * the severity and quantity of findings.
+   *
+   * @route GET /api/v1/security/compliance-scores
+   * @returns Compliance scores for each framework
+   */
+  getComplianceScores = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      // Step 1: Extract tenantId from authenticated user
+      if (!req.user?.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: 'User not authenticated or tenant ID missing',
+        });
+        return;
+      }
+
+      const tenantId = req.user.tenantId;
+      console.log(`[SecurityController] getComplianceScores - Tenant: ${tenantId}`);
+
+      // Step 2: Define framework metadata
+      const frameworkMetadata: Record<string, { name: string; totalControls: number }> = {
+        CIS: { name: 'CIS', totalControls: 177 },
+        'PCI-DSS': { name: 'PCI-DSS', totalControls: 298 },
+        HIPAA: { name: 'HIPAA', totalControls: 141 },
+        'SOC 2': { name: 'SOC 2', totalControls: 105 },
+        'ISO 27001': { name: 'ISO 27001', totalControls: 121 },
+        NIST: { name: 'NIST', totalControls: 200 },
+      };
+
+      // Step 3: Get all findings grouped by framework and severity
+      const findings = await this.prisma.securityFinding.groupBy({
+        by: ['framework', 'severity'],
+        where: {
+          tenantId,
+          status: 'open',
+        },
+        _count: true,
+      });
+
+      // Step 4: Calculate scores for each framework
+      const complianceScores = Object.keys(frameworkMetadata).map((frameworkKey) => {
+        const metadata = frameworkMetadata[frameworkKey];
+
+        // Get findings for this framework
+        const frameworkFindings = findings.filter((f) => f.framework === frameworkKey);
+
+        // Count findings by severity
+        let criticalCount = 0;
+        let highCount = 0;
+        let mediumCount = 0;
+        let lowCount = 0;
+
+        frameworkFindings.forEach((finding) => {
+          const count = finding._count;
+          switch (finding.severity) {
+            case 'critical':
+              criticalCount += count;
+              break;
+            case 'high':
+              highCount += count;
+              break;
+            case 'medium':
+              mediumCount += count;
+              break;
+            case 'low':
+              lowCount += count;
+              break;
+          }
+        });
+
+        // Calculate weighted penalty score
+        // Critical findings have the highest impact on score
+        const totalFindings = criticalCount + highCount + mediumCount + lowCount;
+        const weightedPenalty =
+          (criticalCount * 10) +
+          (highCount * 5) +
+          (mediumCount * 2) +
+          (lowCount * 0.5);
+
+        // Calculate compliance score (0-100)
+        // Start at 100 and subtract weighted penalty
+        // Cap at 0 minimum
+        const maxPenalty = metadata.totalControls * 2; // Maximum possible penalty
+        const score = Math.max(0, Math.round(100 - (weightedPenalty / maxPenalty) * 100));
+
+        // Determine status based on score
+        let status: 'compliant' | 'partial' | 'non-compliant';
+        if (score >= 85) {
+          status = 'compliant';
+        } else if (score >= 60) {
+          status = 'partial';
+        } else {
+          status = 'non-compliant';
+        }
+
+        // Calculate passed controls (estimate based on score)
+        const passed = Math.round((score / 100) * metadata.totalControls);
+
+        return {
+          name: metadata.name,
+          status,
+          score,
+          passed,
+          controls: metadata.totalControls,
+          findings: {
+            total: totalFindings,
+            critical: criticalCount,
+            high: highCount,
+            medium: mediumCount,
+            low: lowCount,
+          },
+        };
+      });
+
+      console.log(
+        `[SecurityController] getComplianceScores - Calculated scores for ${complianceScores.length} frameworks`
+      );
+
+      // Step 5: Return compliance scores
+      res.json({
+        success: true,
+        data: complianceScores,
+      });
+    } catch (error) {
+      this.handleError(error, res, 'getComplianceScores');
+    }
+  };
+
   // ============================================================
   // Private Helper Methods
   // ============================================================

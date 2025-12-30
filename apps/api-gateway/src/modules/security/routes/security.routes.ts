@@ -526,6 +526,47 @@ router.patch('/findings/:id/dismiss', updateLimiter, (req, res) => securityContr
  */
 router.get('/summary', summaryLimiter, (req, res) => securityController.getSummary(req, res));
 
+/**
+ * @route   GET /api/v1/security/compliance-scores
+ * @desc    Get compliance framework scores for tenant
+ * @access  Authenticated users
+ * @limit   50 requests per 15 minutes per IP
+ *
+ * Example Request:
+ * GET /api/v1/security/compliance-scores
+ *
+ * Example Response:
+ * {
+ *   "success": true,
+ *   "data": [
+ *     {
+ *       "name": "CIS",
+ *       "status": "compliant",
+ *       "score": 88,
+ *       "passed": 156,
+ *       "controls": 177,
+ *       "findings": {
+ *         "total": 12,
+ *         "critical": 0,
+ *         "high": 2,
+ *         "medium": 6,
+ *         "low": 4
+ *       }
+ *     }
+ *   ]
+ * }
+ *
+ * Notes:
+ * - Scores are calculated based on open security findings
+ * - Critical findings have the highest impact on score (weight: 10)
+ * - High findings have moderate impact (weight: 5)
+ * - Medium findings have low impact (weight: 2)
+ * - Low findings have minimal impact (weight: 0.5)
+ * - Status: compliant (score >= 85), partial (60-84), non-compliant (< 60)
+ * - Passed controls are estimated based on compliance score
+ */
+router.get('/compliance-scores', summaryLimiter, (req, res) => securityController.getComplianceScores(req, res));
+
 // ============================================================
 // Export Router
 // ============================================================

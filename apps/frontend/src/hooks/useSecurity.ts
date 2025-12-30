@@ -30,6 +30,8 @@ import {
   ResolveFindingResponse,
   DismissFindingResponse,
   SummaryResponse,
+  ComplianceScore,
+  ComplianceScoresResponse,
 } from '@/lib/api/security';
 import { ApiResponse } from '@/lib/api/client';
 
@@ -46,6 +48,7 @@ export const securityKeys = {
   scansDetails: () => [...securityKeys.scans(), 'detail'] as const,
   scanDetail: (id: string) => [...securityKeys.scansDetails(), id] as const,
   summary: () => [...securityKeys.all, 'summary'] as const,
+  complianceScores: () => [...securityKeys.all, 'compliance-scores'] as const,
 };
 
 // Hook Options Types
@@ -71,6 +74,11 @@ export interface UseScanOptions
 
 export interface UseSummaryOptions
   extends Omit<UseQueryOptions<ApiResponse<SummaryResponse>>, 'queryKey' | 'queryFn'> {
+  enabled?: boolean;
+}
+
+export interface UseComplianceScoresOptions
+  extends Omit<UseQueryOptions<ApiResponse<ComplianceScoresResponse>>, 'queryKey' | 'queryFn'> {
   enabled?: boolean;
 }
 
@@ -423,6 +431,19 @@ export function extractSummaryData(
 }
 
 /**
+ * Helper: Extract compliance scores data from API response
+ * Handles the ApiResponse wrapper and provides type-safe access
+ */
+export function extractComplianceScoresData(
+  response: ApiResponse<ComplianceScoresResponse> | undefined
+): ComplianceScore[] | null {
+  if (!response?.success || !response?.data) {
+    return null;
+  }
+  return response.data.data;
+}
+
+/**
  * Hook: useSecurityScore
  * Fetch security score with breakdown by categories
  *
@@ -536,4 +557,42 @@ export function useSecurityRecommendations(
     },
     options
   );
+}
+
+/**
+ * Hook: useComplianceScores
+ * Fetch compliance framework scores (CIS, PCI-DSS, HIPAA, SOC 2, ISO 27001, NIST)
+ *
+ * @param options - React Query options
+ * @returns Query result with compliance scores data
+ *
+ * @example
+ * const { data, isLoading } = useComplianceScores();
+ */
+export function useComplianceScores(
+  options?: UseComplianceScoresOptions
+): UseQueryResult<ApiResponse<ComplianceScoresResponse>> {
+  const { data: session, status } = useSession();
+  const token = (session as any)?.accessToken as string | undefined;
+
+  return useQuery({
+    queryKey: securityKeys.complianceScores(),
+    queryFn: () => {
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      return securityApi.getComplianceScores(token);
+    },
+    enabled: status === 'authenticated' && !!token && options?.enabled !== false,
+    staleTime: 5 * 60 * 1000, // 5 minutes (compliance scores change less frequently)
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('authentication')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    ...options,
+  });
 }

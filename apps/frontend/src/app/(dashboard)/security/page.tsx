@@ -10,7 +10,7 @@ import { KPICardV2 } from '@/components/ui/KPICardV2';
 import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { StatusIndicatorV2 } from '@/components/ui/StatusIndicatorV2';
 import { SecurityScoreCircular } from '@/components/charts/SecurityScoreCircular';
-import { useFindings, useSummary } from '@/hooks/useSecurity';
+import { useFindings, useSummary, useComplianceScores } from '@/hooks/useSecurity';
 import { Finding } from '@/lib/api/security';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,7 @@ export default function SecurityV2Page() {
     page: 1,
     limit: 20,
   });
+  const { data: complianceData, isLoading: complianceLoading, error: complianceError } = useComplianceScores();
 
   // Extract data
   const summary = summaryData?.success && summaryData.data ? summaryData.data.data : null;
@@ -68,47 +69,16 @@ export default function SecurityV2Page() {
     return Array.from(categoriesMap.values());
   }, [findings]);
 
-  // Compliance frameworks data
-  const complianceFrameworks = useMemo(() => [
-    {
-      name: 'CIS',
-      status: 'compliant',
-      score: 88,
-      passed: 156,
-      controls: 177,
-    },
-    {
-      name: 'PCI-DSS',
-      status: 'partial',
-      score: 72,
-      passed: 215,
-      controls: 298,
-    },
-    {
-      name: 'HIPAA',
-      status: 'compliant',
-      score: 91,
-      passed: 128,
-      controls: 141,
-    },
-    {
-      name: 'SOC 2',
-      status: 'compliant',
-      score: 85,
-      passed: 89,
-      controls: 105,
-    },
-    {
-      name: 'ISO 27001',
-      status: 'partial',
-      score: 78,
-      passed: 94,
-      controls: 121,
-    },
-  ], []);
+  // Extract compliance frameworks from API response
+  const complianceFrameworks = useMemo(() => {
+    if (complianceData?.success && complianceData?.data?.data) {
+      return complianceData.data.data;
+    }
+    return [];
+  }, [complianceData]);
 
   // Loading state
-  if ((summaryLoading || findingsLoading) && !summary && findings.length === 0) {
+  if ((summaryLoading || findingsLoading || complianceLoading) && !summary && findings.length === 0) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-center h-96">

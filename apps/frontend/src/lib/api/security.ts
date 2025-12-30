@@ -140,6 +140,25 @@ export interface SummaryResponse {
   data: Summary;
 }
 
+export interface ComplianceScore {
+  name: string;
+  status: 'compliant' | 'partial' | 'non-compliant';
+  score: number;
+  passed: number;
+  controls: number;
+  findings: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+}
+
+export interface ComplianceScoresResponse {
+  data: ComplianceScore[];
+}
+
 /**
  * Security API Client
  * Provides methods for security scanning and findings management
@@ -251,5 +270,12 @@ export const securityApi = {
    */
   getSummary: async (token?: string): Promise<ApiResponse<SummaryResponse>> => {
     return apiGet<SummaryResponse>('/security/summary', token);
+  },
+
+  /**
+   * Get compliance framework scores
+   */
+  getComplianceScores: async (token?: string): Promise<ApiResponse<ComplianceScoresResponse>> => {
+    return apiGet<ComplianceScoresResponse>('/security/compliance-scores', token);
   },
 };
