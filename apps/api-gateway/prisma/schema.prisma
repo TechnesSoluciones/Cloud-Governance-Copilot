@@ -451,7 +451,7 @@ model SecurityFinding {
   framework String @db.VarChar(50) // "CIS" | "NIST"
 
   severity String @db.VarChar(20) // "critical" | "high" | "medium" | "low"
-  status   String @default("open") @db.VarChar(50) // "open" | "resolved" | "accepted_risk"
+  status   String @default("open") @db.VarChar(50) // "open" | "resolved" | "dismissed"
 
   provider     String @db.VarChar(50) // "aws" | "azure"
   resourceType String @map("resource_type") @db.VarChar(100)

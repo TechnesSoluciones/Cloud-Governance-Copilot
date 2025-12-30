@@ -50,7 +50,7 @@ import {
   Link as LinkIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUpdateAssetTags } from '@/hooks/useAssets';
+import { useUpdateTags } from '@/hooks/useAssets';
 import type { Asset, AssetProvider, AssetStatus } from '@/lib/api/assets';
 
 // Component props
@@ -82,7 +82,7 @@ export const ResourceDetailPanel: React.FC<ResourceDetailPanelProps> = ({
   className,
 }) => {
   const { addToast } = useToast();
-  const { mutate: updateTags, isPending: isUpdatingTags } = useUpdateAssetTags();
+  const { mutate: updateTags, isPending: isUpdatingTags } = useUpdateTags();
 
   // Tag editing state
   const [tags, setTags] = useState<Record<string, string>>({});

@@ -49,7 +49,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useBulkUpdateTags } from '@/hooks/useAssets';
+import { useUpdateTags } from '@/hooks/useAssets';
 import type { Asset } from '@/lib/api/assets';
 
 // Component props
@@ -71,7 +71,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   className,
 }) => {
   const { addToast } = useToast();
-  const { mutate: bulkUpdateTags, isPending: isUpdatingTags } = useBulkUpdateTags();
+  const { mutate: bulkUpdateTags, isPending: isUpdatingTags } = useUpdateTags();
 
   // Modal states
   const [showTagModal, setShowTagModal] = useState(false);

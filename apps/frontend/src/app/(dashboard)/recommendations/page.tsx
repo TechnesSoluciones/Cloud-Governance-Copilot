@@ -381,7 +381,7 @@ export default function RecommendationsV2Page() {
                     Remediation Steps
                   </h4>
                   <ol className="space-y-3">
-                    {selectedRecommendation.steps.map((step, index) => (
+                    {selectedRecommendation.steps.map((step: string, index: number) => (
                       <li key={index} className="flex gap-3">
                         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-primary-400 text-white text-xs font-bold flex items-center justify-center">
                           {index + 1}
@@ -402,7 +402,7 @@ export default function RecommendationsV2Page() {
                     Tags
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedRecommendation.tags.map((tag) => (
+                    {selectedRecommendation.tags.map((tag: string) => (
                       <BadgeV2 key={tag} variant="default" size="sm">
                         {tag}
                       </BadgeV2>

@@ -6,31 +6,41 @@
 import { apiGet, apiPost, apiPatch, ApiResponse } from './client';
 
 // Type Definitions
-export type FindingSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low';
 export type FindingStatus = 'open' | 'resolved' | 'dismissed';
 
 // Core Data Interfaces
 export interface Finding {
   id: string;
   tenantId: string;
+  scanId: string;
+  assetId: string | null;
+  ruleCode: string;
+  framework: string;
   severity: FindingSeverity;
+  status: FindingStatus;
+  provider: string;
+  resourceType: string;
   title: string;
   description: string;
-  category: string;
-  recommendation: string;
-  cloudAccountId: string;
-  resourceId: string;
-  resourceType: string;
-  region: string;
-  status: FindingStatus;
+  remediation: string;
+  evidence: any;
   detectedAt: string;
-  resolvedAt?: string;
-  resolution?: string;
-  dismissedAt?: string;
-  dismissalReason?: string;
-  cisControl?: string;
-  createdAt: string;
-  updatedAt: string;
+  resolvedAt: string | null;
+  cloudAccount: {
+    accountName: string;
+    provider: string;
+  };
+  scan: {
+    scanType: string;
+    startedAt: string;
+  };
+  // Backward compatibility aliases
+  category?: string; // alias for framework
+  recommendation?: string; // alias for remediation
+  cloudAccountId?: string; // extracted from cloudAccount
+  resourceId?: string; // alias for assetId
+  cisControl?: string; // alias for ruleCode
 }
 
 export interface Scan {
@@ -85,11 +95,11 @@ export interface TriggerScanParams {
 }
 
 export interface ResolveFindingParams {
-  resolution: string;
+  notes?: string;
 }
 
 export interface DismissFindingParams {
-  dismissalReason: string;
+  reason: string;
 }
 
 // Response Interfaces
@@ -155,9 +165,7 @@ export interface ComplianceScore {
   };
 }
 
-export interface ComplianceScoresResponse {
-  data: ComplianceScore[];
-}
+export type ComplianceScoresResponse = ComplianceScore[];
 
 /**
  * Security API Client

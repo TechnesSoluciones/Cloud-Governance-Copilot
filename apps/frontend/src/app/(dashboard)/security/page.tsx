@@ -16,12 +16,12 @@ import { cn } from '@/lib/utils';
 
 export default function SecurityV2Page() {
   // Fetch security data
-  const { data: summaryData, isLoading: summaryLoading, error: summaryError } = useSummary();
+  const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = useSummary();
   const { data: findingsData, isLoading: findingsLoading, error: findingsError, refetch: refetchFindings } = useFindings({
     page: 1,
     limit: 20,
   });
-  const { data: complianceData, isLoading: complianceLoading, error: complianceError } = useComplianceScores();
+  const { data: complianceData, isLoading: complianceLoading, error: complianceError, refetch: refetchCompliance } = useComplianceScores();
 
   // Extract data
   const summary = summaryData?.success && summaryData.data ? summaryData.data.data : null;
@@ -49,7 +49,7 @@ export default function SecurityV2Page() {
     }>();
 
     findings.forEach((finding: Finding) => {
-      const category = finding.category;
+      const category = finding.framework;
       const existing = categoriesMap.get(category) || {
         name: category,
         findings: 0,
@@ -59,9 +59,9 @@ export default function SecurityV2Page() {
       };
 
       existing.findings++;
-      if (finding.severity === 'CRITICAL') existing.critical++;
-      else if (finding.severity === 'HIGH') existing.high++;
-      else if (finding.severity === 'MEDIUM') existing.medium++;
+      if (finding.severity === 'critical') existing.critical++;
+      else if (finding.severity === 'high') existing.high++;
+      else if (finding.severity === 'medium') existing.medium++;
 
       categoriesMap.set(category, existing);
     });
@@ -71,8 +71,8 @@ export default function SecurityV2Page() {
 
   // Extract compliance frameworks from API response
   const complianceFrameworks = useMemo(() => {
-    if (complianceData?.success && complianceData?.data?.data) {
-      return complianceData.data.data;
+    if (complianceData?.success && complianceData?.data) {
+      return complianceData.data;
     }
     return [];
   }, [complianceData]);
@@ -92,7 +92,15 @@ export default function SecurityV2Page() {
   }
 
   // Error state
-  if (summaryError || findingsError) {
+  if (summaryError || findingsError || complianceError) {
+    const errorMessage = summaryError instanceof Error
+      ? summaryError.message
+      : findingsError instanceof Error
+      ? findingsError.message
+      : complianceError instanceof Error
+      ? complianceError.message
+      : 'Unable to fetch security information';
+
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-center h-96">
@@ -102,11 +110,13 @@ export default function SecurityV2Page() {
               Failed to Load Security Data
             </h3>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              {summaryError instanceof Error ? summaryError.message : 'Unable to fetch security information'}
+              {errorMessage}
             </p>
             <button
               onClick={() => {
+                refetchSummary();
                 refetchFindings();
+                refetchCompliance();
               }}
               className="px-6 py-3 bg-brand-primary-400 text-white rounded-lg font-semibold hover:bg-brand-primary-500 transition-colors inline-flex items-center gap-2"
             >
@@ -391,11 +401,11 @@ export default function SecurityV2Page() {
                       key={finding.id}
                       className={cn(
                         'border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border-l-4',
-                        finding.severity === 'CRITICAL'
+                        finding.severity === 'critical'
                           ? 'border-l-error'
-                          : finding.severity === 'HIGH'
+                          : finding.severity === 'high'
                             ? 'border-l-warning'
-                            : finding.severity === 'MEDIUM'
+                            : finding.severity === 'medium'
                               ? 'border-l-info'
                               : 'border-l-slate-300'
                       )}

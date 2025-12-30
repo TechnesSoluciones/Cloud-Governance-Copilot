@@ -12,7 +12,7 @@ import { BadgeV2 } from '@/components/ui/BadgeV2';
 import { cn } from '@/lib/utils';
 import { createCloudAccount, type CloudAccountCredentials } from '@/lib/api/cloud-accounts';
 
-type CloudProvider = 'AWS' | 'Azure' | 'GCP' | null;
+type CloudProvider = 'AWS' | 'AZURE' | 'GCP' | null;
 type WizardStep = 'provider' | 'credentials' | 'test' | 'complete';
 
 interface ConnectionStatus {
@@ -76,7 +76,7 @@ export default function NewCloudAccountPage() {
         credentials.accessKeyId = formData.awsAccessKeyId;
         credentials.secretAccessKey = formData.awsSecretAccessKey;
         credentials.region = formData.awsRegion;
-      } else if (selectedProvider === 'Azure') {
+      } else if (selectedProvider === 'AZURE') {
         credentials.subscriptionId = formData.azureSubscriptionId;
         credentials.tenantId = formData.azureTenantId;
         credentials.clientId = formData.azureClientId;
@@ -236,7 +236,7 @@ export default function NewCloudAccountPage() {
 
                 {/* Azure Card */}
                 <button
-                  onClick={() => handleProviderSelect('Azure')}
+                  onClick={() => handleProviderSelect('AZURE')}
                   className="group p-8 border-2 border-slate-200 dark:border-slate-800 rounded-xl hover:border-brand-primary-400 hover:bg-brand-primary-50 dark:hover:bg-brand-primary-400/5 transition-all text-center"
                 >
                   <div className="w-16 h-16 mx-auto mb-4 bg-[#0078d4]/10 rounded-xl flex items-center justify-center">
@@ -344,7 +344,7 @@ export default function NewCloudAccountPage() {
                       </div>
                     )}
 
-                    {selectedProvider === 'Azure' && (
+                    {selectedProvider === 'AZURE' && (
                       <div className="space-y-3">
                         <p className="text-sm text-blue-800 dark:text-blue-200">
                           The Service Principal must have the following role assignments at the Subscription level:
@@ -506,7 +506,7 @@ gcloud iam service-accounts keys create key.json \\
                 )}
 
                 {/* Azure Fields */}
-                {selectedProvider === 'Azure' && (
+                {selectedProvider === 'AZURE' && (
                   <>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">

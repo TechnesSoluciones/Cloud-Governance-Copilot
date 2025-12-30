@@ -319,8 +319,8 @@ export function useResolveFinding() {
   const token = (session as any)?.accessToken as string | undefined;
 
   return useMutation({
-    mutationFn: ({ id, resolution }: { id: string; resolution: string }) =>
-      securityApi.resolveFinding(id, { resolution }, token),
+    mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
+      securityApi.resolveFinding(id, { notes }, token),
     onSuccess: (data, variables) => {
       // Invalidate findings list and specific finding to refetch updated data
       queryClient.invalidateQueries({ queryKey: securityKeys.findings() });
@@ -353,8 +353,8 @@ export function useDismissFinding() {
   const token = (session as any)?.accessToken as string | undefined;
 
   return useMutation({
-    mutationFn: ({ id, dismissalReason }: { id: string; dismissalReason: string }) =>
-      securityApi.dismissFinding(id, { dismissalReason }, token),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      securityApi.dismissFinding(id, { reason }, token),
     onSuccess: (data, variables) => {
       // Invalidate findings list and specific finding to refetch updated data
       queryClient.invalidateQueries({ queryKey: securityKeys.findings() });
@@ -440,7 +440,7 @@ export function extractComplianceScoresData(
   if (!response?.success || !response?.data) {
     return null;
   }
-  return response.data.data;
+  return response.data;
 }
 
 /**
