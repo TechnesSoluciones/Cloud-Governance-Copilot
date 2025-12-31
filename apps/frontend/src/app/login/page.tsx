@@ -115,12 +115,15 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
+            {/* REGISTRO DESHABILITADO TEMPORALMENTE (2025-12-31)
+             * Para reactivar: descomentar las líneas siguientes
             <p className="text-sm text-center text-muted-foreground">
               Don't have an account?{' '}
               <Link href="/register" className="text-primary hover:underline">
                 Register
               </Link>
             </p>
+            */}
           </CardFooter>
         </form>
       </Card>

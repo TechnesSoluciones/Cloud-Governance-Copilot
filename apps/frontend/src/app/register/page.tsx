@@ -1,13 +1,86 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+/**
+ * REGISTRO DESHABILITADO TEMPORALMENTE
+ * Fecha: 2025-12-31
+ * Razón: Fase de testing privado - solo acceso por invitación
+ *
+ * Para reactivar:
+ * 1. Descomentar el código del formulario completo abajo
+ * 2. Eliminar el mensaje de "Registration Disabled"
+ * 3. Verificar que el endpoint /auth/register esté activo en el backend
+ */
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
+
+export default function RegisterPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-3xl font-bold text-center">Registration Disabled</CardTitle>
+          <CardDescription className="text-center">
+            New registrations are currently unavailable
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg
+                className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                  Private Beta Testing
+                </h3>
+                <p className="text-sm text-blue-800">
+                  We are currently in private beta testing. New account registrations are temporarily disabled.
+                  If you need access, please contact your administrator.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Already have an account?
+            </p>
+            <Link href="/login">
+              <Button className="w-full">
+                Go to Sign In
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ========================================
+ * CÓDIGO ORIGINAL DEL FORMULARIO DE REGISTRO
+ * TEMPORALMENTE DESHABILITADO (2025-12-31)
+ * ======================================== */
+/*
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { CardFooter } from '@/components/ui/card';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
@@ -34,7 +107,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -67,7 +139,6 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Registration successful, redirect to login
       router.push('/login?registered=true');
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration');
@@ -187,3 +258,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+*/

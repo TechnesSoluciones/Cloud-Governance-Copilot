@@ -13,8 +13,14 @@ import {
 import { ProviderLogo, providerGradients, providerNames } from './ProviderLogo';
 import { StatusBadge } from './StatusBadge';
 import { cn } from '@/lib/utils';
+import { CloudProvider } from '@/config/features';
 
-export type CloudProvider = 'AWS' | 'AZURE' | 'GCP';
+/* TEMPORALMENTE DESHABILITADO - Azure-only mode (2025-12-31)
+ * Tipo original multi-cloud:
+ * export type CloudProvider = 'AWS' | 'AZURE' | 'GCP';
+ *
+ * Ahora importamos desde features.ts que solo incluye 'azure'
+ */
 
 export interface CloudAccount {
   id: string;

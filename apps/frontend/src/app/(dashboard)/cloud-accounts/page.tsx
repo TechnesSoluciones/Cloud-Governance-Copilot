@@ -19,17 +19,23 @@ import {
   type CloudAccount as ApiCloudAccount,
   type CloudAccountCredentials
 } from '@/lib/api/cloud-accounts';
+import { CloudProvider } from '@/config/features';
 
 interface CloudAccount {
   id: string;
   name: string;
-  provider: 'AWS' | 'Azure' | 'GCP';
+  provider: CloudProvider | 'Azure'; // Azure-only mode: CloudProvider = 'azure'
   accountId: string;
   status: 'connected' | 'disconnected' | 'error' | 'pending';
   region: string;
   lastSync: string;
   connectionDate: string;
 }
+
+/* TEMPORALMENTE DESHABILITADO - Azure-only mode (2025-12-31)
+ * Tipo original multi-cloud:
+ * provider: 'AWS' | 'Azure' | 'GCP';
+ */
 
 export default function CloudAccountsV2Page() {
   const router = useRouter();
@@ -287,12 +293,14 @@ export default function CloudAccountsV2Page() {
             variant="indigo"
             comparison="Awaiting verification"
           />
+          {/* TEMPORALMENTE DESHABILITADO - Azure-only mode (2025-12-31)
           <KPICardV2
             icon="verified"
             label="AWS Accounts"
             value={accounts.filter((a) => a.provider === 'AWS').length}
             variant="blue"
           />
+          */}
           <KPICardV2
             icon="error"
             label="Accounts with Errors"
@@ -319,15 +327,19 @@ export default function CloudAccountsV2Page() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* TEMPORALMENTE DESHABILITADO - Azure-only mode (2025-12-31)
               <BadgeV2 variant="aws" size="sm">
                 AWS ({accounts.filter((a) => a.provider === 'AWS').length})
               </BadgeV2>
+              */}
               <BadgeV2 variant="azure" size="sm">
                 Azure ({accounts.filter((a) => a.provider === 'Azure').length})
               </BadgeV2>
+              {/* TEMPORALMENTE DESHABILITADO - Azure-only mode (2025-12-31)
               <BadgeV2 variant="gcp" size="sm">
                 GCP ({accounts.filter((a) => a.provider === 'GCP').length})
               </BadgeV2>
+              */}
             </div>
           </div>
         </div>
