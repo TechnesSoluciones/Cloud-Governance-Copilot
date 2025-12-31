@@ -9,16 +9,33 @@
  * - Each provider (AWS, Azure, GCP) implements this interface
  * - Modules (FinOps, Assets, Security) consume providers through this interface
  * - Easy to add new providers without changing module code
+ *
+ * ESTADO ACTUAL (2025-12-31):
+ * - Solo Azure activo
+ * - AWS temporalmente deshabilitado (código en /integrations/aws.disabled/)
+ * - GCP no implementado
  */
 
 // ============================================================
 // Common Types
 // ============================================================
 
+/* ========================================
+ * MULTI-CLOUD SUPPORT - TEMPORALMENTE DESHABILITADO
+ * Fecha: 2025-12-31
+ * Razón: Transición a Azure-only mode
+ *
+ * Para reactivar AWS/GCP:
+ * 1. Descomentar línea siguiente
+ * 2. Renombrar /integrations/aws.disabled/ → /integrations/aws/
+ * 3. Ver /integrations/aws.disabled/README.md
+ * ======================================== */
+// export type CloudProviderType = 'aws' | 'azure' | 'gcp';
+
 /**
- * Supported cloud providers
+ * Supported cloud providers (Solo Azure activo)
  */
-export type CloudProviderType = 'aws' | 'azure' | 'gcp';
+export type CloudProviderType = 'azure';
 
 /**
  * Date range for queries
@@ -315,24 +332,31 @@ export interface CloudProvider {
 
 /**
  * Credentials for cloud providers
+ * Solo Azure activo - campos AWS/GCP preservados para futura reactivación
  */
 export interface CloudProviderCredentials {
   provider: CloudProviderType;
 
-  // AWS credentials
-  awsAccessKeyId?: string;
-  awsSecretAccessKey?: string;
-  awsRegion?: string;
+  /* ========================================
+   * AWS CREDENTIALS - TEMPORALMENTE DESHABILITADO
+   * Para reactivar: descomentar campos
+   * ======================================== */
+  // awsAccessKeyId?: string;
+  // awsSecretAccessKey?: string;
+  // awsRegion?: string;
 
-  // Azure credentials
+  // Azure credentials - ACTIVO
   azureTenantId?: string;
   azureClientId?: string;
   azureClientSecret?: string;
   azureSubscriptionId?: string;
 
-  // GCP credentials
-  gcpProjectId?: string;
-  gcpCredentials?: string; // JSON string
+  /* ========================================
+   * GCP CREDENTIALS - TEMPORALMENTE DESHABILITADO
+   * Para reactivar: descomentar campos
+   * ======================================== */
+  // gcpProjectId?: string;
+  // gcpCredentials?: string; // JSON string
 }
 
 /**

@@ -87,6 +87,11 @@ jobs:
           NODE_ENV=production
           LOG_LEVEL=info
           PORT=3010
+
+          # Feature Flags (Azure-Only Mode - v1.6.0)
+          ENABLE_AZURE=true
+          ENABLE_AWS=false
+          ENABLE_GCP=false
           EOF
 
       - name: Copy files to server

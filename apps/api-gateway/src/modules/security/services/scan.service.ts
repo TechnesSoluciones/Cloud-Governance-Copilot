@@ -25,7 +25,8 @@
 import { PrismaClient, CloudAccount, Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { EventEmitter } from 'events';
-import { AWSSecurityScannerService } from '../../../integrations/aws/security-scanner.service';
+// AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
+// import { AWSSecurityScannerService } from '../../../integrations/aws.disabled/security-scanner.service';
 import { AzureSecurityScannerService } from '../../../integrations/azure/security-scanner.service';
 import { ClientSecretCredential } from '@azure/identity';
 import { decrypt, decryptFields } from '../../../utils/encryption';
@@ -103,14 +104,16 @@ interface EncryptedCredentials {
   authTag: string;
 }
 
+/* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
 /**
  * AWS decrypted credentials
- */
+ *\/
 interface AWSCredentials {
   accessKeyId: string;
   secretAccessKey: string;
   region?: string;
 }
+*/
 
 /**
  * Azure decrypted credentials
@@ -316,12 +319,14 @@ export class SecurityScanService extends EventEmitter {
       // Run provider-specific scan
       let findings: AWSSecurityFinding[] = [];
 
+      /* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
       if (account.provider === 'AWS') {
         findings = await this.scanAWSAccount(account);
-      } else if (account.provider === 'AZURE') {
+      } else */
+      if (account.provider === 'AZURE') {
         findings = await this.scanAzureAccount(account);
       } else {
-        throw new Error(`Unsupported provider: ${account.provider}`);
+        throw new Error(`Only 'AZURE' is currently supported. Provider: ${account.provider}`);
       }
 
       logger.info(`Scan completed for account ${account.id}, found ${findings.length} findings`);
@@ -402,12 +407,13 @@ export class SecurityScanService extends EventEmitter {
     };
   }
 
+  /* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
   /**
    * Scan AWS account for security misconfigurations
    *
    * @param account - AWS cloud account
    * @returns Array of security findings
-   */
+   *\/
   private async scanAWSAccount(account: CloudAccount): Promise<AWSSecurityFinding[]> {
     logger.info('Scanning AWS account', { accountId: account.id });
 
@@ -432,6 +438,7 @@ export class SecurityScanService extends EventEmitter {
 
     return findings;
   }
+  */
 
   /**
    * Scan Azure account for security misconfigurations
@@ -484,12 +491,13 @@ export class SecurityScanService extends EventEmitter {
     return normalizedFindings;
   }
 
+  /* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
   /**
    * Decrypt AWS credentials from database
    *
    * @param account - Cloud account with encrypted credentials
    * @returns Decrypted AWS credentials
-   */
+   *\/
   private decryptAWSCredentials(account: CloudAccount): AWSCredentials {
     try {
       // Decrypt the credentials stored in the database
@@ -516,6 +524,7 @@ export class SecurityScanService extends EventEmitter {
       throw new Error(`Failed to decrypt AWS credentials: ${error.message}`);
     }
   }
+  */
 
   /**
    * Decrypt Azure credentials from database

@@ -5,14 +5,25 @@ import { encrypt, decrypt, EncryptedData } from '../utils/encryption';
 /**
  * Cloud Account credentials structure
  * Provider-specific credential formats
+ *
+ * ESTADO ACTUAL (2025-12-31): Solo Azure activo
+ * AWS/GCP temporalmente deshabilitados
  */
+
+/* ========================================
+ * AWS CREDENTIALS - TEMPORALMENTE DESHABILITADO
+ * Para reactivar: descomentar interface
+ * ======================================== */
+/*
 export interface AWSCredentials {
   accessKeyId: string;
   secretAccessKey: string;
   region?: string;
   sessionToken?: string;
 }
+*/
 
+// AZURE CREDENTIALS - ACTIVO
 export interface AzureCredentials {
   tenantId: string;
   clientId: string;
@@ -20,20 +31,31 @@ export interface AzureCredentials {
   subscriptionId: string;
 }
 
+/* ========================================
+ * GCP CREDENTIALS - TEMPORALMENTE DESHABILITADO
+ * Para reactivar: descomentar interface
+ * ======================================== */
+/*
 export interface GCPCredentials {
   projectId: string;
   clientEmail: string;
   privateKey: string;
 }
+*/
 
-export type CloudCredentials = AWSCredentials | AzureCredentials | GCPCredentials;
+// Solo Azure activo actualmente
+export type CloudCredentials = AzureCredentials;
+/* MULTI-CLOUD - Para reactivar:
+ * export type CloudCredentials = AWSCredentials | AzureCredentials | GCPCredentials;
+ */
 
 /**
  * Cloud Account creation DTO
+ * Solo Azure activo
  */
 export interface CreateCloudAccountDto {
   tenantId: string;
-  provider: 'aws' | 'azure' | 'gcp';
+  provider: 'azure'; // Solo Azure - Para multi-cloud: 'aws' | 'azure' | 'gcp'
   accountName: string;
   accountIdentifier: string;
   credentials: CloudCredentials;
@@ -242,9 +264,15 @@ class CloudAccountService {
 
   /**
    * Validate credentials based on provider
+   * Solo Azure activo - AWS/GCP temporalmente deshabilitados
    */
   private validateCredentials(provider: string, credentials: CloudCredentials): void {
     switch (provider) {
+      /* ========================================
+       * AWS VALIDATION - TEMPORALMENTE DESHABILITADO
+       * Para reactivar: descomentar caso completo
+       * ======================================== */
+      /*
       case 'aws':
         const aws = credentials as AWSCredentials;
         if (!aws.accessKeyId || !aws.secretAccessKey) {
@@ -254,6 +282,7 @@ class CloudAccountService {
           throw new Error('Invalid AWS credential format');
         }
         break;
+      */
 
       case 'azure':
         const azure = credentials as AzureCredentials;
@@ -264,6 +293,11 @@ class CloudAccountService {
         }
         break;
 
+      /* ========================================
+       * GCP VALIDATION - TEMPORALMENTE DESHABILITADO
+       * Para reactivar: descomentar caso completo
+       * ======================================== */
+      /*
       case 'gcp':
         const gcp = credentials as GCPCredentials;
         if (!gcp.projectId || !gcp.clientEmail || !gcp.privateKey) {
@@ -273,9 +307,12 @@ class CloudAccountService {
           throw new Error('Invalid GCP credential format');
         }
         break;
+      */
 
       default:
-        throw new Error(`Unsupported cloud provider: ${provider}`);
+        throw new Error(
+          `Unsupported cloud provider: ${provider}. Only 'azure' is currently supported.`
+        );
     }
   }
 
@@ -299,6 +336,7 @@ class CloudAccountService {
   /**
    * Test cloud account connection
    * Returns true if credentials are valid
+   * Solo Azure activo
    */
   async testConnection(accountId: string, tenantId: string): Promise<boolean> {
     try {
@@ -312,17 +350,21 @@ class CloudAccountService {
       // TODO: Implement actual cloud provider SDK calls
       // For now, just verify we can decrypt credentials
       switch (account.provider) {
+        /* TEMPORALMENTE DESHABILITADO
         case 'aws':
           const aws = credentials as AWSCredentials;
           return !!(aws.accessKeyId && aws.secretAccessKey);
+        */
 
         case 'azure':
           const azure = credentials as AzureCredentials;
           return !!(azure.tenantId && azure.clientId && azure.clientSecret);
 
+        /* TEMPORALMENTE DESHABILITADO
         case 'gcp':
           const gcp = credentials as GCPCredentials;
           return !!(gcp.projectId && gcp.clientEmail && gcp.privateKey);
+        */
 
         default:
           return false;

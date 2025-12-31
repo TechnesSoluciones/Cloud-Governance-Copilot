@@ -6,14 +6,15 @@
  */
 
 import { CostCollectionService } from '../../../modules/finops/services/cost-collection.service';
-import { AWSCostExplorerService } from '../../../integrations/aws/cost-explorer.service';
+// AWS TEMPORALMENTE DESHABILITADO - Tests preserved for future reactivation
+// import { AWSCostExplorerService } from '../../../integrations/aws.disabled/cost-explorer.service';
 import { AzureCostManagementService } from '../../../integrations/azure/cost-management.service';
 import { PrismaClient } from '@prisma/client';
 import { EventEmitter } from 'events';
 import { createMockDateRange, createMockCostData, createMockPrismaCloudAccount } from '../../utils/test-helpers';
 
 // Mock dependencies
-jest.mock('../../../integrations/aws/cost-explorer.service');
+// jest.mock('../../../integrations/aws.disabled/cost-explorer.service');
 jest.mock('../../../integrations/azure/cost-management.service');
 jest.mock('crypto', () => ({
   createDecipheriv: jest.fn(() => ({
@@ -23,11 +24,13 @@ jest.mock('crypto', () => ({
   })),
 }));
 
-describe('Cost Collection Service', () => {
+// TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
+// Para reactivar: descomentar imports AWS arriba y cambiar describe.skip → describe
+describe.skip('Cost Collection Service - AWS Tests Disabled', () => {
   let service: CostCollectionService;
   let mockPrisma: jest.Mocked<PrismaClient>;
   let mockEventBus: EventEmitter;
-  let mockAWSService: jest.Mocked<AWSCostExplorerService>;
+  // let mockAWSService: jest.Mocked<AWSCostExplorerService>;
   let mockAzureService: jest.Mocked<AzureCostManagementService>;
 
   beforeEach(() => {
@@ -48,14 +51,14 @@ describe('Cost Collection Service', () => {
     // Mock Event Bus
     mockEventBus = new EventEmitter();
 
-    // Mock AWS Service
-    mockAWSService = {
-      validateCredentials: jest.fn().mockResolvedValue(true),
-      getCosts: jest.fn().mockResolvedValue([
-        createMockCostData({ amount: 100, service: 'EC2' }),
-        createMockCostData({ amount: 50, service: 'RDS' }),
-      ]),
-    } as any;
+    // Mock AWS Service - DISABLED
+    // mockAWSService = {
+    //   validateCredentials: jest.fn().mockResolvedValue(true),
+    //   getCosts: jest.fn().mockResolvedValue([
+    //     createMockCostData({ amount: 100, service: 'EC2' }),
+    //     createMockCostData({ amount: 50, service: 'RDS' }),
+    //   ]),
+    // } as any;
 
     // Mock Azure Service
     mockAzureService = {
@@ -63,10 +66,10 @@ describe('Cost Collection Service', () => {
       getCosts: jest.fn().mockResolvedValue([]),
     } as any;
 
-    // Mock service constructors
-    (AWSCostExplorerService as jest.MockedClass<typeof AWSCostExplorerService>).mockImplementation(
-      () => mockAWSService
-    );
+    // Mock service constructors - AWS DISABLED
+    // (AWSCostExplorerService as jest.MockedClass<typeof AWSCostExplorerService>).mockImplementation(
+    //   () => mockAWSService
+    // );
     (AzureCostManagementService as jest.MockedClass<typeof AzureCostManagementService>).mockImplementation(
       () => mockAzureService
     );

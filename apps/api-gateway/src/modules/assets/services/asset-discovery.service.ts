@@ -21,7 +21,8 @@
 
 import { PrismaClient, CloudAccount, Asset } from '@prisma/client';
 import { EventEmitter } from 'events';
-import { AWSEC2Service } from '../../../integrations/aws/ec2.service';
+// AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
+// import { AWSEC2Service } from '../../../integrations/aws.disabled/ec2.service';
 import { AzureComputeService } from '../../../integrations/azure/compute.service';
 import { decrypt } from '../../../utils/encryption';
 import type {
@@ -198,8 +199,10 @@ export class AssetDiscoveryService {
     const provider = account.provider.toLowerCase();
 
     switch (provider) {
+      /* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
       case 'aws':
         return await this.discoverAWSAssets(account);
+      */
 
       case 'azure':
         return await this.discoverAzureAssets(account);
@@ -208,17 +211,18 @@ export class AssetDiscoveryService {
         throw new Error('Unsupported provider: GCP discovery not yet implemented');
 
       default:
-        throw new Error(`Unsupported provider: ${account.provider}`);
+        throw new Error(`Only 'azure' is currently supported. Provider: ${account.provider}`);
     }
   }
 
+  /* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
   /**
    * Discover AWS EC2 assets
    *
    * @private
    * @param account - AWS cloud account
    * @returns Array of discovered EC2 instances
-   */
+   *\/
   private async discoverAWSAssets(account: CloudAccount): Promise<CloudAsset[]> {
     try {
       // Decrypt AWS credentials
@@ -241,6 +245,7 @@ export class AssetDiscoveryService {
       throw error;
     }
   }
+  */
 
   /**
    * Discover Azure VM assets
