@@ -33,7 +33,11 @@ import { PrismaClient, CloudAccount } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { createDecipheriv } from 'crypto';
 import { EventEmitter } from 'events';
-import { AWSCostExplorerService } from '../../../integrations/aws';
+/* ========================================
+ * AWS IMPORT - TEMPORALMENTE DESHABILITADO
+ * Para reactivar: descomentar import
+ * ======================================== */
+// import { AWSCostExplorerService } from '../../../integrations/aws';
 import { AzureCostManagementService } from '../../../integrations/azure';
 import { eventBus } from '../../../shared/events/event-bus';
 import type { DateRange, CloudCostData, CloudProvider } from '../../../integrations/cloud-provider.interface';
@@ -62,17 +66,21 @@ export interface CollectionResult {
   errors?: string[];
 }
 
-/**
- * Decrypted AWS cloud provider credentials
- */
+/* ========================================
+ * AWS CREDENTIALS - TEMPORALMENTE DESHABILITADO
+ * Para reactivar: descomentar interface
+ * ======================================== */
+/*
 interface DecryptedAWSCredentials {
   accessKeyId: string;
   secretAccessKey: string;
   region?: string;
 }
+*/
 
 /**
  * Decrypted Azure cloud provider credentials
+ * ACTIVO - Solo Azure soportado actualmente
  */
 interface DecryptedAzureCredentials {
   clientId: string;
@@ -82,9 +90,10 @@ interface DecryptedAzureCredentials {
 }
 
 /**
- * Union type for decrypted credentials (AWS or Azure)
+ * Decrypted credentials type - Solo Azure activo
+ * Para multi-cloud: DecryptedAWSCredentials | DecryptedAzureCredentials
  */
-type DecryptedCredentials = DecryptedAWSCredentials | DecryptedAzureCredentials;
+type DecryptedCredentials = DecryptedAzureCredentials;
 
 /**
  * Extended CloudAccount with tenant relation
@@ -243,29 +252,23 @@ export class CostCollectionService {
   /**
    * Factory method to create the appropriate cloud provider service
    *
-   * This method instantiates the correct cloud provider service (AWS or Azure)
-   * based on the account's provider type. It uses the Factory Pattern to abstract
+   * ESTADO ACTUAL: Solo Azure activo (AWS temporalmente deshabilitado)
+   *
+   * This method instantiates the correct cloud provider service based on the
+   * account's provider type. It uses the Factory Pattern to abstract
    * the creation logic and ensure type-safe credential handling.
    *
    * Supported providers:
-   * - 'aws': Creates AWSCostExplorerService with AWS credentials
    * - 'azure': Creates AzureCostManagementService with Azure credentials
    *
    * @param account - Cloud account with provider type
-   * @param credentials - Decrypted credentials (AWS or Azure format)
-   * @returns CloudProvider instance (AWSCostExplorerService or AzureCostManagementService)
+   * @param credentials - Decrypted Azure credentials
+   * @returns CloudProvider instance (AzureCostManagementService)
    * @throws Error if provider is not supported
    * @private
    *
    * @example
    * ```typescript
-   * // For AWS account
-   * const awsService = this.createCloudProvider(awsAccount, {
-   *   accessKeyId: 'AKIA...',
-   *   secretAccessKey: 'secret...',
-   *   region: 'us-east-1'
-   * });
-   *
    * // For Azure account
    * const azureService = this.createCloudProvider(azureAccount, {
    *   clientId: 'client-id-uuid',
@@ -280,6 +283,15 @@ export class CostCollectionService {
     credentials: DecryptedCredentials
   ): CloudProvider {
     switch (account.provider) {
+      /* ========================================
+       * AWS CASE - TEMPORALMENTE DESHABILITADO
+       * Fecha: 2025-12-31
+       * Para reactivar:
+       * 1. Descomentar caso completo
+       * 2. Descomentar import AWSCostExplorerService
+       * 3. Descomentar interface DecryptedAWSCredentials
+       * ======================================== */
+      /*
       case 'aws': {
         const awsCreds = credentials as DecryptedAWSCredentials;
         return new AWSCostExplorerService({
@@ -289,6 +301,7 @@ export class CostCollectionService {
           awsRegion: awsCreds.region || 'us-east-1',
         });
       }
+      */
 
       case 'azure': {
         const azureCreds = credentials as DecryptedAzureCredentials;
@@ -303,7 +316,7 @@ export class CostCollectionService {
 
       default:
         throw new Error(
-          `Unsupported cloud provider: ${account.provider}. Currently supports: aws, azure`
+          `Unsupported cloud provider: ${account.provider}. Only 'azure' is currently supported.`
         );
     }
   }
