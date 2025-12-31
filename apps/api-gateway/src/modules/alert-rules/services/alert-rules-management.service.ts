@@ -293,15 +293,16 @@ export class AlertRulesManagementService {
         azureTenantId: credentials.tenantId,
         azureSubscriptionId: credentials.subscriptionId,
       };
-    } else if (account.provider === 'aws') {
+    } /* AWS TEMPORALMENTE DESHABILITADO - Azure-only mode (v1.6.0)
+    else if (account.provider === 'aws') {
       return {
         provider: 'aws',
         awsAccessKeyId: credentials.accessKeyId,
         awsSecretAccessKey: credentials.secretAccessKey,
         awsRegion: credentials.region,
       };
-    } else {
-      throw new Error(`Unsupported provider: ${account.provider}`);
+    } */ else {
+      throw new Error(`Only 'azure' is currently supported. Provider: ${account.provider}`);
     }
   }
 
