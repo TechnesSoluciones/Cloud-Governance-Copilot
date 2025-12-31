@@ -9,19 +9,28 @@ import { SimpleSelect, SelectOption } from '@/components/ui/select';
 export interface ProviderFormData {
   provider: CloudProvider;
   name: string;
-  // AWS
-  accessKeyId?: string;
-  secretAccessKey?: string;
-  region?: string;
-  // Azure
+
+  /* ========================================
+   * AWS FIELDS - TEMPORALMENTE DESHABILITADO
+   * Para reactivar: descomentar sección
+   * ======================================== */
+  // accessKeyId?: string;
+  // secretAccessKey?: string;
+  // region?: string;
+
+  // Azure - ACTIVO
   tenantId?: string;
   clientId?: string;
   clientSecret?: string;
   subscriptionId?: string;
-  // GCP
-  projectId?: string;
-  clientEmail?: string;
-  privateKey?: string;
+
+  /* ========================================
+   * GCP FIELDS - TEMPORALMENTE DESHABILITADO
+   * Para reactivar: descomentar sección
+   * ======================================== */
+  // projectId?: string;
+  // clientEmail?: string;
+  // privateKey?: string;
 }
 
 export interface ProviderFormProps {
@@ -31,6 +40,11 @@ export interface ProviderFormProps {
   errors?: Record<string, string>;
 }
 
+/* ========================================
+ * AWS REGIONS - TEMPORALMENTE DESHABILITADO
+ * Para reactivar: descomentar constante
+ * ======================================== */
+/*
 const awsRegions: SelectOption[] = [
   { value: 'us-east-1', label: 'US East (N. Virginia)' },
   { value: 'us-east-2', label: 'US East (Ohio)' },
@@ -43,6 +57,7 @@ const awsRegions: SelectOption[] = [
   { value: 'ap-southeast-2', label: 'Asia Pacific (Sydney)' },
   { value: 'ap-northeast-1', label: 'Asia Pacific (Tokyo)' },
 ];
+*/
 
 export const ProviderForm: React.FC<ProviderFormProps> = ({
   provider,
@@ -79,7 +94,16 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
         )}
       </div>
 
-      {/* AWS-specific fields */}
+      {/* ========================================
+       * AWS FORM FIELDS - TEMPORALMENTE DESHABILITADO
+       * Fecha: 2025-12-31
+       * Para reactivar:
+       * 1. Descomentar sección completa
+       * 2. Descomentar awsRegions arriba
+       * 3. Descomentar campos AWS en ProviderFormData
+       * 4. Ver /docs/REACTIVATION_GUIDE_AWS_GCP.md
+       * ======================================== */}
+      {/*
       {provider === 'AWS' && (
         <>
           <div className="space-y-2">
@@ -134,6 +158,7 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
           />
         </>
       )}
+      */}
 
       {/* Azure-specific fields */}
       {provider === 'AZURE' && (
@@ -225,7 +250,15 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
         </>
       )}
 
-      {/* GCP-specific fields */}
+      {/* ========================================
+       * GCP FORM FIELDS - TEMPORALMENTE DESHABILITADO
+       * Fecha: 2025-12-31
+       * Para reactivar:
+       * 1. Descomentar sección completa
+       * 2. Descomentar campos GCP en ProviderFormData
+       * 3. Ver /docs/REACTIVATION_GUIDE_AWS_GCP.md
+       * ======================================== */}
+      {/*
       {provider === 'GCP' && (
         <>
           <div className="space-y-2">
@@ -294,6 +327,7 @@ export const ProviderForm: React.FC<ProviderFormProps> = ({
           </div>
         </>
       )}
+      */}
     </div>
   );
 };
